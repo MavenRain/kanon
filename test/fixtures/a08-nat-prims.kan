@@ -1,0 +1,12 @@
+-- a08: the nat literals and the five prims.  Every prim applies by
+-- juxtaposition (SA-D1).
+
+axiom Nat : Type 0
+axiom Bool : Type 0
+
+def sum : Nat := natAdd 2 3
+def diff : Nat := natSub 5 1
+def prod : Nat := natMul 6 7
+def same : Bool := natEq 4 4
+def less : Bool := natLt 1 2
+def mixed : Nat := natAdd (natMul 2 3) 4

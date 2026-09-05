@@ -1,0 +1,8 @@
+-- a07: Prop and the Type levels.  Prop is level zero, so a term of
+-- Prop lives at Type 1.
+
+def propAtOne : Type 1 := Prop
+def typeZeroAtOne : Type 1 := Type 0
+def typeOneAtTwo : Type 2 := Type 1
+def propArrow : Type 1 := (0 P : Prop) -> Prop
+def bareType : Type 1 := Type

@@ -1,0 +1,16 @@
+-- a04: inj, and case with a motive and without one.
+-- The M0 surface grammar has no production for the collection
+-- formers, so the two-leg type arrives as an axiom.  Stage B either
+-- adds the production or reads the type the checker expects.
+
+axiom Nat : Type 0
+axiom Two : Type 0
+
+def left : Two := inj 0 of 2 1
+def right : Two := inj 1 of 2 2
+
+def plain : (x : Two) -> Nat :=
+  fun (x : Two) => case x with | 0 (a : Nat) => a | 1 (b : Nat) => b
+
+def withMotive : (x : Two) -> Nat :=
+  fun (x : Two) => case x as y return Nat with | 0 (a : Nat) => a | 1 (b : Nat) => b

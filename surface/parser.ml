@@ -1,0 +1,374 @@
+(** Recursive-descent parser for the M0 surface, SPEC.md section 9.
+    [parse] returns a result and never leaves the result track:  no
+    OCaml failure is thrown and none is caught.
+
+    Mirrors kan-lang-tot-pin/surface/parser.ml:1-430 arm by arm:  the
+    [let*] walk over an immutable token list, the speculative binder
+    group of parser.ml:316-352 that commits only when the closing
+    parenthesis is followed by the operator, the [parse_arrow] fold of
+    parser.ml:354-360, the left-associative application loop of
+    parser.ml:380-390 and the atom table of parser.ml:392-427.  tot's
+    hole record, its data items and its "end"-terminated match have no
+    M0 production and are left out.
+
+    Precedence, loosest first (SPEC.md section 9):  the arrow and the
+    star, which are right associative;  then application, which is left
+    associative (SA-D1);  then the postfix projections.  The three
+    binding forms fun, let and case sit at the loosest level and reach
+    as far right as they can. *)
+
+open Kanon_kernel
+
+let ( let* ) = Result.bind
+
+let parse_err (loc : Token.loc) (msg : string) : ('a, Error.t) result =
+  Error (Error.Parse (msg, loc.Token.line, loc.Token.col))
+
+let eof_err : ('a, Error.t) result =
+  (* unreachable:  the lexer always materialises an [Eof] token *)
+  parse_err Token.start "unexpected end of input"
+
+(** One error shape for every "wanted X, read Y" arm, so a new arm adds
+    a name and no format.  mirrors the error arms of
+    kan-lang-tot-pin/surface/parser.ml, which spell this inline. *)
+let expected (what : string) (ts : Token.t list) : ('a, Error.t) result =
+  match ts with
+  | { Token.kind; loc } :: _rest ->
+      parse_err loc (Printf.sprintf "expected %s, found %s" what (Token.describe kind))
+  | [] -> eof_err
+
+(* mirrors kan-lang-tot-pin/surface/parser.ml:51-69 *)
+let kind_starts_atom (k : Token.kind) : bool =
+  match k with
+  | Token.Ident _ | Token.Nat _ | Token.LParen | Token.Unit | Token.KProp | Token.KType
+  | Token.KAuto | Token.KTuple | Token.KNatAdd | Token.KNatSub | Token.KNatMul
+  | Token.KNatEq | Token.KNatLt | Token.KMu | Token.KNu ->
+      true
+  | Token.RParen | Token.Colon | Token.ColonEq | Token.Arrow | Token.DArrow | Token.Star
+  | Token.Comma | Token.Dot | Token.Dot1 | Token.Dot2 | Token.Pipe | Token.KDef
+  | Token.KAxiom | Token.KFun | Token.KInj | Token.KOf | Token.KCase | Token.KAs
+  | Token.KReturn | Token.KWith | Token.KAbsurd | Token.KLet | Token.KIn | Token.Eof ->
+      false
+
+let starts_atom (ts : Token.t list) : bool =
+  match ts with
+  | { Token.kind; loc = _ } :: _rest -> kind_starts_atom kind
+  | [] -> false
+
+(** The binder's mark, SPEC.md section 9 and SA-D17.  "0" is the erased
+    mark and "1" is the runtime mark, which an absent mark also means.
+    Total:  a token that is neither leaves the list where it was. *)
+let mark_prefix (ts : Token.t list) : Quantity.t * Token.t list =
+  match ts with
+  | { Token.kind = Token.Nat 0; loc = _ } :: rest -> (Quantity.Zero, rest)
+  | { Token.kind = Token.Nat 1; loc = _ } :: rest -> (Quantity.Many, rest)
+  | ({ Token.kind = _; loc = _ } :: _ | []) as same -> (Quantity.Many, same)
+
+let rec parse_term (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.KFun; loc = _ } :: rest -> parse_fun rest
+  | { Token.kind = Token.KLet; loc = _ } :: rest -> parse_let rest
+  | { Token.kind = Token.KCase; loc = _ } :: rest -> parse_case rest
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> parse_arrow ts
+
+(** "fun binder+ => body".  One binder at least;  the body reaches as
+    far right as it can. *)
+and parse_fun (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  let* first, rest = parse_binder ts in
+  let* binders, rest2 = parse_binders rest [ first ] in
+  match rest2 with
+  | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
+      let* body, rest4 = parse_term rest3 in
+      Ok (Syntax.SFun (binders, body), rest4)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2
+
+(** Zero or more binders, oldest first.  Total over a list that starts
+    with no parenthesis. *)
+and parse_binders (ts : Token.t list) (acc : Syntax.binder list) :
+    (Syntax.binder list * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.LParen; loc = _ } :: _rest ->
+      let* b, rest = parse_binder ts in
+      parse_binders rest (b :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)
+
+(** binder ::= '(' ('0' | '1')? name ':' term ')' *)
+and parse_binder (ts : Token.t list) : (Syntax.binder * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.LParen; loc = _ } :: rest -> (
+      let q, rest_q = mark_prefix rest in
+      match rest_q with
+      | { Token.kind = Token.Ident x; loc = _ }
+        :: { Token.kind = Token.Colon; loc = _ }
+        :: rest2 -> (
+          let* ty, rest3 = parse_term rest2 in
+          match rest3 with
+          | { Token.kind = Token.RParen; loc = _ } :: rest4 ->
+              Ok ({ Syntax.b_q = q; b_name = x; b_ty = ty }, rest4)
+          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')'" rest3)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a binder name and ':'" rest_q)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'('" ts
+
+(** "let x : A := d in b" *)
+and parse_let (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Ident x; loc = _ } :: { Token.kind = Token.Colon; loc = _ } :: rest
+    -> (
+      let* ty, rest2 = parse_term rest in
+      match rest2 with
+      | { Token.kind = Token.ColonEq; loc = _ } :: rest3 -> (
+          let* def, rest4 = parse_term rest3 in
+          match rest4 with
+          | { Token.kind = Token.KIn; loc = _ } :: rest5 ->
+              let* body, rest6 = parse_term rest5 in
+              Ok (Syntax.SLet (x, ty, def, body), rest6)
+          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'in'" rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':='" rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a name and ':' after 'let'" ts
+
+(** "case t ['as' x 'return' M] 'with' ('|' k binder* '=>' b)*".
+    mirrors kan-lang-tot-pin/surface/parser.ml:220-281, without the
+    index clause, which has no M0 production. *)
+and parse_case (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  let* scrut, rest = parse_term ts in
+  match rest with
+  | { Token.kind = Token.KAs; loc = _ }
+    :: { Token.kind = Token.Ident x; loc = _ }
+    :: { Token.kind = Token.KReturn; loc = _ }
+    :: rest2 -> (
+      let* body, rest3 = parse_term rest2 in
+      match rest3 with
+      | { Token.kind = Token.KWith; loc = _ } :: rest4 ->
+          let* branches, rest5 = parse_branches rest4 [] in
+          let mo : Syntax.motive = { Syntax.mo_self = x; mo_body = body } in
+          Ok (Syntax.SCase (scrut, Some mo, branches), rest5)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest3)
+  | { Token.kind = Token.KAs; loc } :: _rest ->
+      parse_err loc "expected 'NAME return TYPE' after 'as'"
+  | { Token.kind = Token.KWith; loc = _ } :: rest2 ->
+      let* branches, rest3 = parse_branches rest2 [] in
+      Ok (Syntax.SCase (scrut, None, branches), rest3)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'as' or 'with'" rest
+
+(** Zero or more "| k binder* => body" branches.  The list ends at the
+    first token that is not a bar, so the enclosing form reads on.
+    mirrors kan-lang-tot-pin/surface/parser.ml:283-314. *)
+and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
+    (Syntax.branch list * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Nat k; loc = _ } :: rest
+    -> (
+      let* binders, rest2 = parse_binders rest [] in
+      match rest2 with
+      | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
+          let* body, rest4 = parse_term rest3 in
+          let br : Syntax.branch =
+            { Syntax.br_leg = k; br_binders = binders; br_body = body }
+          in
+          parse_branches rest4 (br :: acc)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2)
+  | { Token.kind = Token.Pipe; loc } :: _rest ->
+      parse_err loc "expected a leg number after '|'"
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)
+
+(** The arrow and the star.  The speculative binder group runs first and
+    commits only when the operator follows it, so "(t : A)" stays an
+    annotation when no operator follows.  mirrors
+    kan-lang-tot-pin/surface/parser.ml:354-360. *)
+and parse_arrow (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  binder_group_attempt ts
+  |> Option.fold ~none:parse_arrow_plain ~some:(fun ((b : Syntax.binder), rest) ->
+         fun (_ts : Token.t list) -> parse_group_op b rest)
+  |> fun k -> k ts
+
+(** Speculative "(mark? x : T)".  Any inner failure, and any group that
+    no operator follows, is [None] and the caller re-reads the same
+    tokens as an ordinary term.  mirrors
+    kan-lang-tot-pin/surface/parser.ml:316-352. *)
+and binder_group_attempt (ts : Token.t list) : (Syntax.binder * Token.t list) option =
+  match ts with
+  | { Token.kind = Token.LParen; loc = _ } :: _rest ->
+      parse_binder ts
+      |> Result.fold
+           ~ok:(fun ((b : Syntax.binder), rest) ->
+             match rest with
+             | { Token.kind = Token.Arrow; loc = _ } :: _r -> Some (b, rest)
+             | { Token.kind = Token.Star; loc = _ } :: _r -> Some (b, rest)
+             | ({ Token.kind = _; loc = _ } :: _ | []) -> None)
+           ~error:(fun (_e : Error.t) -> None)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> None
+
+and parse_group_op (b : Syntax.binder) (ts : Token.t list) :
+    (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Arrow; loc = _ } :: rest ->
+      let* cod, rest2 = parse_term rest in
+      Ok (Syntax.SArrow (b, cod), rest2)
+  | { Token.kind = Token.Star; loc = _ } :: rest ->
+      let* cod, rest2 = parse_term rest in
+      Ok (Syntax.SStar (b, cod), rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'->' or '*'" ts
+
+(** "A -> B" and "A * B", the binder-free forms.  Both are right
+    associative and both name the binder "_", the name the printer
+    writes back.  mirrors kan-lang-tot-pin/surface/parser.ml:372-378. *)
+and parse_arrow_plain (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  let* lhs, rest = parse_app ts in
+  match rest with
+  | { Token.kind = Token.Arrow; loc = _ } :: rest2 ->
+      let* rhs, rest3 = parse_term rest2 in
+      Ok (Syntax.SArrow ({ Syntax.b_q = Quantity.Many; b_name = "_"; b_ty = lhs }, rhs), rest3)
+  | { Token.kind = Token.Star; loc = _ } :: rest2 ->
+      let* rhs, rest3 = parse_term rest2 in
+      Ok (Syntax.SStar ({ Syntax.b_q = Quantity.Many; b_name = "_"; b_ty = lhs }, rhs), rest3)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (lhs, rest)
+
+(** Application by juxtaposition (SA-D1), and the two saturated prefix
+    forms that read one application each.  mirrors
+    kan-lang-tot-pin/surface/parser.ml:380-390. *)
+and parse_app (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.KInj; loc = _ } :: rest -> parse_inj rest
+  | { Token.kind = Token.KAbsurd; loc = _ } :: rest ->
+      let* a, rest2 = parse_app rest in
+      Ok (Syntax.SAbsurd a, rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) ->
+      let* head, rest = parse_atom ts in
+      parse_app_rest head rest
+
+and parse_inj (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Nat k; loc = _ }
+    :: { Token.kind = Token.KOf; loc = _ }
+    :: { Token.kind = Token.Nat n; loc = _ }
+    :: rest ->
+      let* a, rest2 = parse_app rest in
+      Ok (Syntax.SInj (k, n, a), rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'K of N' after 'inj'" ts
+
+and parse_app_rest (head : Syntax.t) (ts : Token.t list) :
+    (Syntax.t * Token.t list, Error.t) result =
+  match () with
+  | () when starts_atom ts ->
+      let* arg, rest = parse_atom ts in
+      parse_app_rest (Syntax.SApp (head, arg)) rest
+  | () -> Ok (head, ts)
+
+(** An atom with its postfix projections, which bind tighter than
+    application. *)
+and parse_atom (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  let* a, rest = parse_atom_head ts in
+  parse_postfix a rest
+
+and parse_postfix (a : Syntax.t) (ts : Token.t list) :
+    (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Dot1; loc = _ } :: rest -> parse_postfix (Syntax.SProj (a, 1)) rest
+  | { Token.kind = Token.Dot2; loc = _ } :: rest -> parse_postfix (Syntax.SProj (a, 2)) rest
+  | { Token.kind = Token.Dot; loc = _ } :: { Token.kind = Token.Nat k; loc = _ } :: rest ->
+      parse_postfix (Syntax.SProj (a, k)) rest
+  | { Token.kind = Token.Dot; loc } :: _rest ->
+      parse_err loc "expected a leg number after '.'"
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (a, ts)
+
+(* mirrors kan-lang-tot-pin/surface/parser.ml:392-427 *)
+and parse_atom_head (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Ident x; loc = _ } :: rest -> Ok (Syntax.SVar x, rest)
+  | { Token.kind = Token.Nat n; loc = _ } :: rest -> Ok (Syntax.SNat n, rest)
+  | { Token.kind = Token.KProp; loc = _ } :: rest -> Ok (Syntax.SProp, rest)
+  | { Token.kind = Token.KType; loc = _ } :: { Token.kind = Token.Nat n; loc = _ } :: rest ->
+      Ok (Syntax.SType n, rest)
+  | { Token.kind = Token.KType; loc = _ } :: rest -> Ok (Syntax.SType 0, rest)
+  | { Token.kind = Token.KAuto; loc = _ } :: rest -> Ok (Syntax.SAuto, rest)
+  | { Token.kind = Token.Unit; loc = _ } :: rest -> Ok (Syntax.SUnit, rest)
+  | { Token.kind = Token.KNatAdd; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PAdd, rest)
+  | { Token.kind = Token.KNatSub; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PSub, rest)
+  | { Token.kind = Token.KNatMul; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PMul, rest)
+  | { Token.kind = Token.KNatEq; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PEq, rest)
+  | { Token.kind = Token.KNatLt; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PLt, rest)
+  | { Token.kind = Token.KTuple; loc = _ } :: rest -> parse_tuple rest
+  (* SA-D3:  the two reserved words are refused at the first pass over
+     the text, with the milestone that admits them. *)
+  | { Token.kind = Token.KMu; loc } :: _rest -> parse_err loc "mu arrives at M1"
+  | { Token.kind = Token.KNu; loc } :: _rest -> parse_err loc "nu arrives at M2"
+  | { Token.kind = Token.LParen; loc = _ } :: rest -> parse_paren rest
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a term" ts
+
+(** After "(":  a term and then ")", "," or ":".  mirrors
+    kan-lang-tot-pin/surface/parser.ml:404-424. *)
+and parse_paren (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  let* inner, rest = parse_term ts in
+  match rest with
+  | { Token.kind = Token.RParen; loc = _ } :: rest2 -> Ok (inner, rest2)
+  | { Token.kind = Token.Comma; loc = _ } :: rest2 -> (
+      let* second, rest3 = parse_term rest2 in
+      match rest3 with
+      | { Token.kind = Token.RParen; loc = _ } :: rest4 ->
+          Ok (Syntax.SPair (inner, second), rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')'" rest3)
+  | { Token.kind = Token.Colon; loc = _ } :: rest2 -> (
+      let* ty, rest3 = parse_term rest2 in
+      match rest3 with
+      | { Token.kind = Token.RParen; loc = _ } :: rest4 ->
+          Ok (Syntax.SAnn (inner, ty), rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')'" rest3)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')', ',' or ':'" rest
+
+(** "tuple (t1, .., tn)".  The empty tuple is the one token "()", which
+    the lexer reads whole, so both "tuple ()" and "tuple ( )" are the
+    empty collection. *)
+and parse_tuple (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Unit; loc = _ } :: rest -> Ok (Syntax.STuple [], rest)
+  | { Token.kind = Token.LParen; loc = _ } :: rest -> parse_tuple_body rest
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'(' after 'tuple'" ts
+
+and parse_tuple_body (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.RParen; loc = _ } :: rest -> Ok (Syntax.STuple [], rest)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> parse_tuple_items ts []
+
+and parse_tuple_items (ts : Token.t list) (acc : Syntax.t list) :
+    (Syntax.t * Token.t list, Error.t) result =
+  let* item, rest = parse_term ts in
+  match rest with
+  | { Token.kind = Token.Comma; loc = _ } :: rest2 -> parse_tuple_items rest2 (item :: acc)
+  | { Token.kind = Token.RParen; loc = _ } :: rest2 ->
+      Ok (Syntax.STuple (List.rev (item :: acc)), rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "',' or ')'" rest
+
+(** Items, oldest first, up to the [Eof] token. *)
+let rec parse_decls (ts : Token.t list) (acc : Syntax.decl list) :
+    (Syntax.decl list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Eof; loc = _ } :: _rest -> Ok (List.rev acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) ->
+      let* d, rest = parse_decl ts in
+      parse_decls rest (d :: acc)
+
+and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.KDef; loc = _ }
+    :: { Token.kind = Token.Ident name; loc = _ }
+    :: { Token.kind = Token.Colon; loc = _ }
+    :: rest -> (
+      let* ty, rest2 = parse_term rest in
+      match rest2 with
+      | { Token.kind = Token.ColonEq; loc = _ } :: rest3 ->
+          let* def, rest4 = parse_term rest3 in
+          Ok (Syntax.DDef (name, ty, def), rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':='" rest2)
+  | { Token.kind = Token.KAxiom; loc = _ }
+    :: { Token.kind = Token.Ident name; loc = _ }
+    :: { Token.kind = Token.Colon; loc = _ }
+    :: rest ->
+      let* ty, rest2 = parse_term rest in
+      Ok (Syntax.DAxiom (name, ty), rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) ->
+      expected "'def NAME :' or 'axiom NAME :'" ts
+
+(** The whole surface pass:  text to items, on the result track. *)
+let parse (src : string) : (Syntax.decl list, Error.t) result =
+  let* ts = Lexer.lex src in
+  parse_decls ts []

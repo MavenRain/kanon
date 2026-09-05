@@ -1,0 +1,11 @@
+-- a10: def and axiom together, and the auto atom of SA-D3.  The
+-- checker refuses auto at Stage B with "instances arrive at M2".
+
+axiom Nat : Type 0
+axiom zero : Nat
+axiom Eq : (0 A : Type 0) -> (x : A) -> (y : A) -> Prop
+
+def start : Nat := zero
+def viaAuto : Nat := auto
+def annotatedAuto : Nat := (auto : Nat)
+def eqOfStart : Prop := Eq Nat start start
