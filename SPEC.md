@@ -74,6 +74,63 @@ recursive shapes, so it arrives at M1 and M2.
 resolves them to indices in one pass, so the emitter never computes an
 index.
 
+lib/erase.ml maps each kernel form to one erased form.  The table below
+has one row for each row of the erasure section of the plan.  The third
+column gives the name the row writes, either a `tid` or a `fid`.
+
+| kernel form | erased form | name |
+| --- | --- | --- |
+| `Var` | `KVar i` for a runtime binder, `KErased` for a dropped binder | none |
+| `Univ`, `Lan`, `Ran` | `KErased` | none |
+| `Sec` at `Ran SPi` | the lambda chain lifts to one `KFun` and the occurrence is `KClos (fid, arity, captures)` | `fid` is `NAME$N` |
+| `Out` at `APt` | `KApp (head, args)`, `KTail (head, args)` in a tail position, or the head alone when no argument is runtime and source parameters remain | none |
+| `In` at `Lan SPi` | `KStruct (tid, the runtime fields)`, `KErased` when no field is runtime | `tid` is `pair<R,R>` |
+| `Elim` at `Lan SPi` | one `KLet` of the scrutinee, then one `KLet` over a `KProj` for each runtime binder | `tid` is `pair<R,R>` |
+| `In` at `Lan (SColl n)` | `KTag (tid, k, the runtime payload)` | `tid` is `sum<R\|R>` |
+| `Elim` at `Lan (SColl n)` | `KCase (scrutinee, one branch for each leg in leg order)` | `tid` is `sum<R\|R>` |
+| `Sec` at `Ran (SColl n)` | `KStruct (tid, the runtime legs)` | `tid` is `tuple<R,R>` |
+| `Out` at `ALeg k` | `KProj (tid, k renumbered over the runtime legs, the term)` | `tid` is `tuple<R,R>` |
+| `Let` | `KLet (x, value, body)` for a runtime value, and the binder is dropped for a value that is not | none |
+| `Ann` | the term under it, erased | none |
+| `Global` | `KGlobal name` | none |
+| `Lit` | `KLit` | none |
+| `Auto`, a shape past M0 | `Error (Not_yet ..)` with the milestone word | none |
+
+A function type takes the repr `func fn<n>`, where n counts the runtime
+points of the whole chain.  `Nat` takes `i31`.  A type that the table
+does not name takes the tid `any`.
+
+Function definitions and lifted functions take the parameters of their
+whole type chain.  When the body supplies fewer lambdas, erasure adds
+the remaining parameters and a tail application of the body.  Thus a
+function alias and an explicit lambda have the same calling convention.
+An application with only erased arguments preserves a function result,
+including a function whose remaining binders all erase.  A fully applied
+nullary function still emits a call with an empty argument list.
+
+Erasure emits the original runtime syntax, retaining lets and primitive
+calls.  Its checking environment retains let definitions for dependent
+types, and a pair fibre receives the codomain instantiated at its point.
+Each elimination branch receives the motive instantiated at that branch's
+constructor.  These semantic values resolve types; they do not replace
+the emitted runtime syntax.  Structural layouts still open dependent
+codomains at fresh variables so a type has one layout across its values.
+
+`kanon check --erased FILE` prints the erased program.  A `KFun` prints
+as `fun FID (REPR, .., REPR) : REPR := KTM`, and a `KRec` prints as `rec
+[TID; ..]`, one declaration to a line.  A repr prints as `i31`, `struct
+TID`, `union TID`, `func TID` or `thunk TID`.  A ktm prints in prefix
+form with its constructor name, then its scalar fields, then a subterm in
+parentheses and a list in square brackets with semicolons.  A declaration
+that carries nothing at runtime prints `erased NAME`.  A postulate prints
+`axiom NAME : REPR`.  A name prints bare, without quotes.
+
+An erased field leaves the struct, the tag and the tid, and a `KProj`
+index counts the runtime fields alone.  A struct with no runtime field is
+`KErased`.  A `KVar` counts runtime binders alone.  The erasure
+environment maps each kernel binder to a runtime index or to erased, and
+a use of an erased binder is `KErased`.
+
 ## R0 counts
 
 `kanon spec-count` prints this block.  dev/r0-count.sh diffs the two.  A
@@ -290,7 +347,7 @@ can be a definition name.
 
 ## 10 Obligations at M0
 
-M0 leaves these four obligations.  Each one names the milestone that
+M0 leaves these six obligations.  Each one names the milestone that
 closes it.
 
 | obligation | milestone | note |
@@ -299,3 +356,5 @@ closes it.
 | arbitrary precision Nat | M1 | M0 uses the host integer.  `natAdd` and `natMul` give `Error (Overflow ..)` at the boundary and `natSub` truncates at zero (SB-D4).  A bignum library is a dependency the user pins |
 | the agreement lemma of the literal fast path | M1 | the fast path must agree with the unary recursive Nat of the M1 shape.  Section 5 records the same obligation |
 | subsingleton large elimination | M1 | it arrives with the Prop valued recursive shape.  Section 5 records its criterion and its origin in tot |
+| structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller |
+| the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  lib/link.ml resolves it to `eqref` at Stage D |

@@ -1,0 +1,12 @@
+erased Nat
+erased Triple
+rec [tuple<i31,i31,i31>]
+fun t () : struct tuple<i31,i31,i31> := KStruct tuple<i31,i31,i31> [KLit 1; KLit 2; KLit 3]
+rec [tuple<i31,i31,i31>]
+fun leg0 () : i31 := KProj tuple<i31,i31,i31> 0 (KGlobal t)
+rec [tuple<i31,i31,i31>]
+fun leg1 () : i31 := KProj tuple<i31,i31,i31> 1 (KGlobal t)
+rec [tuple<i31,i31,i31>]
+fun leg2 () : i31 := KProj tuple<i31,i31,i31> 2 (KGlobal t)
+rec [tuple<i31,i31,i31>]
+fun rebuilt () : struct tuple<i31,i31,i31> := KStruct tuple<i31,i31,i31> [KProj tuple<i31,i31,i31> 0 (KGlobal t); KProj tuple<i31,i31,i31> 1 (KGlobal t); KProj tuple<i31,i31,i31> 2 (KGlobal t)]

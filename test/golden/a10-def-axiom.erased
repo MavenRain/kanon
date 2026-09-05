@@ -1,0 +1,6 @@
+erased Nat
+axiom zero : i31
+axiom Eq : func fn<2>
+rec []
+fun start () : i31 := KGlobal zero
+erased eqOfStart

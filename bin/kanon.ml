@@ -22,7 +22,8 @@
 
 let usage () : unit =
   prerr_endline
-    "usage: kanon check [--print] FILE | axioms FILE | emit | run | spec-count"
+    "usage: kanon check [--print|--erased] FILE | axioms FILE | emit | run | \
+     spec-count"
 
 let later (name : string) (stage : string) : unit =
   prerr_endline (Printf.sprintf "kanon: %s arrives at Stage %s" name stage)
@@ -47,17 +48,37 @@ let run_check (print_form : bool) (path : string) : unit =
   let rows = checked path in
   if print_form then print_string (Kanon_surface.Elab.checked_form rows) else ()
 
+(** "check --erased FILE" (SC-D1).  The file is checked first, so erasure
+    never reads a declaration the kernel did not accept, and the erased
+    program is printed in declaration order.  An erasure that refuses a
+    declaration prints one error line and exits 1, exactly as a checker
+    error does. *)
+let run_erased (path : string) : unit =
+  let rows = checked path in
+  Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+  |> Result.fold
+       ~ok:(fun (out : (string * Kanon_kernel.Erase.entry) list) ->
+         print_string (Kanon_kernel.Erase.print out))
+       ~error:(fun (e : Kanon_kernel.Error.t) ->
+         prerr_endline (Kanon_kernel.Error.to_string e);
+         exit 1)
+
 (** R-Q3: the postulates of the file, one name per line, in declaration
     order.  A file with no postulate prints nothing. *)
 let run_axioms (path : string) : unit =
   List.iter print_endline (Kanon_surface.Elab.axiom_names (checked path))
 
-(** "check [--print] FILE".  The flag is read before the path, so
-    "check --print F" and "check F" are the only two forms. *)
+(** "check [--print|--erased] FILE".  A flag is read before the path, so
+    "check --print F", "check --erased F" and "check F" are the only
+    three forms (SC-D1). *)
 let dispatch_check (args : string list) : unit =
   match args with
   | "--print" :: path :: _rest -> run_check true path
   | [ "--print" ] ->
+      usage ();
+      exit 64
+  | "--erased" :: path :: _rest -> run_erased path
+  | [ "--erased" ] ->
       usage ();
       exit 64
   | path :: _rest -> run_check false path

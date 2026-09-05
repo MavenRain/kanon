@@ -1,0 +1,10 @@
+erased Two
+rec [sum<i31|i31>; any]
+fun F (union sum<i31|i31>) : union any := KErased
+rec [sum<i31|i31>; any; tuple<i31,i31>]
+fun choose (union sum<i31|i31>) : union any := KCase (KVar 0) [{0 1 (KVar 0)}; {1 1 (KStruct tuple<i31,i31> [KVar 0; KVar 0])}]
+rec [sum<i31|i31>; any]
+fun G (union sum<i31|i31>) : union any := KErased
+rec [sum<i31|i31>; any]
+fun chooseFun$0 (i31, i31) : i31 := KTail (KGlobal natAdd) [KVar 1; KVar 0]
+fun chooseFun (union sum<i31|i31>) : union any := KCase (KVar 0) [{0 1 (KVar 0)}; {1 1 (KClos chooseFun$0 1 [KVar 0])}]

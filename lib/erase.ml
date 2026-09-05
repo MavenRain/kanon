@@ -1,0 +1,1136 @@
+(** Type directed erasure, plan section 6 "Erasure", row by row, into the
+    IR of eterm.ml.  The module mirrors kan-lang-tot-pin/lib/erase.ml arm
+    by arm:  tot's [ctx] of kept flags is here at [slot]
+    (kan-lang-tot-pin/lib/erase.ml:9), tot's [kept_index] is [lookup]
+    (:12), tot's [term] is [term] and [node] (:15), and tot's [closed] is
+    [program] (:90).  tot's four term arms that M0 splits are named at
+    the arm that carries them.
+
+    What the checker has already proved (Stage B hand-off note).  Every
+    type position is read at mode [Zero] through [Check.infer_univ], a
+    local stamped [Zero] is readable at mode [Zero] alone, and a runtime
+    read of one is [Error (Quantity ..)].  So erasure drops exactly the
+    binders stamped [Zero], the positions whose term is a type and the
+    positions whose term is a proof, and no runtime position reads one of
+    them.
+
+    Classification is type directed and asks the checker (SC-D4).  A
+    position carries the type its parent expects, or the type
+    [Check.infer] reads out of it when the parent expects none, because
+    [Check.infer] refuses a section and an injection exactly as the
+    checker does (SC-D23).  Emission walks the original syntax: a
+    primitive application stays a [KApp] of a [KGlobal].  The checking
+    environment retains let definitions and instantiates dependent
+    fibres at their points, just as the checker does.  These semantic
+    values resolve types only; they never replace emitted runtime terms.
+
+    This file spells shape names, and plan section 9 excludes it from the
+    R0-AUDIT gate leg for that reason.  It is not in the trusted base:
+    every erased declaration is re-checked by its golden. *)
+
+let ( let* ) = Result.bind
+
+(** What one declaration becomes.  [Code] holds the rec group, then the
+    lifted functions, then the declaration's own function, in that order
+    (SC-D3). *)
+type entry =
+  | Dropped  (** a type, a proposition or a proof:  nothing at runtime *)
+  | Postulate of Eterm.repr  (** an axiom with a runtime type;  a use is KGlobal *)
+  | Code of Eterm.kdecl list
+      (** a def:  its rec group, its lifted functions, its own function *)
+
+(** One entry per binder in scope, innermost first
+    (kan-lang-tot-pin/lib/erase.ml:9, where the flag is a bool).  M0 adds
+    the third case:  a [KLet] that erasure itself introduces binds a
+    runtime value with no kernel binder behind it, so index lookup counts
+    kernel binders and runtime binders apart (SC-D12). *)
+type slot =
+  | SDrop  (** a kernel binder with no runtime value *)
+  | SKeep  (** a kernel binder that survives *)
+  | SExtra  (** a runtime binder erasure introduced *)
+
+type ectx = {
+  c : Check.ctx;  (** the checker context this erasure stands in *)
+  slots : slot list;  (** innermost first, one entry per binder in scope *)
+  self : string;  (** the declaration being erased, the stem of every fid *)
+}
+
+(** The state that crosses the whole declaration:  the number of lambdas
+    already lifted, in preorder from 0, and the lifted functions in the
+    order they finished (SC-D29). *)
+type acc = {
+  next : int;
+  lifted : Eterm.kdecl list;
+}
+
+let globals_of (ec : ectx) : Global.t = ec.c.Check.globals
+let size_of (ec : ectx) : int = ec.c.Check.size
+let env_of (ec : ectx) : Value.t list = ec.c.Check.env
+
+(** [Option.fold] reads its [~none] argument eagerly, so a branch that
+    must not run when the option is [Some] sits behind a thunk. *)
+let lazy_fold (o : 'a option) ~(none : unit -> 'b) ~(some : 'a -> 'b) : 'b =
+  Option.fold ~none ~some:(fun (x : 'a) (() : unit) -> some x) o ()
+
+(** The answer of an index lookup.  A dropped binder is not an error:
+    plan section 6 makes its use [KErased] (SC-D12), where tot's erasure
+    answers [Erased_use] because tot has no such position
+    (kan-lang-tot-pin/lib/erase.ml:22-26). *)
+type found =
+  | LKeep of int
+  | LDrop
+  | LOut
+
+(** How many runtime binders sit strictly closer to the use site than the
+    kernel binder [ix] (kan-lang-tot-pin/lib/erase.ml:12). *)
+let rec lookup (ix : int) (slots : slot list) (seen : int) : found =
+  match slots with
+  | [] -> LOut
+  | SExtra :: rest -> lookup ix rest (seen + 1)
+  | SKeep :: rest ->
+      if Int.equal ix 0 then LKeep seen else lookup (ix - 1) rest (seen + 1)
+  | SDrop :: rest -> if Int.equal ix 0 then LDrop else lookup (ix - 1) rest seen
+
+(** A binder at [Zero] exists at check time alone, so it is never a
+    runtime parameter.  [One] counts as [Many] at M0 (SB-D3). *)
+let quantity_runtime (q : Quantity.t) : bool =
+  (* SC-M1 site *)
+  not (Quantity.equal q Quantity.Zero)
+
+(** A total view on a value that stands for a type.  The four cases are
+    the four the repr table of SC-D5 keys on. *)
+type form =
+  | FUniv
+  | FLan of Value.t Shape.t * Value.closure
+  | FRan of Value.t Shape.t * Value.closure
+  | FNat
+  | FOther
+
+(** A total view on the shape of a former.  The two admitted shapes are
+    the point shape and the collection shape;  every other shape is
+    refused with the milestone word rules.ml holds. *)
+type point =
+  | PPoint of Quantity.t * string * Value.t
+  | PColl of int
+  | POther
+
+let form_of (w : Value.t) : form =
+  let neutral (() : unit) : form =
+    Value.as_neutral w
+    |> Option.fold ~none:FOther
+         ~some:(fun ((h : Value.head), (sp : Value.spine list)) ->
+           if Value.head_equal h (Value.HGlobal Prim.nat_name) && List.is_empty sp then
+             FNat
+           else FOther)
+  in
+  Value.as_univ w
+  |> Option.fold
+       ~none:
+         (Value.as_lan w
+         |> Option.fold
+              ~none:
+                (Value.as_ran w
+                |> Option.fold ~none:(neutral ())
+                     ~some:(fun
+                         ( (s : Value.t Shape.t),
+                           (d : Value.closure),
+                           (_u : Level.t option) )
+                       -> FRan (s, d)))
+              ~some:(fun
+                  ((s : Value.t Shape.t), (d : Value.closure), (_u : Level.t option))
+                -> FLan (s, d)))
+       ~some:(fun (_l : Level.t) -> FUniv)
+
+let point_of (s : Value.t Shape.t) : point =
+  Rules.as_vpi s
+  |> Option.fold
+       ~none:
+         (Rules.as_vcoll s
+         |> Option.fold ~none:POther ~some:(fun (n : int) -> PColl n))
+       ~some:(fun ((q : Quantity.t), (x : string), (dom : Value.t)) ->
+         PPoint (q, x, dom))
+
+(** The two width zero formers are erased at every position (SC-D5), so a
+    binder at one of them is dropped as a [Zero] binder is (SC-D20). *)
+let width_zero (w : Value.t) : bool =
+  let coll (o : (Value.t Shape.t * Value.closure * Level.t option) option) : bool =
+    o
+    |> Option.fold ~none:false
+         ~some:(fun
+             ((s : Value.t Shape.t), (_d : Value.closure), (_u : Level.t option)) ->
+           Option.equal Int.equal (Rules.as_vcoll s) (Some 0))
+  in
+  coll (Value.as_lan w) || coll (Value.as_ran w)
+
+(** The proof test.  The term at this position is a proof when the type
+    it carries lives at the proposition universe (plan section 6). *)
+let proof_free (ec : ectx) (w : Value.t) : (bool, Error.t) result =
+  let* t = Eval.quote (globals_of ec) (size_of ec) w in
+  let* l = Check.infer_univ ec.c t in
+  (* SC-M2 site *)
+  Ok (not (Level.equal l Level.zero))
+
+(** Is a position with this type a runtime position.  It is not when the
+    term there is a type, when the term there is a proof, and when the
+    type is one of the two width zero formers. *)
+let runtime_ty (ec : ectx) (ty : Value.t) : (bool, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  match () with
+  | () when Option.is_some (Value.as_univ w) -> Ok false
+  | () when width_zero w -> Ok false
+  | () -> proof_free ec w
+
+(** A binder is runtime when its mark is not [Zero] and its type is a
+    runtime type. *)
+let point_runtime (ec : ectx) (q : Quantity.t) (dom : Value.t) : (bool, Error.t) result =
+  if quantity_runtime q then runtime_ty ec dom else Ok false
+
+(** The repr of a runtime value whose type is outside the table of
+    SC-D5:  a neutral type, an axiom type, an application of an axiom
+    family.  link.ml resolves it to eqref at Stage D (SC-D6). *)
+let any_repr : Eterm.repr = Eterm.RUnion (Eterm.Tid "any")
+
+let unit_leg : string = "unit"
+
+(** The name of the synthetic binder a pair elimination gives its
+    scrutinee (SC-D24). *)
+let scrut_name : string = "scrut"
+
+(** The repr table of SC-D5, read off the type after weak head normal
+    form.  The tid is the structural name, printed the same way
+    everywhere, so link.ml dedups by string at Stage D. *)
+let rec repr_of (ec : ectx) (v : Value.t) : (Eterm.repr, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) v in
+  match form_of w with
+  | FNat -> Ok Eterm.RI31
+  | FUniv -> Ok any_repr
+  | FOther -> Ok any_repr
+  | FRan (s, d) -> ran_repr ec s d
+  | FLan (s, d) -> lan_repr ec s d
+
+and ran_repr (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr, Error.t) result =
+  match point_of s with
+  | PPoint (_q, _x, _dom) ->
+      let* n = arity_of ec 0 s d in
+      Ok (Eterm.RFunc (Eterm.Tid (Printf.sprintf "fn<%d>" n)))
+  | PColl n ->
+      if Int.equal n 0 then Ok any_repr
+      else
+        let* texts = tuple_texts ec n d in
+        Ok (Eterm.RStruct (Eterm.Tid ("tuple<" ^ String.concat "," texts ^ ">")))
+  | POther -> Ok any_repr
+
+and lan_repr (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr, Error.t) result =
+  match point_of s with
+  | PPoint (q, x, dom) ->
+      let* texts = pair_texts ec q x dom d in
+      Ok (Eterm.RStruct (Eterm.Tid ("pair<" ^ String.concat "," texts ^ ">")))
+  | PColl n ->
+      if Int.equal n 0 then Ok any_repr
+      else
+        let* texts = sum_texts ec n d in
+        Ok (Eterm.RUnion (Eterm.Tid ("sum<" ^ String.concat "|" texts ^ ">")))
+  | POther -> Ok any_repr
+
+(** The arity class of a function type:  the number of runtime points of
+    the whole chain, so a [Zero] point and a proof point are not counted
+    and the class matches the parameter list the chain lifts to. *)
+and arity_of (ec : ectx) (n : int) (s : Value.t Shape.t) (d : Value.closure) :
+    (int, Error.t) result =
+  match point_of s with
+  | PColl _ -> Ok n
+  | POther -> Ok n
+  | PPoint (q, x, dom) ->
+      let* keep = point_runtime ec q dom in
+      let* ec', cod = under_point ec x q dom d in
+      let* w = Eval.whnf (globals_of ec') cod in
+      arity_rest ec' (if keep then n + 1 else n) w
+
+and arity_rest (ec : ectx) (n : int) (w : Value.t) : (int, Error.t) result =
+  match form_of w with
+  | FRan (s, d) -> arity_of ec n s d
+  | FLan (_, _) | FUniv | FNat | FOther -> Ok n
+
+(** The codomain used for a structural repr, opened at a fresh variable
+    so the layout does not depend on a particular constructor point. *)
+and under_point (ec : ectx) (x : string) (q : Quantity.t) (dom : Value.t)
+    (d : Value.closure) : (ectx * Value.t, Error.t) result =
+  let* cod =
+    Rules.open_closure (Eval.ev (globals_of ec)) d [ Value.var (size_of ec) ]
+  in
+  Ok ({ ec with c = Check.bind x q dom ec.c; slots = SDrop :: ec.slots }, cod)
+
+and pair_texts (ec : ectx) (q : Quantity.t) (x : string) (dom : Value.t)
+    (d : Value.closure) : (string list, Error.t) result =
+  let* keep1 = point_runtime ec q dom in
+  let* first = repr_text ec keep1 dom in
+  let* ec', cod = under_point ec x q dom d in
+  let* keep2 = runtime_ty ec' cod in
+  let* second = repr_text ec' keep2 cod in
+  Ok (first @ second)
+
+and repr_text (ec : ectx) (keep : bool) (ty : Value.t) : (string list, Error.t) result =
+  if keep then Result.map (fun (r : Eterm.repr) -> [ Eterm.print_repr r ]) (repr_of ec ty)
+  else Ok []
+
+(** The leg types of a collection diagram, in leg order. *)
+and leg_types (ec : ectx) (n : int) (d : Value.closure) : (Value.t list, Error.t) result =
+  let* legs = Rules.coll_legs_of Check.ops ec.c d in
+  Rules.all_ok
+    (List.map
+       (fun (k : int) -> Rules.coll_leg_ty Check.ops ec.c legs k)
+       (List.init n Fun.id))
+
+(** Which legs of a collection carry a runtime value, in leg order. *)
+and leg_flags (ec : ectx) (n : int) (d : Value.closure) : (bool list, Error.t) result =
+  let* tys = leg_types ec n d in
+  Rules.all_ok (List.map (fun (ty : Value.t) -> runtime_ty ec ty) tys)
+
+and sum_texts (ec : ectx) (n : int) (d : Value.closure) : (string list, Error.t) result =
+  let* tys = leg_types ec n d in
+  Rules.all_ok
+    (List.map
+       (fun (ty : Value.t) ->
+         let* rt = runtime_ty ec ty in
+         if rt then Result.map Eterm.print_repr (repr_of ec ty) else Ok unit_leg)
+       tys)
+
+and tuple_texts (ec : ectx) (n : int) (d : Value.closure) :
+    (string list, Error.t) result =
+  let* tys = leg_types ec n d in
+  let* texts =
+    Rules.all_ok
+      (List.map
+         (fun (ty : Value.t) ->
+           let* rt = runtime_ty ec ty in
+           repr_text ec rt ty)
+         tys)
+  in
+  Ok (List.concat texts)
+
+(** The tid of a structured runtime type.  A KStruct, a KTag and a KProj
+    all read their tid here, so the tid a term names and the tid its repr
+    names are one string (SC-D5). *)
+and tid_of (ec : ectx) (ty : Value.t) : (Eterm.tid, Error.t) result =
+  let* r = repr_of ec ty in
+  match r with
+  | Eterm.RStruct t -> Ok t
+  | Eterm.RUnion t -> Ok t
+  | Eterm.RFunc t -> Ok t
+  | Eterm.RThunk t -> Ok t
+  | Eterm.RI31 ->
+      Error (Error.Mismatch "a structured value stands at a type whose repr is i31")
+
+(** A total zip:  a pair list as long as the shorter side.  The lists
+    this file zips are two readings of one leg list, so they are the same
+    length whenever the checker passed. *)
+let rec zip (xs : 'a list) (ys : 'b list) : ('a * 'b) list =
+  match (xs, ys) with
+  | [], [] -> []
+  | [], _y :: _yr -> []
+  | _x :: _xr, [] -> []
+  | x :: xr, y :: yr -> (x, y) :: zip xr yr
+
+(** The free kernel indices of a term, relative to the scope it stands
+    in, in no particular order and with repeats.  A lifted lambda reads
+    its captures here (SC-D25).  The walk is exhaustive over the thirteen
+    constructors and follows the binder conventions of pp.ml:  the
+    diagram of a point shape is scoped under that shape's binder, a leg
+    body under its own binders, and a motive body under its indices and
+    then under its self name. *)
+let rec free_vars (depth : int) (t : Term.t) : int list =
+  match t with
+  | Term.Var ix -> if ix >= depth then [ ix - depth ] else []
+  | Term.Univ _ -> []
+  | Term.Global _ -> []
+  | Term.Lit _ -> []
+  | Term.Auto -> []
+  | Term.Lan (s, d) -> free_shape depth s @ free_vars (depth + shape_binders s) d
+  | Term.Ran (s, d) -> free_shape depth s @ free_vars (depth + shape_binders s) d
+  | Term.In (s, a, args) ->
+      free_shape depth s @ free_addr depth a
+      @ List.concat_map (free_vars depth) args
+  | Term.Out (s, a, head) ->
+      free_shape depth s @ free_addr depth a @ free_vars depth head
+  | Term.Sec (s, legs) -> free_shape depth s @ List.concat_map (free_leg depth) legs
+  | Term.Elim e ->
+      free_shape depth e.Term.e_shape
+      @ free_vars depth e.Term.e_scrut
+      @ free_motive depth e.Term.e_motive
+      @ List.concat_map
+          (fun ((a : Term.addr), (lg : Term.leg)) -> free_addr depth a @ free_leg depth lg)
+          e.Term.e_branches
+  | Term.Let (_x, ty, def, body) ->
+      free_vars depth ty @ free_vars depth def @ free_vars (depth + 1) body
+  | Term.Ann (tm, ty) -> free_vars depth tm @ free_vars depth ty
+
+and shape_binders (s : Term.t Shape.t) : int =
+  match s with
+  | Shape.SPi (_, _, _) -> 1
+  | Shape.SColl _ -> 0
+  | Shape.SPar (_, _) -> 0
+  | Shape.SMu (_, _) -> 0
+  | Shape.SNu (_, _) -> 0
+
+and free_shape (depth : int) (s : Term.t Shape.t) : int list =
+  match s with
+  | Shape.SPi (_q, _x, dom) -> free_vars depth dom
+  | Shape.SColl _ -> []
+  | Shape.SPar (a, b) -> free_vars depth a @ free_vars depth b
+  | Shape.SMu (_n, ts) -> List.concat_map (free_vars depth) ts
+  | Shape.SNu (_n, ts) -> List.concat_map (free_vars depth) ts
+
+and free_addr (depth : int) (a : Term.addr) : int list =
+  Term.as_apt a
+  |> Option.fold ~none:[] ~some:(fun ((_q : Quantity.t), (arg : Term.t)) ->
+         free_vars depth arg)
+
+and free_leg (depth : int) (lg : Term.leg) : int list =
+  free_vars (depth + List.length lg.Term.l_binders) lg.Term.l_body
+
+and free_motive (depth : int) (mo : Term.motive option) : int list =
+  mo
+  |> Option.fold ~none:[] ~some:(fun (m : Term.motive) ->
+         free_vars (depth + List.length m.Term.m_idx + 1) m.Term.m_body)
+
+(** The runtime free variables of a term, as kernel indices, without
+    repeats and in increasing index order. *)
+let captures_of (ec : ectx) (t : Term.t) : int list =
+  List.sort_uniq Int.compare
+    (List.filter
+       (fun (ix : int) ->
+         match lookup ix ec.slots 0 with
+         | LKeep _ -> true
+         | LDrop -> false
+         | LOut -> false)
+       (free_vars 0 t))
+
+(** Weaken an erased expression under newly introduced runtime parameters.
+    Branch payloads and lets bind locally; closure captures do not. *)
+let rec shift_runtime (by : int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
+  let shift = shift_runtime by depth in
+  match t with
+  | Eterm.KVar i -> Eterm.KVar (if i >= depth then i + by else i)
+  | Eterm.KLit _ | Eterm.KGlobal _ | Eterm.KErased -> t
+  | Eterm.KLet (x, v, b) ->
+      Eterm.KLet (x, shift v, shift_runtime by (depth + 1) b)
+  | Eterm.KClos (f, n, cs) -> Eterm.KClos (f, n, List.map shift cs)
+  | Eterm.KApp (h, args) -> Eterm.KApp (shift h, List.map shift args)
+  | Eterm.KTail (h, args) -> Eterm.KTail (shift h, List.map shift args)
+  | Eterm.KStruct (tid, fs) -> Eterm.KStruct (tid, List.map shift fs)
+  | Eterm.KProj (tid, k, s) -> Eterm.KProj (tid, k, shift s)
+  | Eterm.KTag (tid, k, ps) -> Eterm.KTag (tid, k, List.map shift ps)
+  | Eterm.KCase (s, bs) ->
+      Eterm.KCase
+        ( shift s,
+          List.map
+            (fun (b : Eterm.kbranch) ->
+              { b with body = shift_runtime by (depth + b.arity) b.body })
+            bs )
+  | Eterm.KDelay (f, cs) -> Eterm.KDelay (f, List.map shift cs)
+  | Eterm.KForce x -> Eterm.KForce (shift x)
+
+(** A shape past M0 never reaches erasure, because the checker refused it
+    first.  The arm is total and reads its word from rules.ml, so no
+    milestone word is written twice (SA-D5). *)
+let refused (s : Term.t Shape.t) : (Eterm.ktm * acc, Error.t) result =
+  let* (_pack : Check.ctx Rules.rule_pack) = Rules.rules s in
+  Error (Error.Not_yet "an erasure at a shape past M0")
+
+(** The application view.  [Out] at a point shape with a point address is
+    one argument of a spine;  every other node ends the spine. *)
+let as_app (t : Term.t) : (Quantity.t * Term.t * Term.t * Term.t) option =
+  match t with
+  | Term.Out (Shape.SPi (_q, _x, dom), Term.APt (qa, arg), head) ->
+      Some (qa, dom, arg, head)
+  | Term.Out (Shape.SPi (_, _, _), Term.ALeg _, _) -> None
+  | Term.Out (Shape.SPi (_, _, _), Term.ACtor _, _) -> None
+  | Term.Out (Shape.SColl _, _, _) -> None
+  | Term.Out (Shape.SPar (_, _), _, _) -> None
+  | Term.Out (Shape.SMu (_, _), _, _) -> None
+  | Term.Out (Shape.SNu (_, _), _, _) -> None
+  | Term.Var _ -> None
+  | Term.Univ _ -> None
+  | Term.Lan (_, _) -> None
+  | Term.Ran (_, _) -> None
+  | Term.In (_, _, _) -> None
+  | Term.Sec (_, _) -> None
+  | Term.Elim _ -> None
+  | Term.Let (_, _, _, _) -> None
+  | Term.Ann (_, _) -> None
+  | Term.Global _ -> None
+  | Term.Lit _ -> None
+  | Term.Auto -> None
+
+(** The head of an application spine and its arguments, outermost last,
+    each with the mark and the domain the shape gave it. *)
+let rec spine (t : Term.t) (args : (Quantity.t * Term.t * Term.t) list) :
+    Term.t * (Quantity.t * Term.t * Term.t) list =
+  lazy_fold (as_app t)
+    ~none:(fun (() : unit) -> (t, args))
+    ~some:(fun
+        ( (q : Quantity.t),
+          (dom : Term.t),
+          (arg : Term.t),
+          (head : Term.t) )
+      -> spine head ((q, dom, arg) :: args))
+
+(** The whole erasure, one bidirectional walk (SC-D23):  the expected
+    type travels down from the parent, because [Check.infer] refuses an
+    introduction form, and inference runs only where no parent said what
+    the position holds. *)
+let rec term (ec : ectx) (ac : acc) ~(tail : bool) ~(expected : Value.t option)
+    (t : Term.t) : (Eterm.ktm * acc, Error.t) result =
+  let* ty = position_ty ec expected t in
+  let* rt = runtime_ty ec ty in
+  if rt then node ec ac ~tail ~ty t else Ok (Eterm.KErased, ac)
+
+(** The type of the position.  The thunk matters:  [Option.fold] reads
+    [~none] eagerly, so an unguarded call would infer at every node. *)
+and position_ty (ec : ectx) (expected : Value.t option) (t : Term.t) :
+    (Value.t, Error.t) result =
+  lazy_fold expected
+    ~none:(fun (() : unit) -> Check.infer ec.c Quantity.Many t)
+    ~some:(fun (ty : Value.t) -> Ok ty)
+
+and node (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (t : Term.t) :
+    (Eterm.ktm * acc, Error.t) result =
+  match t with
+  (* kan-lang-tot-pin/lib/erase.ml:17 *)
+  | Term.Var ix -> var_arm ec ac ix
+  (* kan-lang-tot-pin/lib/erase.ml:27 and :28.  A universe and a former
+     are types, so [runtime_ty] answered false above them and these three
+     arms are the total backstop. *)
+  | Term.Univ _ -> Ok (Eterm.KErased, ac)
+  | Term.Lan (_, _) -> Ok (Eterm.KErased, ac)
+  | Term.Ran (_, _) -> Ok (Eterm.KErased, ac)
+  (* kan-lang-tot-pin/lib/erase.ml:29 *)
+  | Term.Sec (s, legs) -> sec_arm ec ac ~ty s legs t
+  (* kan-lang-tot-pin/lib/erase.ml:31 *)
+  | Term.In (s, a, args) -> in_arm ec ac ~ty s a args
+  (* kan-lang-tot-pin/lib/erase.ml:33 *)
+  | Term.Out (s, a, head) -> out_arm ec ac ~tail ~ty s a head t
+  (* kan-lang-tot-pin/lib/erase.ml:49 *)
+  | Term.Elim e -> elim_arm ec ac ~tail ~ty e
+  (* kan-lang-tot-pin/lib/erase.ml:38 *)
+  | Term.Let (x, lty, v, body) -> let_arm ec ac ~tail ~ty x lty v body
+  (* kan-lang-tot-pin/lib/erase.ml:42:  the annotation is a type and the
+     term under it stands at that same type. *)
+  | Term.Ann (tm, _aty) -> term ec ac ~tail ~expected:(Some ty) tm
+  (* kan-lang-tot-pin/lib/erase.ml:43 *)
+  | Term.Global n -> Ok (Eterm.KGlobal n, ac)
+  | Term.Lit l -> Ok (Eterm.KLit l, ac)
+  | Term.Auto -> Error (Error.Not_yet Rules.auto_word)
+
+and var_arm (ec : ectx) (ac : acc) (ix : int) : (Eterm.ktm * acc, Error.t) result =
+  match lookup ix ec.slots 0 with
+  | LKeep i -> Ok (Eterm.KVar i, ac)
+  | LDrop -> Ok (Eterm.KErased, ac)
+  | LOut ->
+      Error
+        (Error.Unbound
+           (Printf.sprintf "the erasure context has no binder at index %d" ix))
+
+(** Erase a list of positions in order, threading the lifted functions. *)
+and erase_fold (ec : ectx) (ac : acc) (jobs : (Value.t option * Term.t) list) :
+    (Eterm.ktm list * acc, Error.t) result =
+  List.fold_left
+    (fun (r : (Eterm.ktm list * acc, Error.t) result)
+         ((e : Value.t option), (t : Term.t)) ->
+      let* xs, a = r in
+      let* x, a' = term ec a ~tail:false ~expected:e t in
+      Ok (xs @ [ x ], a'))
+    (Ok ([], ac)) jobs
+
+(** The lambda view:  one leg with one binder at a point shape. *)
+and as_lam (t : Term.t) : Term.leg option =
+  match t with
+  | Term.Sec (Shape.SPi (_, _, _), [ lg ]) -> Some lg
+  | Term.Sec (Shape.SPi (_, _, _), []) -> None
+  | Term.Sec (Shape.SPi (_, _, _), _ :: _ :: _) -> None
+  | Term.Sec (Shape.SColl _, _) -> None
+  | Term.Sec (Shape.SPar (_, _), _) -> None
+  | Term.Sec (Shape.SMu (_, _), _) -> None
+  | Term.Sec (Shape.SNu (_, _), _) -> None
+  | Term.Var _ -> None
+  | Term.Univ _ -> None
+  | Term.Lan (_, _) -> None
+  | Term.Ran (_, _) -> None
+  | Term.In (_, _, _) -> None
+  | Term.Out (_, _, _) -> None
+  | Term.Elim _ -> None
+  | Term.Let (_, _, _, _) -> None
+  | Term.Ann (_, _) -> None
+  | Term.Global _ -> None
+  | Term.Lit _ -> None
+  | Term.Auto -> None
+
+and sec_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
+    (legs : Term.leg list) (t : Term.t) : (Eterm.ktm * acc, Error.t) result =
+  match s with
+  | Shape.SPi (_, _, _) -> lift_arm ec ac ~ty t
+  | Shape.SColl n -> tuple_arm ec ac ~ty n legs
+  | Shape.SPar (_, _) -> refused s
+  | Shape.SMu (_, _) -> refused s
+  | Shape.SNu (_, _) -> refused s
+
+(** A tuple keeps its runtime legs alone, and a tuple with no runtime leg
+    is erased whole (SC-D11). *)
+and tuple_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (n : int)
+    (legs : Term.leg list) : (Eterm.ktm * acc, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  match form_of w with
+  | FRan (_s, d) ->
+      let* tys = leg_types ec n d in
+      let* flags = Rules.all_ok (List.map (fun (v : Value.t) -> runtime_ty ec v) tys) in
+      let jobs =
+        List.filter_map
+          (fun ((((lg : Term.leg), (lty : Value.t)), (f : bool))) ->
+            if f then Some (Some lty, lg.Term.l_body) else None)
+          (zip (zip legs tys) flags)
+      in
+      let* fields, ac1 = erase_fold ec ac jobs in
+      if List.is_empty fields then Ok (Eterm.KErased, ac1)
+      else
+        let* tid = tid_of ec ty in
+        Ok (Eterm.KStruct (tid, fields), ac1)
+  | FLan (_, _) | FUniv | FNat | FOther ->
+      Error (Error.Mismatch "a tuple stands at a type that is not a right former")
+
+(** SC-D3:  a lambda lifts to a [KFun] and leaves a [KClos] behind.  The
+    parameter list is the runtime captures, outermost first, and then the
+    runtime points of the whole chain, so a capture and a point are one
+    kind of parameter inside the lifted body (SC-D25). *)
+and lift_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (t : Term.t) :
+    (Eterm.ktm * acc, Error.t) result =
+  let caps = captures_of ec t in
+  let outer = List.rev caps in
+  let* cap_tys =
+    Rules.all_ok
+      (List.map (fun (ix : int) -> Check.infer ec.c Quantity.Many (Term.Var ix)) outer)
+  in
+  let* cap_reprs = Rules.all_ok (List.map (fun (v : Value.t) -> repr_of ec v) cap_tys) in
+  let* cap_args =
+    Rules.all_ok
+      (List.map
+         (fun (ix : int) -> Result.map (fun ((k : Eterm.ktm), (_a : acc)) -> k) (var_arm ec ac ix))
+         outer)
+  in
+  let fid = Eterm.Fid (Printf.sprintf "%s$%d" ec.self ac.next) in
+  let ec0 = { ec with slots = frame ec.slots caps } in
+  let* params, ret, body, ac1 = chain ec0 { ac with next = ac.next + 1 } [] ~ty t in
+  let decl = Eterm.KFun (fid, cap_reprs @ params, ret, body) in
+  Ok
+    ( Eterm.KClos (fid, List.length params, cap_args),
+      { ac1 with lifted = ac1.lifted @ [ decl ] } )
+
+(** The slots of the enclosing scope as the lifted body reads them:  a
+    captured binder stays a parameter, every other binder is gone, and the
+    synthetic binders leave the list because no kernel index names one. *)
+and frame (slots : slot list) (caps : int list) : slot list =
+  List.mapi
+    (fun (j : int) (s : slot) ->
+      match s with
+      | SKeep -> if List.exists (Int.equal j) caps then SKeep else SDrop
+      | SDrop -> SDrop
+      | SExtra -> SDrop)
+    (List.filter
+       (fun (s : slot) ->
+         match s with SExtra -> false | SKeep -> true | SDrop -> true)
+       slots)
+
+(** Peel the lambda chain against the type chain and complete any
+    remaining point parameters by eta expansion.  A body whose type is
+    no longer a point former is a tail position (SC-D14). *)
+and chain (ec : ectx) (ac : acc) (params : Eterm.repr list) ~(ty : Value.t)
+    (t : Term.t) : (Eterm.repr list * Eterm.repr * Eterm.ktm * acc, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  let stop (() : unit) :
+      (Eterm.repr list * Eterm.repr * Eterm.ktm * acc, Error.t) result =
+    let* ret = repr_of ec ty in
+    let* body, ac1 = term ec ac ~tail:true ~expected:(Some ty) t in
+    Ok (params, ret, body, ac1)
+  in
+  match (as_lam t, form_of w) with
+  | Some lg, FRan (s, d) -> chain_step ec ac params ~stop lg s d
+  | Some _lg, FUniv -> stop ()
+  | Some _lg, FLan (_, _) -> stop ()
+  | Some _lg, FNat -> stop ()
+  | Some _lg, FOther -> stop ()
+  | None, FUniv -> stop ()
+  | None, FLan (_, _) -> stop ()
+  | None, FRan (s, d) -> (
+      match point_of s with
+      | PPoint (_, _, _) -> eta_chain ec ac params ~ty t s d
+      | PColl _ | POther -> stop ())
+  | None, FNat -> stop ()
+  | None, FOther -> stop ()
+
+(** Complete a function-valued body to its type's whole parameter chain.
+    This makes aliases and partial applications obey the same calling
+    convention as explicit lambdas, including a chain of erased binders.
+    The head is erased before the fresh runtime parameters are introduced. *)
+and eta_chain (ec : ectx) (ac : acc) (params : Eterm.repr list) ~(ty : Value.t)
+    (t : Term.t) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr list * Eterm.repr * Eterm.ktm * acc, Error.t) result =
+  let* head, ac1 = term ec ac ~tail:false ~expected:(Some ty) t in
+  let* extra, ret = remaining_signature ec s d in
+  let n = List.length extra in
+  let args = List.init n (fun (i : int) -> Eterm.KVar (n - i - 1)) in
+  let body = Eterm.KTail (shift_runtime n 0 head, args) in
+  Ok (params @ extra, ret, body, ac1)
+
+and remaining_signature (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr list * Eterm.repr, Error.t) result =
+  match point_of s with
+  | PPoint (q, x, dom) ->
+      let* keep = point_runtime ec q dom in
+      let* here =
+        if keep then Result.map (fun (r : Eterm.repr) -> [ r ]) (repr_of ec dom)
+        else Ok []
+      in
+      let* ec', cod = under_point ec x q dom d in
+      let* w = Eval.whnf (globals_of ec') cod in
+      let* rest, ret =
+        match form_of w with
+        | FRan (s', d') -> remaining_signature ec' s' d'
+        | FLan (_, _) | FUniv | FNat | FOther ->
+            Result.map (fun (r : Eterm.repr) -> ([], r)) (repr_of ec' cod)
+      in
+      Ok (here @ rest, ret)
+  | PColl _ | POther ->
+      Result.map (fun (r : Eterm.repr) -> ([], r)) (ran_repr ec s d)
+
+and chain_step (ec : ectx) (ac : acc) (params : Eterm.repr list)
+    ~(stop : unit -> (Eterm.repr list * Eterm.repr * Eterm.ktm * acc, Error.t) result)
+    (lg : Term.leg) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr list * Eterm.repr * Eterm.ktm * acc, Error.t) result =
+  match point_of s with
+  | PColl _ -> stop ()
+  | POther -> stop ()
+  | PPoint (q, x, dom) ->
+      let* keep = point_runtime ec q dom in
+      let* params' =
+        if keep then Result.map (fun (r : Eterm.repr) -> params @ [ r ]) (repr_of ec dom)
+        else Ok params
+      in
+      let* cod =
+        Rules.open_closure (Eval.ev (globals_of ec)) d [ Value.var (size_of ec) ]
+      in
+      let ec' =
+        {
+          ec with
+          c = Check.bind x q dom ec.c;
+          slots = (if keep then SKeep else SDrop) :: ec.slots;
+        }
+      in
+      chain ec' ac params' ~ty:cod lg.Term.l_body
+
+and in_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
+    (a : Term.addr) (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
+  match s with
+  | Shape.SPar (_, _) -> refused s
+  | Shape.SMu (_, _) -> refused s
+  | Shape.SNu (_, _) -> refused s
+  | Shape.SPi (_, _, _) -> in_typed ec ac ~ty a args
+  | Shape.SColl _ -> in_typed ec ac ~ty a args
+
+and in_typed (ec : ectx) (ac : acc) ~(ty : Value.t) (a : Term.addr)
+    (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  match form_of w with
+  | FLan (sv, d) -> (
+      match point_of sv with
+      | PPoint (q, x, dom) -> pair_intro ec ac ~ty q x dom d a args
+      | PColl n -> tag_intro ec ac ~ty n d a args
+      | POther -> Error (Error.Mismatch "an introduction at a shape past M0"))
+  | FRan (_, _) | FUniv | FNat | FOther ->
+      Error (Error.Mismatch "an introduction stands at a type that is not a left former")
+
+(** A pair keeps the point when the point is runtime and the fibre when
+    the fibre is runtime, and a pair with neither is erased whole. *)
+and pair_intro (ec : ectx) (ac : acc) ~(ty : Value.t) (q : Quantity.t) (x : string)
+    (dom : Value.t) (d : Value.closure) (a : Term.addr) (args : Term.t list) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* point =
+    Term.as_apt a
+    |> Option.map (fun ((_q : Quantity.t), (p : Term.t)) -> p)
+    |> Option.to_result ~none:(Error.Mismatch "a pair takes a point address")
+  in
+  let* fibre =
+    Rules.one_of args |> Option.to_result ~none:(Error.Mismatch "a pair takes one fibre")
+  in
+  let* keep1 = point_runtime ec q dom in
+  let* ec', cod = under_point ec x q dom d in
+  let* keep2 = runtime_ty ec' cod in
+  let* point_v = Eval.eval (globals_of ec) (env_of ec) point in
+  let* fibre_ty = Rules.open_closure (Eval.ev (globals_of ec)) d [ point_v ] in
+  let jobs =
+    (if keep1 then [ (Some dom, point) ] else [])
+    @ if keep2 then [ (Some fibre_ty, fibre) ] else []
+  in
+  let* fields, ac1 = erase_fold ec ac jobs in
+  if List.is_empty fields then Ok (Eterm.KErased, ac1)
+  else
+    let* tid = tid_of ec ty in
+    Ok (Eterm.KStruct (tid, fields), ac1)
+
+(** An injection keeps its leg number, because a case reads the same
+    numbers, and drops a payload that is not runtime (SC-D13). *)
+and tag_intro (ec : ectx) (ac : acc) ~(ty : Value.t) (n : int) (d : Value.closure)
+    (a : Term.addr) (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
+  let* k =
+    Term.as_aleg a
+    |> Option.to_result ~none:(Error.Mismatch "an injection takes a leg address")
+  in
+  let* tys = leg_types ec n d in
+  let* lty =
+    Rules.at k tys
+    |> Option.to_result ~none:(Error.Mismatch "the leg address is outside the collection")
+  in
+  let* rt = runtime_ty ec lty in
+  let* payload =
+    Rules.one_of args
+    |> Option.to_result ~none:(Error.Mismatch "an injection takes one payload")
+  in
+  let* fields, ac1 = erase_fold ec ac (if rt then [ (Some lty, payload) ] else []) in
+  let* tid = tid_of ec ty in
+  Ok (Eterm.KTag (tid, k, fields), ac1)
+
+and out_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t)
+    (s : Term.t Shape.t) (a : Term.addr) (head : Term.t) (t : Term.t) :
+    (Eterm.ktm * acc, Error.t) result =
+  match s with
+  | Shape.SPi (_, _, _) -> app_arm ec ac ~tail ~ty t
+  | Shape.SColl n -> proj_arm ec ac n a head
+  | Shape.SPar (_, _) -> refused s
+  | Shape.SMu (_, _) -> refused s
+  | Shape.SNu (_, _) -> refused s
+
+(** An empty erased application preserves its head when source
+    parameters remain, including parameters that themselves erase.
+    Only a fully applied source function invokes a nullary closure. *)
+and function_result (ec : ectx) (ty : Value.t) : (bool, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  match form_of w with
+  | FRan (s, _d) -> Ok (Option.is_some (Rules.as_vpi s))
+  | FLan (_, _) | FUniv | FNat | FOther -> Ok false
+
+(** The whole spine is erased at once, so an argument that is erased
+    leaves no hole.  A call with no runtime argument preserves the head
+    while source parameters remain; otherwise it invokes the nullary
+    function.  The result type, rather than the head's runtime arity,
+    distinguishes those cases. *)
+and app_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (t : Term.t) :
+    (Eterm.ktm * acc, Error.t) result =
+  let head, args = spine t [] in
+  match args with
+  | [] -> Error (Error.Mismatch "an application at a point shape with no point address")
+  | _ :: _ ->
+      let* jobs =
+        List.fold_left
+          (fun (r : ((Value.t option * Term.t) list, Error.t) result)
+               ((q : Quantity.t), (dom : Term.t), (arg : Term.t)) ->
+            let* js = r in
+            let* dom_v = Eval.eval (globals_of ec) (env_of ec) dom in
+            let* keep = point_runtime ec q dom_v in
+            Ok (if keep then js @ [ (Some dom_v, arg) ] else js))
+          (Ok []) args
+      in
+      let* head', ac1 = term ec ac ~tail:false ~expected:None head in
+      let* args', ac2 = erase_fold ec ac1 jobs in
+      let* bare =
+        if List.is_empty args' then
+          function_result ec ty
+        else Ok false
+      in
+      (match () with
+      | () when bare -> Ok (head', ac2)
+      | () when tail -> Ok (Eterm.KTail (head', args'), ac2)
+      | () -> Ok (Eterm.KApp (head', args'), ac2))
+
+(** A projection renumbers its leg, because the erased tuple holds the
+    runtime legs alone (SC-D11). *)
+and proj_arm (ec : ectx) (ac : acc) (n : int) (a : Term.addr) (head : Term.t) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* k =
+    Term.as_aleg a
+    |> Option.to_result ~none:(Error.Mismatch "a projection takes a leg address")
+  in
+  let* sty = Check.infer ec.c Quantity.Many head in
+  let* w = Eval.whnf (globals_of ec) sty in
+  match form_of w with
+  | FRan (_sv, d) ->
+      let* flags = leg_flags ec n d in
+      let before =
+        List.length
+          (List.filter Fun.id (List.filteri (fun (i : int) (_f : bool) -> i < k) flags))
+      in
+      let* scrut, ac1 = term ec ac ~tail:false ~expected:(Some sty) head in
+      let* tid = tid_of ec sty in
+      Ok (Eterm.KProj (tid, before, scrut), ac1)
+  | FLan (_, _) | FUniv | FNat | FOther ->
+      Error (Error.Mismatch "a projection stands on a value that is not a right former")
+
+and elim_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (e : Term.elim) :
+    (Eterm.ktm * acc, Error.t) result =
+  match e.Term.e_shape with
+  | Shape.SPar (_, _) -> refused e.Term.e_shape
+  | Shape.SMu (_, _) -> refused e.Term.e_shape
+  | Shape.SNu (_, _) -> refused e.Term.e_shape
+  | Shape.SPi (_, _, _) -> elim_typed ec ac ~tail ~ty e
+  | Shape.SColl _ -> elim_typed ec ac ~tail ~ty e
+
+(** The motive is a type and is dropped at every elimination (SC-D10). *)
+and elim_typed (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (e : Term.elim) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* sty = Check.infer ec.c Quantity.Many e.Term.e_scrut in
+  let* w = Eval.whnf (globals_of ec) sty in
+  match form_of w with
+  | FLan (sv, d) -> (
+      match point_of sv with
+      | PPoint (q, x, dom) -> pair_elim ec ac ~tail ~ty ~sty e q x dom d
+      | PColl n -> case_elim ec ac ~tail ~ty ~sty e n d
+      | POther -> Error (Error.Mismatch "an elimination at a shape past M0"))
+  | FRan (_, _) | FUniv | FNat | FOther ->
+      Error (Error.Mismatch "an elimination stands on a value that is not a left former")
+
+(** The pair elimination becomes a let of the scrutinee and one let per
+    runtime component, so the scrutinee is evaluated once (SC-D24).  The
+    synthetic scrutinee binder holds a slot no kernel index names. *)
+and pair_elim (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) ~(sty : Value.t)
+    (e : Term.elim) (q : Quantity.t) (x : string) (dom : Value.t) (d : Value.closure) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* _key, lg =
+    Rules.one_of e.Term.e_branches
+    |> Option.to_result ~none:(Error.Mismatch "a pair elimination takes one branch")
+  in
+  let* b1, b2 =
+    Rules.two_of lg.Term.l_binders
+    |> Option.to_result ~none:(Error.Mismatch "a pair branch takes two binders")
+  in
+  let _ = b1 in
+  let _ = b2 in
+  let* keep1 = point_runtime ec q dom in
+  let* cod =
+    Rules.open_closure (Eval.ev (globals_of ec)) d [ Value.var (size_of ec) ]
+  in
+  let ec1 =
+    {
+      ec with
+      c = Check.bind x q dom ec.c;
+      slots = (if keep1 then SKeep else SDrop) :: SExtra :: ec.slots;
+    }
+  in
+  let* keep2 = runtime_ty ec1 cod in
+  let x2 = snd b2 in
+  let ec2 =
+    {
+      ec1 with
+      c = Check.bind x2 Quantity.Many cod ec1.c;
+      slots = (if keep2 then SKeep else SDrop) :: ec1.slots;
+    }
+  in
+  let* scrut, ac1 = term ec ac ~tail:false ~expected:(Some sty) e.Term.e_scrut in
+  let* sv = Rules.map_shape (Eval.eval (globals_of ec) (env_of ec)) e.Term.e_shape in
+  let self =
+    Value.VIn
+      (sv, Value.VAPt (q, Value.var (size_of ec)), [ Value.var (size_of ec + 1) ])
+  in
+  let* target = Rules.elim_result Check.ops ec.c e.Term.e_motive (Some ty) self in
+  let* body, ac2 = term ec2 ac1 ~tail ~expected:(Some target) lg.Term.l_body in
+  let* tid = tid_of ec sty in
+  let d2 = if keep1 then 1 else 0 in
+  let inner2 =
+    if keep2 then
+      Eterm.KLet (x2, Eterm.KProj (tid, d2, Eterm.KVar d2), body)
+    else body
+  in
+  let inner1 =
+    if keep1 then Eterm.KLet (x, Eterm.KProj (tid, 0, Eterm.KVar 0), inner2) else inner2
+  in
+  Ok (Eterm.KLet (scrut_name, scrut, inner1), ac2)
+
+(** A case keeps every leg of the collection, in leg order, so the tag a
+    branch answers is the tag the injection wrote (SC-D13).  A collection
+    of width zero has no branch and no leg, and its case is a case with an
+    empty branch list. *)
+and case_elim (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) ~(sty : Value.t)
+    (e : Term.elim) (n : int) (d : Value.closure) : (Eterm.ktm * acc, Error.t) result =
+  let* scrut, ac1 = term ec ac ~tail:false ~expected:(Some sty) e.Term.e_scrut in
+  let* tys = leg_types ec n d in
+  let* brs, ac2 =
+    List.fold_left
+      (fun (r : (Eterm.kbranch list * acc, Error.t) result) (k : int) ->
+        let* bs, a = r in
+        let* b, a' = branch_of ec a ~tail ~ty tys e k in
+        Ok (bs @ [ b ], a'))
+      (Ok ([], ac1)) (List.init n Fun.id)
+  in
+  Ok (Eterm.KCase (scrut, brs), ac2)
+
+and branch_of (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (tys : Value.t list)
+    (e : Term.elim) (k : int) : (Eterm.kbranch * acc, Error.t) result =
+  let* lty =
+    Rules.at k tys
+    |> Option.to_result ~none:(Error.Mismatch "a leg number is outside the collection")
+  in
+  let* _a, lg =
+    List.find_opt
+      (fun ((a : Term.addr), (_lg : Term.leg)) ->
+        Option.equal Int.equal (Term.as_aleg a) (Some k))
+      e.Term.e_branches
+    |> Option.to_result ~none:(Error.Mismatch "a case is missing a branch")
+  in
+  let* bq, bx =
+    Rules.one_of lg.Term.l_binders
+    |> Option.to_result ~none:(Error.Mismatch "a case branch takes one binder")
+  in
+  let* keep = point_runtime ec bq lty in
+  let ec' =
+    {
+      ec with
+      c = Check.bind bx bq lty ec.c;
+      slots = (if keep then SKeep else SDrop) :: ec.slots;
+    }
+  in
+  let self =
+    Value.VIn (Shape.SColl (List.length tys), Value.VALeg k, [ Value.var (size_of ec) ])
+  in
+  let* target = Rules.elim_result Check.ops ec.c e.Term.e_motive (Some ty) self in
+  let* body, ac1 = term ec' ac ~tail ~expected:(Some target) lg.Term.l_body in
+  Ok ({ Eterm.tag = k; arity = (if keep then 1 else 0); body }, ac1)
+
+(** Retain the checker's let definition for dependent types in the body.
+    Its semantic value is used only by the checking context.  A runtime
+    let still emits its original definition and binds a runtime slot;
+    types and proofs only extend the checking context. *)
+and let_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (x : string)
+    (lty : Term.t) (v : Term.t) (body : Term.t) : (Eterm.ktm * acc, Error.t) result =
+  let* lty_v = Eval.eval (globals_of ec) (env_of ec) lty in
+  let* rt = runtime_ty ec lty_v in
+  let* vv = Eval.eval (globals_of ec) (env_of ec) v in
+  let ec' =
+    {
+      ec with
+      c = Check.define x Quantity.Many lty_v vv ec.c;
+      slots = (if rt then SKeep else SDrop) :: ec.slots;
+    }
+  in
+  if rt then
+    let* v', ac1 = term ec ac ~tail:false ~expected:(Some lty_v) v in
+    let* b', ac2 = term ec' ac1 ~tail ~expected:(Some ty) body in
+    Ok (Eterm.KLet (x, v', b'), ac2)
+  else term ec' ac ~tail ~expected:(Some ty) body
+
+(** The type names a declaration mentions, deduplicated by their printed
+    text and in first mention order.  The group heads the declaration so
+    that link.ml reads every type it must lay out before it reads the
+    functions that use them (SC-D33). *)
+let rec tids_ktm (t : Eterm.ktm) : Eterm.tid list =
+  match t with
+  | Eterm.KVar _ -> []
+  | Eterm.KLit _ -> []
+  | Eterm.KGlobal _ -> []
+  | Eterm.KErased -> []
+  | Eterm.KLet (_x, v, b) -> tids_ktm v @ tids_ktm b
+  | Eterm.KClos (_f, _n, cs) -> List.concat_map tids_ktm cs
+  | Eterm.KApp (f, xs) -> tids_ktm f @ List.concat_map tids_ktm xs
+  | Eterm.KTail (f, xs) -> tids_ktm f @ List.concat_map tids_ktm xs
+  | Eterm.KStruct (t0, xs) -> t0 :: List.concat_map tids_ktm xs
+  | Eterm.KProj (t0, _k, x) -> t0 :: tids_ktm x
+  | Eterm.KTag (t0, _k, xs) -> t0 :: List.concat_map tids_ktm xs
+  | Eterm.KCase (x, brs) ->
+      tids_ktm x
+      @ List.concat_map (fun (b : Eterm.kbranch) -> tids_ktm b.Eterm.body) brs
+  | Eterm.KDelay (_f, xs) -> List.concat_map tids_ktm xs
+  | Eterm.KForce x -> tids_ktm x
+
+let tids_repr (r : Eterm.repr) : Eterm.tid list =
+  match r with
+  | Eterm.RI31 -> []
+  | Eterm.RStruct t -> [ t ]
+  | Eterm.RUnion t -> [ t ]
+  | Eterm.RFunc t -> [ t ]
+  | Eterm.RThunk t -> [ t ]
+
+let tids_decl (d : Eterm.kdecl) : Eterm.tid list =
+  match d with
+  | Eterm.KFun (_f, ps, ret, b) ->
+      List.concat_map tids_repr ps @ tids_repr ret @ tids_ktm b
+  | Eterm.KRec ts -> ts
+
+let dedup_tids (ts : Eterm.tid list) : Eterm.tid list =
+  List.fold_left
+    (fun (acc : Eterm.tid list) (t : Eterm.tid) ->
+      if
+        List.exists
+          (fun (u : Eterm.tid) -> String.equal (Eterm.tid_text u) (Eterm.tid_text t))
+          acc
+      then acc
+      else acc @ [ t ])
+    [] ts
+
+(** One checked declaration.  A prim is dropped, because its body is the
+    runtime's own (SC-D18);  an axiom at a runtime type keeps its repr, so
+    the emitter can refuse a program that reaches one; a definition at a
+    runtime type erases to its rec group, the functions its lambdas lifted
+    and its own function, in that order (SC-D29). *)
+let rec decl (g : Global.t) (budget : Budget.t) (name : string) (en : Global.entry) :
+    (entry, Error.t) result =
+  let ec = { c = Check.make g budget; slots = []; self = name } in
+  match en with
+  | Global.Prim _ -> Ok Dropped
+  | Global.Axiom a ->
+      let* ty_v = Eval.eval g [] a.Global.ax_ty in
+      let* rt = runtime_ty ec ty_v in
+      if rt then Result.map (fun (r : Eterm.repr) -> Postulate r) (repr_of ec ty_v)
+      else Ok Dropped
+  | Global.Def d ->
+      let* ty_v = Eval.eval g [] d.Global.ty in
+      let* rt = runtime_ty ec ty_v in
+      if rt then def_code ec name ty_v d.Global.def else Ok Dropped
+
+(** The whole type chain supplies the definition's own parameters,
+    whether the body is a lambda chain, an alias or a partial application.
+    A definition of arity two is one function of two parameters. *)
+and def_code (ec : ectx) (name : string) (ty_v : Value.t) (body : Term.t) :
+    (entry, Error.t) result =
+  let* params, ret, body', ac =
+    chain ec { next = 0; lifted = [] } [] ~ty:ty_v body
+  in
+  let own = Eterm.KFun (Eterm.Fid name, params, ret, body') in
+  let ds = ac.lifted @ [ own ] in
+  Ok (Code (Eterm.KRec (dedup_tids (List.concat_map tids_decl ds)) :: ds))
+
+(** The whole program, in declaration order.  Every row extends the
+    environment the next row is erased in, exactly as check_decls built
+    it, so a definition reads the types of the definitions before it. *)
+let program ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (rows : (string * Global.entry) list) : ((string * entry) list, Error.t) result =
+  List.fold_left
+    (fun (r : (Global.t * (string * entry) list, Error.t) result)
+         ((name : string), (en : Global.entry)) ->
+      let* g, out = r in
+      let* e = decl g budget name en in
+      Ok (Global.add name en g, out @ [ (name, e) ]))
+    (Ok (globals, []))
+    rows
+  |> Result.map (fun ((_g : Global.t), (out : (string * entry) list)) -> out)
+
+(** The printed form of SC-D2:  one line per erased declaration, one line
+    per kernel declaration of a definition, and the name alone for a
+    declaration that carries nothing at runtime. *)
+let print (rows : (string * entry) list) : string =
+  String.concat ""
+    (List.map
+       (fun ((name : string), (e : entry)) ->
+         match e with
+         | Dropped -> Printf.sprintf "erased %s\n" name
+         | Postulate r -> Printf.sprintf "axiom %s : %s\n" name (Eterm.print_repr r)
+         | Code ds ->
+             String.concat ""
+               (List.map (fun (d : Eterm.kdecl) -> Eterm.print_decl d ^ "\n") ds))
+       rows)

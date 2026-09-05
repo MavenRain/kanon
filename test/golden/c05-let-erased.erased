@@ -1,0 +1,2 @@
+rec []
+fun k () : i31 := KLet m (KLit 4) (KVar 0)

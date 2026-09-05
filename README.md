@@ -3,10 +3,11 @@
 Kan extensions are the sole type former: every type in kanon is a left or
 a right Kan extension of a diagram along a shape.
 
-Status: M0 Stage B.  The skeleton, the closed term grammar, the carried
+Status: M0 Stage C.  The skeleton, the closed term grammar, the carried
 kernel leaves, the R0 counts, the lexer, the parser, the surface printer,
-the evaluator, conversion, the checker and the elaborator are built.
-Erasure and WasmGC emission arrive at Stages C to E.
+the evaluator, conversion, the checker, the elaborator, erasure and the
+totality entry point are built.  WasmGC emission arrives at Stages D
+and E.
 
 ## Checking a file
 
@@ -25,6 +26,20 @@ missing file, an unknown command and the two commands that later stages
 bring, `emit` and `run`, all exit 64, which a caller tells from the exit
 1 of a file that does not check.
 
+## Erasing a file
+
+`kanon check --erased FILE` checks the file first and then prints the
+erased program to stdout, in declaration order.  Erasure drops every
+type, every proposition, every proof and every binder the checker
+stamped `0`, so the printed program holds the runtime content alone.  A
+declaration with no runtime content prints as `erased NAME`.  A
+postulate with a runtime type prints as `axiom NAME : REPR`, which the
+host must supply.  A definition prints as one `rec [TID; ..]` line, the
+types it names, and then one `fun` line for each function it lifts and
+one for its own function.  The golden files test/golden/NAME.erased
+hold exactly that text, one beside every test/golden/NAME.checked, and
+the ERASE group of the suite compares the two byte for byte.
+
 ## Layout
 
 ```
@@ -35,7 +50,8 @@ vendor/tot/         git submodule, checked out at PIN
 lib/                library kanon_kernel
 surface/            library kanon_surface
 bin/kanon.ml        driver: check | emit | run | axioms | spec-count
-test/               main.ml, fixtures/*.kan, golden/*.checked, neg/*.kan
+test/               main.ml, fixtures/*.kan, golden/*.checked,
+                    golden/*.erased, neg/*.kan
 dev/                the runners, the gate scripts and the logs
 ```
 

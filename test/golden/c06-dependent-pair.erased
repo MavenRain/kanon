@@ -1,0 +1,3 @@
+rec [pair<union any>]
+fun packed$0 (i31) : i31 := KVar 0
+fun packed () : struct pair<union any> := KStruct pair<union any> [KClos packed$0 1 []]

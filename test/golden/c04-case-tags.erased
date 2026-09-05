@@ -1,0 +1,7 @@
+erased Opt
+rec [sum<unit|i31>]
+fun none () : union sum<unit|i31> := KTag sum<unit|i31> 0 []
+rec [sum<unit|i31>]
+fun some () : union sum<unit|i31> := KTag sum<unit|i31> 1 [KLit 7]
+rec [sum<unit|i31>]
+fun unwrap (union sum<unit|i31>) : i31 := KCase (KVar 0) [{0 0 (KLit 0)}; {1 1 (KVar 0)}]

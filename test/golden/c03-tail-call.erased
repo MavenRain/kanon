@@ -1,0 +1,4 @@
+rec []
+fun g (i31) : i31 := KTail (KGlobal natAdd) [KVar 0; KLit 1]
+rec []
+fun h (i31) : i31 := KTail (KGlobal g) [KApp (KGlobal g) [KVar 0]]

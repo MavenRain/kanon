@@ -1,0 +1,11 @@
+rec [fn<2>]
+fun later (func fn<2>, i31, i31) : i31 := KTail (KApp (KVar 2) [KVar 1]) [KVar 0]
+rec []
+fun letHead (i31, i31) : i31 := KTail (KLet z (KVar 1) (KApp (KGlobal natAdd) [KVar 0])) [KVar 0]
+rec [tuple<func fn<2>>]
+fun lifted$0 (i31, i31, i31) : i31 := KTail (KApp (KGlobal natAdd) [KApp (KGlobal natAdd) [KVar 2; KVar 1]]) [KVar 0]
+fun lifted (i31) : struct tuple<func fn<2>> := KStruct tuple<func fn<2>> [KClos lifted$0 2 [KVar 0]]
+erased Two
+rec [sum<i31|i31>]
+fun caseHead$0 (i31, i31) : i31 := KTail (KGlobal natAdd) [KVar 1; KVar 0]
+fun caseHead (i31, union sum<i31|i31>, i31) : i31 := KTail (KCase (KVar 1) [{0 1 (KApp (KGlobal natAdd) [KApp (KGlobal natAdd) [KVar 3; KVar 0]])}; {1 1 (KClos caseHead$0 1 [KVar 0])}]) [KVar 0]

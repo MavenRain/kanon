@@ -1,0 +1,9 @@
+erased Nat
+rec []
+fun five () : i31 := KLet x (KLit 2) (KTail (KGlobal natAdd) [KVar 0; KLit 3])
+rec []
+fun annotated () : i31 := KLit 5
+rec []
+fun nested () : i31 := KLet x (KLit 1) (KLet y (KLit 2) (KTail (KGlobal natAdd) [KVar 1; KVar 0]))
+rec []
+fun letOfAnn () : i31 := KLet x (KLit 7) (KVar 0)

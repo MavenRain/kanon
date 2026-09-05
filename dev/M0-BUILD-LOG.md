@@ -307,3 +307,199 @@ The judge reran every gate of brief section 4 on the delivered tree, after the f
 | SB-G10 AXIOMS | pass | `kanon.exe axioms test/fixtures/b08-axiom-disclosure.kan` printed the one line `Bit`, exit 0;  `kanon check` on that file exited 0 with no output;  `kanon check test/neg/n01-universe.kan` exited 1 with the one stderr line `mismatch: the term has type Type 2 and the expected type is Type 1`. |
 
 The judge also read the fixture set against brief section 3.12.  Every required name and scenario is present:  the eight positives b01-function-eta to b08-axiom-disclosure and the eight negatives n01-universe to n08-pi-misuse, with the substituted scenarios kept above the required numbering as b09 to b12 and n09 to n11.  Every header id agrees with its file name.
+
+## Stage C (2026-09-05)
+
+Stage C is erasure.  Two builders delivered the tree and this section
+was written in the fix round that closed finding SC-F1, so every gate
+row and every mutation row below is a line the writer printed.
+
+### Deliverables
+
+- `lib/eterm.ml`, 117 lines:  the IR types stay byte for byte and the
+  printer of SC-D2 is appended below them, `print_repr`, `print_ktm`
+  and `print_decl`, exhaustive over every constructor, so a `KDelay`
+  and a `KForce` of M2 print and only `emit` refuses them at Stage D.
+- `lib/erase.ml`, 1100 lines:  the type directed erasure, one arm for
+  each of the thirteen constructors of `Term.t`, mirroring
+  kan-lang-tot-pin/lib/erase.ml arm by arm, with `entry`, `program`
+  and `print` in the signature of brief section 3.2.
+- `lib/totality.ml`, 139 lines:  `guard`, the M1 entry point, one
+  exhaustive traversal that answers `Ok None` at M0 and
+  `Error (Not_yet "structural recursion arrives at M1")` on a self
+  name.  It is not wired into the check path (SC-D15).
+- `bin/kanon.ml`:  `kanon check --erased FILE`, the golden generator,
+  and the usage line
+  `usage: kanon check [--print|--erased] FILE | axioms FILE | emit | run | spec-count`.
+- `SPEC.md`:  the erasure table of section 2.3, the printed form, the
+  two sentences of SC-D11 and SC-D12, and the two new obligation rows
+  of section 10, "structural recursion certificate" and "the any repr".
+- `README.md`:  one paragraph on `check --erased` and the erased
+  goldens.
+- `test/main.ml`:  the ERASE group after CHECK and the `KNEG self` row
+  after `KNEG smu`, with `attempt_sys` still the one `try` site.
+- Five positives, `test/fixtures/c01-prop-argument.kan` to
+  `c05-let-erased.kan`, each with `golden/NAME.checked`.
+- 27 erased goldens, one beside every checked golden.
+
+### Gates
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| SC-G1 BUILD | pass | `zsh dev/dune.sh clean` exit 0, then `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0. |
+| SC-G2 CARRY | pass | `zsh dev/carry-check.sh` printed `CARRY lib/level.ml diff=2 expected=2 OK`, `lib/level.mli 2`, `lib/quantity.ml 34`, `lib/literal.ml 2`, `lib/global.ml 164`, `lib/budget.ml 2`, `lib/budget.mli 2`, then `CARRY-OK`, exit 0.  Stage C edits no carried file (SC-D17). |
+| SC-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0;  `kanon.exe spec-count` printed the same eight lines as at Stage B, `formers 2: Lan Ran` through `no eta 1: Lan-SColl`, exit 0. |
+| SC-G4 SUITE-KERNEL | pass | `_build/default/test/main.exe test` printed `PARSE-OK 38/38`, `CHECK-OK 27/27`, `ERASE-OK 27/27`, `NEG-OK 11/11`, `KNEG-OK 2/2`, `SUITE-KERNEL OK`, exit 0;  fixtures/ holds 27 .kan files and neg/ holds 11, so N is 38, P is 27, Q is 11 and K is 2. |
+| SC-G5 R0-AUDIT | pass | the shape name sweep over lib/ without shape.ml, pp.ml, rules.ml and erase.ml printed nothing, exit 1. |
+| SC-G6 PIN | pass | `cat PIN`, `git -C vendor/tot rev-parse --short HEAD` and the pin worktree all printed `8cf0b8b`, and the pin porcelain printed 0. |
+| SC-G7 REPO | pass | `rev-list --count HEAD` printed 3, `log -1 --format=%s` printed `M0 Stage B: typed checker`, `diff --cached --name-only` printed nothing, and the 46 porcelain lines, the 44 of the delivered tree and the two log files of this fix round, hold no path under _build or .gatework. |
+| SC-G8 TRUSTED-LINES | pass | shape.ml, term.ml, rules.ml, check.ml, value.ml, eval.ml, conv.ml and totality.ml piped to `wc -l` printed 2305, under the cap of 3000. |
+| SC-G9 HOUSE | pass | the `raise`, `failwith`, `assert`, `exception`, wildcard arm, `List.nth` and partial index sweep printed nothing, exit 1;  the `ref`, `mutable`, `Array.` and `Hashtbl` sweep over lib/ printed nothing, exit 1;  the `try` sweep printed only `test/main.ml:47:  try Ok (thunk ()) with Sys_error m -> Error m`;  a `true ->` and `false ->` sweep over the four directories printed nothing. |
+| SC-G10 DRIVER | pass | `kanon.exe check --erased test/fixtures/c02-zero-binder.kan` exit 0 and its diff against `golden/c02-zero-binder.erased` printed nothing;  `check --erased test/neg/n01-universe.kan` exit 1 with the one stderr line `mismatch: the term has type Type 2 and the expected type is Type 1`;  `check --erased` with no path exit 64 with the usage line;  `axioms test/fixtures/b08-axiom-disclosure.kan` printed the one line `Bit`, exit 0;  `check --print test/fixtures/b01-function-eta.kan` diffed empty against `golden/b01-function-eta.checked`. |
+
+Ten gates of ten pass.
+
+### Decisions carried from the brief
+
+- SC-D1 `kanon check --erased FILE` is the erased golden generator, beside `check --print`;  the erased program type and its printer live in erase.ml and eterm.ml, and the IR types of eterm.ml do not change.
+- SC-D2 The printed form.  A `KFun` prints as `fun FID (REPR, .., REPR) : REPR := KTM` and a `KRec` as `rec [TID; ..]`, one declaration to a line.  A repr prints as `i31`, `struct TID`, `union TID`, `func TID` or `thunk TID`.  A ktm prints in prefix form with its constructor name, its scalar fields, a subterm in parentheses and a list in square brackets with semicolons.  A `Dropped` entry prints `erased NAME` and a `Postulate` prints `axiom NAME : REPR`.  Names print bare.
+- SC-D3 Closure conversion.  A definition whose body is a lambda chain becomes one `KFun (Fid NAME, ..)` of arity n;  any other section at a right point former lifts to `KFun (Fid NAME$k, ..)` and the occurrence is `KClos` with the captures in index order.  An application spine is collected whole.
+- SC-D4 Classification asks `Check.infer` and `Eval.whnf`;  erase.ml holds no inference of its own.
+- SC-D5 The repr table after weak head normal form:  the prim type Nat is `i31`;  a right point former is `func fn<n>`;  a left point former is `struct pair<R,R>`;  a left collection of width at least one is `union sum<R|..|R>`;  a right collection of width at least one is `struct tuple<R,..,R>`;  the two width zero formers are erased at every position.
+- SC-D6 A runtime value whose type is a neutral or any other form outside SC-D5 takes `union any`, and Stage D resolves `any` to eqref.
+- SC-D7 A Prop valued definition and a type valued definition are `Dropped`;  an axiom with a runtime type is `Postulate`;  an axiom at a universe or at a proposition is `Dropped`.
+- SC-D8 A literal prints through `Literal.t`.  `LString` cannot reach erasure at M0 and the printer still covers it.
+- SC-D9 Erasure never evaluates a runtime term;  a primitive application stays a `KApp` of a `KGlobal`.
+- SC-D10 A pair elimination binds the scrutinee once with `KLet` and projects under it;  a collection elimination is one `KCase` with the legs in leg order.
+- SC-D11 An erased field leaves the struct, the tag and the tid, `KProj` indices are renumbered over the runtime fields, and a struct with no runtime field is `KErased`.
+- SC-D12 `KVar` counts runtime binders alone;  the erasure environment maps each kernel binder to a runtime index or to erased, and a use of an erased binder is `KErased`.
+- SC-D13 No agent touches the git index;  the closer prints one commit block.
+- SC-D14 A tail position is the body of a `KFun`, the body of a `KLet` in a tail position and every branch of a `KCase` in a tail position;  a `KApp` there prints as `KTail`.
+- SC-D15 `Totality.guard` traverses at M0, answers `Not_yet` on a self name, is not wired into the check path at M0 and is exercised by `KNEG self`.
+
+### Decisions taken during the build
+
+The two builders took these decisions.  The texts are their own, kept
+as they returned them.
+
+- SC-D16 No checker edit was needed for SC-D4.  check.ml carries no .mli, so ctx, make, bind, define, infer, infer_univ and ops are already public and erase.ml reads the checker through them alone.
+- SC-D17 eterm.ml is not a carried file (dev/CARRIED.md holds seven rows and none is eterm.ml), so the printer is appended below the types kept byte for byte and the CARRY gate keeps its counts.
+- SC-D18 A Prim row erases to Dropped, because the runtime owns the primitive body.  A KApp may name the prim global, and Stage D maps that name to an i32 op.
+- SC-D19 An Axiom row at a runtime type erases to Postulate of its repr, and to Dropped at a type or at a proof type.
+- SC-D20 The two width zero formers are erased at every position, so a binder at one of them is dropped exactly as a Zero binder is.  width_zero sits in runtime_ty beside the universe test and the proof test.
+- SC-D21 Classification infers at quantity mode Many, because erasure reads a term as a runtime use.  A Zero binder read at a runtime position is the checker's Quantity error and never a silent keep.
+- SC-D22 A codomain is opened at a fresh variable and never at the argument, so erasure never evaluates a runtime term (SC-D9).
+- SC-D23 The walk is bidirectional.  Check.infer answers Cannot_infer for In and for Sec, so the expected type travels down from the parent and inference runs only where no parent said what the position holds.
+- SC-D24 The pair elimination names its synthetic scrutinee binder scrut.  The binder holds an SExtra slot, which counts as a runtime binder for the index arithmetic and which no kernel index names.
+- SC-D25 The lifted parameter list is the runtime captures, outermost first, and then the runtime points of the chain.  A capture reads its type through Check.infer on Term.Var, so erase.ml does not depend on the shape of the ctx locals record.
+- SC-D26 The application spine is collected through a total view.  The view answers None at every node that is not an Out at a point shape with a point address, so the walk never recurses on itself, and an Out at a point shape with a leg address is an honest Mismatch instead of a loop.
+- SC-D27 A call whose arguments are all erased is the head alone, and not a KApp with an empty argument list.
+- SC-D28 A dropped let defines its value in the checker context only when the value is a type.  A dropped let at a proof binds instead, because evaluating its value would evaluate a runtime term.
+- SC-D29 A lifted function is named NAME$N with N counting from 0 in preorder over the declaration, and the lifted functions print before the definition's own function.
+- SC-D30 The fibre of a pair reads its type from the codomain when the codomain does not read the point.  A codomain that does read the point holds a variable the fibre's scope has no name for, so the fibre is inferred there instead.
+- SC-D31 The lambda chain of a definition lifts into the definition's own fid, so a definition of arity two is one function of two parameters and not a nullary function that answers a closure.
+- SC-D32 KClos carries the chain arity, that is the number of parameters the capture list does not supply, so a caller reads the arity it must satisfy.
+- SC-D33 Each definition heads its declaration list with KRec of the tids it mentions, deduplicated by printed text in first mention order, so link.ml reads every type before the functions that use it.
+- SC-D34 An application whose runtime argument list is empty is the head alone only when the head's erased arity is not zero.  A head of erased arity zero is a nullary function, so its own repr is func fn<0> while the result repr of the call is the result type's repr, and dropping the call would put a closure where a scalar belongs.  The call stays as KApp (h, []) or KTail (h, []).  This is the fix of finding F1 in erase.ml:  the new helper head_arity infers the head's type, whnfs it and reads arity_of, and app_arm keeps the head alone only at arity greater than zero.  The 22 Stage B fixtures print byte for byte the same text before and after the fix.
+- SC-D35 c01-prop-argument spells the applied lambda with its type, "((fun (p : P) => 5) : (p : P) -> Nat) a", because a bare section has no type of its own:  the checker answers "cannot infer: a section has no type of its own; it needs an expected type" for the brief's literal spelling (SC-D23).  The annotation is the smallest change that keeps the row the brief asks for, a proof at a Many binder.
+- SC-D36 SPEC.md section 9 lists the surface grammar alone and no driver form, so the surface half of 3.8 is README.md alone and SPEC.md takes no edit from builder 2.  The flag already stands in SPEC.md section 2.3, "kanon check --erased FILE prints the erased program", from builder 1.
+- SC-D37 The five c fixtures do not repeat the "axiom Nat : Type 0" line that the a fixtures carry, because Global.initial holds the prim type Nat (b07 is the Stage B precedent).  So a Nat position takes the repr i31 of SC-D5 and not the any of SC-D6, which is what c02, c03 and c05 must show.
+- SC-D38 c04-case-tags spells its sum as "sum ((prod () : Type 0), Nat)", the Bool spelling of a08, so the payload free leg is the width zero unit former of SC-D20.  Its tag prints "KTag sum<unit|i31> 0 []" with an empty payload list and its branch prints arity 0, which is the row 3.7 asks for.
+- SC-D39 The KNEG rows dispatch by name through one kneg function, so the group keeps the shape every other group has, a list of names and a runner from a name.  A name the suite does not know is a FAIL line naming it, not a wildcard arm, so gate SC-G9 stays clean.
+- SC-D40 The ERASE group asks Erase.program Global.initial rows and compares Erase.print of the answer, the same two calls the driver makes, so the suite and the golden generator can never drift.  An erasure error is a FAIL line carrying Error.to_string, not an exit.
+
+### Findings and how each was resolved
+
+- F1, during the build.  `app_arm` answered the head alone for every
+  call whose runtime argument list was empty, so a call of a nullary
+  function took the func repr of the head where the result repr
+  belonged.  Resolved in erase.ml by the helper `head_arity`:  the head
+  stands alone only at an erased arity greater than zero, and a head of
+  arity zero keeps `KApp (h, [])` or `KTail (h, [])` (SC-D34).  The 22
+  Stage B fixtures print the same erased text before and after the fix.
+- SC-F1, raised by the review.  Neither `dev/M0-BUILD-LOG.md` nor
+  `dev/MUTATION-LOG.md` held a Stage C section:
+  `git status --porcelain -- dev/M0-BUILD-LOG.md dev/MUTATION-LOG.md`
+  printed nothing and `rg -n '^## '` over the two files listed Stage 0,
+  Stage A and Stage B alone.  The finding is correct.  Resolved by this
+  section and by the "## Stage C" section of dev/MUTATION-LOG.md, both
+  written after the fix round reran the ten gates and the three
+  mutations (SC-D41, SC-D43).
+
+### Decisions taken during the fix round
+
+- SC-D41 The fix round appends and never rewrites.  The Stage 0, Stage A and Stage B sections keep their bytes, and the Stage C section carries the fix round's own gate rerun, because a gate row must name evidence the writer printed.
+- SC-D42 The decisions SC-D16 to SC-D40 are the two builders' own texts, recovered from the run journal of the Stage C workflow and kept as they were returned.  The log records the decision that was taken, not a later paraphrase.
+- SC-D43 The three mutations were rerun from fresh copies under SCRATCH/stageC/fm1, fm2 and fm3, made with rsync from ROOT and never from the repo itself, so every killed line in dev/MUTATION-LOG.md is a line the fix round printed.
+- SC-D44 A mutation is written at the marked site as one guarded answer, `&& false` or `|| true`, so the copy still builds with no unused binding and the mutant changes exactly the answer the check names.
+- SC-D45 No golden was regenerated in this round.  ERASE-OK printed 27/27 and both SC-G10 diffs printed nothing on the delivered tree, so every fixture keeps the promise its name makes and an erased golden that was not re-read is not rewritten.
+- SC-D46 The state of the user's tot tree is a note and not a gate:  at the fix round it printed HEAD 98e154c with a porcelain count of 2.  No command of this round writes there.
+
+### Hand-off notes for Stage D
+
+- The tid naming.  A tid is the structural text of its type, so link.ml
+  dedups by string:  `pair<R,R>` for a left point former, `sum<R|..|R>`
+  for a left collection, `tuple<R,..,R>` for a right collection,
+  `fn<n>` for a right point former of runtime arity n, `unit` for a
+  payload free leg and `i31` for Nat.  Each declaration heads its own
+  list with `KRec` of the tids it mentions, deduplicated in first
+  mention order (SC-D33), so the emitter reads every type before the
+  function that uses it.
+- The fid naming.  A definition owns the fid `NAME`, and a lambda
+  lifted out of it owns `NAME$N` with N counting lifted lambdas of that
+  declaration in preorder from 0 (SC-D29, SC-D31).
+- The any repr.  A runtime value whose type is a neutral takes
+  `union any`.  Stage D resolves `any` to eqref, and SPEC.md section 10
+  holds the obligation.
+- The arity classes.  A `KFun` parameter list is the runtime captures,
+  outermost first, and then the runtime points of the chain (SC-D25).
+  A `KClos` carries the chain arity, the number of parameters the
+  capture list does not supply (SC-D32), so Stage D reads a direct call
+  when the head arity matches the argument count and a generic apply
+  when it does not.  A head of erased arity zero keeps an empty
+  argument list (SC-D34).
+- The prim globals a `KApp` may name are the five of `Global.initial`,
+  `natAdd`, `natSub`, `natMul`, `natEq` and `natLt`;  the prim type
+  `Nat` is dropped.  golden/c03-tail-call.erased prints
+  `fun g (i31) : i31 := KTail (KGlobal natAdd) [KVar 0; KLit 1]`.
+- The empty `KCase` is the unreachable of Stage D.
+  golden/a06-unit-absurd.erased prints
+  `fun fromEmpty () : union any := KCase (KErased) []`, a case with no
+  branch, and the emitter answers unreachable there.
+- The `Postulate` entries print `axiom NAME : REPR`, as
+  golden/a10-def-axiom.erased shows with `axiom zero : i31` and
+  `axiom Eq : func fn<2>`.  A use is a `KGlobal` with no body, so emit
+  must refuse a program that reaches one.
+- The tail positions.  `KTail` marks a call in the body of a `KFun`, in
+  the body of a `KLet` in a tail position and in a branch of a `KCase`
+  in a tail position (SC-D14).  golden/c03-tail-call.erased prints the
+  outer call of h as `KTail` and its inner call as `KApp`.
+
+## Stage C review fixes (2026-09-05)
+
+The four review reproducers now pass erasure.  Five fixtures, c06 through
+c10, cover dependent pair introduction, dependent case motives, runtime
+let definitions in types, partial erased application and eta expansion
+under captures, lets and case payloads.  The a01 idNat erased golden now
+has one runtime parameter, matching its function type.
+
+- A dependent pair fibre receives the codomain instantiated at its point.
+- Pair and collection branches receive the motive at their constructor.
+- Let definitions remain in the checking environment.  Emission still
+  walks the original syntax and retains runtime lets and primitive calls.
+  This supersedes the literal no-evaluation wording of SC-D9, SC-D22 and
+  SC-D28: semantic evaluation resolves dependent types only, not emitted
+  runtime expressions.  It also replaces the inference fallback in SC-D30.
+- An empty erased application preserves its head while source parameters
+  remain.  A fully applied nullary function still emits an empty call.
+  This replaces the head-arity test in SC-D34.
+- Definitions and lifted functions complete their whole type chain by eta
+  expansion, so aliases obey the same calling convention as lambdas.
+  Runtime indices are shifted under the new parameters while preserving
+  let and branch payload binders.  This extends SC-D31 to aliases.
+
+Validation on the updated scratch tree: dunecho build reports zero errors
+and zero warnings; PARSE-OK 43/43, CHECK-OK 32/32, ERASE-OK 32/32,
+NEG-OK 11/11, KNEG-OK 2/2, SUITE-KERNEL OK and R0-COUNT OK.  The four
+standalone review regression assertions also pass.  No prior test or
+mutation record was removed.

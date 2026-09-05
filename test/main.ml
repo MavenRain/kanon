@@ -1,4 +1,4 @@
-(** The M0 kernel suite (brief section 3.11).  Four groups run in one
+(** The M0 kernel suite (brief section 3.11).  Five groups run in one
     order and each prints its own count, then one verdict line closes
     the run:
 
@@ -7,6 +7,9 @@
     - CHECK, one line per positive fixture, where OK means the file
       elaborates, checks, and prints the byte for byte text of
       golden/NAME.checked;
+    - ERASE, one line per positive fixture, where OK means the same
+      file erases and prints the byte for byte text of
+      golden/NAME.erased (Stage C, brief section 3.6);
     - NEG, one line per negative, where OK means the file fails and
       [Error.message] equals the single line of neg/NAME.err;
     - KNEG, the shapes M0 declares and does not admit, reached from
@@ -86,6 +89,26 @@ let check_fixture (root : string) (name : string) : (unit, string) result =
   if String.equal printed golden then Ok ()
   else Error "the checked form is not the golden text"
 
+(** A positive fixture at the erasure:  it checks, it erases in the
+    globals it was checked in, and the erased program is the golden
+    text byte for byte.  The suite reads the same text the driver
+    prints, because both call [Erase.print] of [Erase.program]
+    (SC-D1). *)
+let erase_fixture (root : string) (name : string) : (unit, string) result =
+  let* src = read_file (path_of (Filename.concat root "fixtures") name ".kan") in
+  let* golden = read_file (path_of (Filename.concat root "golden") name ".erased") in
+  let* rows =
+    Kanon_surface.Elab.check_text Kanon_kernel.Global.initial src
+    |> Result.map_error Kanon_kernel.Error.to_string
+  in
+  let* out =
+    Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+    |> Result.map_error Kanon_kernel.Error.to_string
+  in
+  let printed = Kanon_kernel.Erase.print out in
+  if String.equal printed golden then Ok ()
+  else Error "the erased form is not the golden text"
+
 (** A negative:  it fails, and the failure is the one the sidecar
     names.  The sidecar holds one line, so its trailing newline is
     dropped before the comparison. *)
@@ -120,6 +143,30 @@ let kneg_smu () : (unit, string) result =
          let got = Kanon_kernel.Error.message e in
          if String.equal got "SMu arrives at M1" then Ok ()
          else Error (Printf.sprintf "the message is \"%s\"" got))
+
+(** The totality guard of M1, reached from OCaml because no surface
+    production spells a self reference:  the elaborator refuses one as
+    unbound before the guard can read it (SB-D24, n07), so the term is
+    built here.  [guard] is not wired into the check path at M0
+    (SC-D15). *)
+let kneg_self () : (unit, string) result =
+  Kanon_kernel.Totality.guard Kanon_kernel.Global.initial "self"
+    (Kanon_kernel.Term.Global "Nat") (Kanon_kernel.Term.Global "self")
+  |> Result.fold
+       ~ok:(fun (_g : int option) ->
+         Error "the self reference is admitted at M0")
+       ~error:(fun (e : Kanon_kernel.Error.t) ->
+         let got = Kanon_kernel.Error.message e in
+         if String.equal got "structural recursion arrives at M1" then Ok ()
+         else Error (Printf.sprintf "the message is \"%s\"" got))
+
+(** The KNEG rows by name, so the group reads one list of names as
+    every other group does. *)
+let kneg (name : string) : (unit, string) result =
+  match name with
+  | "smu" -> kneg_smu ()
+  | "self" -> kneg_self ()
+  | other -> Error (Printf.sprintf "no kernel negative is named \"%s\"" other)
 
 (** One line of a group, and whether it passed. *)
 let report (kind : string) (name : string) (r : (unit, string) result) : bool =
@@ -187,11 +234,10 @@ let run (root : string) (fixtures : string list) (negatives : string list) : uni
   let neg_dir = Filename.concat root "neg" in
   let parsed = parse_group [ (fixtures_dir, fixtures); (neg_dir, negatives) ] in
   let checked = group "CHECK" "CHECK-OK" (check_fixture root) fixtures in
+  let erased = group "ERASE" "ERASE-OK" (erase_fixture root) fixtures in
   let refused = group "NEG" "NEG-OK" (check_negative root) negatives in
-  let closed =
-    group "KNEG" "KNEG-OK" (fun (_name : string) -> kneg_smu ()) [ "smu" ]
-  in
-  verdict [ parsed; checked; refused; closed ]
+  let closed = group "KNEG" "KNEG-OK" kneg [ "smu"; "self" ] in
+  verdict [ parsed; checked; erased; refused; closed ]
 
 let fail_out (m : string) : unit =
   print_string (Printf.sprintf "SUITE %s\n" m);

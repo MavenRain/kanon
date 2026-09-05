@@ -1,0 +1,11 @@
+erased Nat
+rec [pair<i31,i31>]
+fun p () : struct pair<i31,i31> := KStruct pair<i31,i31> [KLit 1; KLit 2]
+rec [pair<i31,i31>]
+fun firstOfP () : i31 := KLet scrut (KGlobal p) (KLet a (KProj pair<i31,i31> 0 (KVar 0)) (KLet y (KProj pair<i31,i31> 1 (KVar 1)) (KVar 1)))
+rec [pair<i31,i31>]
+fun secondOfP () : i31 := KLet scrut (KGlobal p) (KLet a (KProj pair<i31,i31> 0 (KVar 0)) (KLet y (KProj pair<i31,i31> 1 (KVar 1)) (KVar 0)))
+rec [pair<i31,i31>]
+fun swapped () : struct pair<i31,i31> := KStruct pair<i31,i31> [KLet scrut (KGlobal p) (KLet a (KProj pair<i31,i31> 0 (KVar 0)) (KLet y (KProj pair<i31,i31> 1 (KVar 1)) (KVar 0))); KLet scrut (KGlobal p) (KLet a (KProj pair<i31,i31> 0 (KVar 0)) (KLet y (KProj pair<i31,i31> 1 (KVar 1)) (KVar 1)))]
+rec [pair<i31,struct pair<i31,i31>>; pair<i31,i31>]
+fun nestedPair () : struct pair<i31,struct pair<i31,i31>> := KStruct pair<i31,struct pair<i31,i31>> [KLit 1; KStruct pair<i31,i31> [KLit 2; KLit 3]]

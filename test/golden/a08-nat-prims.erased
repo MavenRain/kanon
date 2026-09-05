@@ -1,0 +1,14 @@
+erased Nat
+erased Bool
+rec []
+fun total () : i31 := KTail (KGlobal natAdd) [KLit 2; KLit 3]
+rec []
+fun diff () : i31 := KTail (KGlobal natSub) [KLit 5; KLit 1]
+rec []
+fun product () : i31 := KTail (KGlobal natMul) [KLit 6; KLit 7]
+rec [sum<unit|unit>]
+fun same () : union sum<unit|unit> := KTail (KGlobal natEq) [KLit 4; KLit 4]
+rec [sum<unit|unit>]
+fun less () : union sum<unit|unit> := KTail (KGlobal natLt) [KLit 1; KLit 2]
+rec []
+fun mixed () : i31 := KTail (KGlobal natAdd) [KApp (KGlobal natMul) [KLit 2; KLit 3]; KLit 4]

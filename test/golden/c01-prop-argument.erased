@@ -1,0 +1,7 @@
+erased P
+erased a
+rec []
+fun n$0 () : i31 := KLit 5
+fun n () : i31 := KTail (KClos n$0 0 []) []
+rec [pair<i31>]
+fun q () : struct pair<i31> := KStruct pair<i31> [KLit 3]

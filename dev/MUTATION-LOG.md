@@ -140,3 +140,33 @@ The judge remade one copy per mutation after the fix round, with `rsync -a --exc
 - SB-M4 closed shapes.  The SMu arm of `rules` at lib/rules.ml answers `Ok (coll_pack ())`.  The copy built clean and its suite printed `KNEG smu FAIL: the message is "the rule pack does not match the shape of the term"`, then `KNEG-OK 0/1`, `SUITE-KERNEL FAIL`, exit 1.  Killed.
 
 Four mutants of four are killed, each by the leg brief section 5 names.
+
+## Stage C
+
+Three mutations, brief section 5.  A fresh copy per mutation under SCRATCH/stageC, made with `rsync -a --exclude _build --exclude .gatework /Users/oobi/Documents/kanon/ SCRATCH/stageC/fmN/`, never the repository itself.  Each copy builds with `zsh COPY/dev/dune.sh build` and runs with `COPY/_build/default/test/main.exe COPY/test`.  Each site carries a `(* SC-Mk site *)` comment, so `rg -n 'SC-Mk site' COPY/lib` finds it:  lib/erase.ml:97 for SC-M1, lib/erase.ml:170 for SC-M2 and lib/totality.ml:51 for SC-M3.  The three runs below are the fix round's own (SC-D43).
+
+### SC-M1 binder erasure
+
+Mutation: `not (Quantity.equal q Quantity.Zero)` becomes `Quantity.equal q Quantity.Zero && false` at the SC-M1 site of lib/erase.ml, so `quantity_runtime` answers false for `One` and for `Many` as it does for `Zero`, and a runtime parameter is dropped.
+
+The copy built clean, `fm1-BUILD-EXIT=0`, so the mutant is a live program.  Its suite printed `CHECK-OK 27/27`, then `ERASE c02-zero-binder FAIL: the erased form is not the golden text` with sixteen other ERASE FAIL lines, then `ERASE-OK 10/27`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the ERASE leg on c02-zero-binder, the line brief section 5 names.
+
+### SC-M2 proof kept
+
+Mutation: `Ok (not (Level.equal l Level.zero))` becomes `Ok (Level.equal l Level.zero || true)` at the SC-M2 site of lib/erase.ml, so `proof_free` answers true at a proposition type and a proof at a runtime position stays runtime instead of `KErased`.
+
+The copy built clean, `fm2-BUILD-EXIT=0`.  Its suite printed `CHECK-OK 27/27`, then `ERASE c01-prop-argument FAIL: the erased form is not the golden text` with six other ERASE FAIL lines, b01, b02, b03, b04, b05 and b07, then `ERASE-OK 20/27`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the ERASE leg on c01-prop-argument, the line brief section 5 names.
+
+### SC-M3 totality
+
+Mutation: `if String.equal n name then Error (Error.Not_yet word) else Ok ()` becomes `if String.equal n name && false then Error (Error.Not_yet word) else Ok ()` at the SC-M3 site of lib/totality.ml, so `guard` answers `Ok None` whatever the body holds.
+
+The copy built clean, `fm3-BUILD-EXIT=0`.  Its suite printed `CHECK-OK 27/27`, `ERASE-OK 27/27`, `NEG-OK 11/11`, then `KNEG self FAIL: the self reference is admitted at M0`, `KNEG-OK 1/2`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the KNEG leg on self, the line brief section 5 names.
+
+Three mutants of three are killed, each by the leg brief section 5 names.
