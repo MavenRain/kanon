@@ -129,3 +129,181 @@ Skeleton and term.  Two builders on one tree, a verifier, a fixer and a judge.  
 - SPEC.md marks SPar at M1 (SA-D12).  If a later ruling moves it, the row and the milestone column change together.
 - Gate SA-G8 gains `\btry\b` at Stage B, with the one allowed site in test/main.ml (F1).
 
+
+## Stage B (2026-09-05)
+
+Kernel and checker, brief sections 3.1 to 3.7.  The kernel half of Stage B:  the carried adaptations, the rule pack, the values and the evaluator, typed conversion, the checker with the primitives, the derived R0 counts and the kernel half of SPEC.md.  Nothing was committed and the index was never touched;  the repository holds two commits and a clean index.
+
+### Deliverables
+
+- lib/quantity.ml gains the third mark, `type t = Zero | One | Many`, with `mul` absorbing at Zero, `One` the unit and `Many` otherwise, `equal` and `to_string` writing "0", "1" and "w" (SB-D3).  The carry delta rises from 2 to 34.
+- lib/literal.ml stays as carried at delta 2 (SB-D4).  level.ml and level.mli stay as carried;  `imax` lives in rules.ml (SB-D6).
+- lib/global.ml is re-adapted:  `Prim of prim_entry` beside Def and Axiom, `prim_of`, `find_prim` and `initial`, which holds Nat as an axiom at `Univ one` and the five primitives at their closed types.  The carry delta rises from 126 to 164 and dev/CARRIED.md records both new numbers with the reason.
+- lib/error.ml gains the checker arms, among them `Cannot_infer`, `Quantity`, `Overflow` and `Budget_exhausted`, each with its producer text.
+- lib/rules.ml, the single dispatch point:  `map_shape`, the abstract `'c ops` record, `rule_pack` with sixteen fields, `spi_pack`, `coll_pack`, `rules`, `imax` at the SB-M3 site, `arrow`, `bool_ty`, `bool_value`, the total index `at` and the total pair view `two_of`.  Only shape.ml, pp.ml and rules.ml spell a shape name in lib/.
+- lib/value.ml:  VUniv, VLan, VRan, VIn, VSec, VLit and VNeutral with the head and the spine, the closures, the addresses and the total views, `as_ctor` among them.
+- lib/eval.ml:  `eval` over the thirteen term constructors, the evaluator record `ev`, the literal fast path `prim_step` with `whnf` as that path alone, and `quote` with `quote_former`, `quote_leg`, `quote_addr` and `quote_neutral`.
+- lib/conv.ml:  `conv` in the three steps of plan section 5, proof irrelevance at the SB-M2 site, eta by the type through the pack rows with the SB-M1 site on `expand_ran` of the point pack, then structural comparison with the spine walked at the type the head's type assigns.
+- lib/check.ml:  the context with the locals, the globals and the budget, `infer` and `check` as one recursive knot with the `ops` record, the declaration checker with `Definition` and `Postulate`, and the entry points `infer_term`, `check_term` and `check_decls`, each with `?budget`.
+- lib/prim.ml:  the five nat primitives with their arity, their closed types, truncated subtraction, guarded addition and multiplication, `reduce` for the literal answers and `apply` for the literal and the collection answers together.
+- lib/shape.ml loses `admitted`, and lib/spec_count.ml reads `Rules.admitted`, `Rules.eta_table`, `Rules.named_declared` and `Rules.named_present`.  Every printed number stays a `List.length` and the eight lines do not change.
+- SPEC.md:  the 2.2 Univ row (SB-D2), a new "### 4.1 The rule pack, lib/rules.ml" listing the sixteen fields as built with the `expected` argument of SB-D6, the One line in section 5, the imax block in section 6 naming the SB-M3 site, and a new "## 10 Obligations at M0" with four rows.
+
+### Gates
+
+| id | result | evidence |
+| --- | --- | --- |
+| SB-G1 BUILD | pass | `zsh dev/dune.sh clean` exit 0, then `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0.  The build was rerun after the last comment edit and printed the same line. |
+| SB-G2 CARRY | pass | `zsh dev/carry-check.sh` printed seven OK rows, `lib/level.ml diff=2`, `lib/level.mli diff=2`, `lib/quantity.ml diff=34`, `lib/literal.ml diff=2`, `lib/global.ml diff=164`, `lib/budget.ml diff=2`, `lib/budget.mli diff=2`, then `CARRY-OK`, exit 0. |
+| SB-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0, and `_build/default/bin/kanon.exe spec-count` printed the eight lines of the brief section 2 byte for byte, `formers 2`, `schema constructors 4`, `shapes declared 5`, `shapes admitted 2`, `named rules declared 3`, `named rules present 2`, `eta rows 3: Ran-SPi Lan-SPi Ran-SColl`, `no eta 1: Lan-SColl`. |
+| SB-G5 R0-AUDIT | pass | `rg -n 'SPi|SColl|SPar|SMu|SNu' lib --glob '!shape.ml' --glob '!pp.ml' --glob '!rules.ml'` printed nothing, exit 1. |
+| SB-G6 PIN | fail on one leg, SB-B6 | PIN, `git -C vendor/tot rev-parse --short HEAD` and `git -C /Users/oobi/Documents/kan-lang-tot-pin rev-parse --short HEAD` all printed `8cf0b8b`;  the pin worktree porcelain count is 0.  `git -C /Users/oobi/Documents/tot status --porcelain | wc -l` printed 0, not 11:  the user committed the eleven paths as `6bcc1b7 M7 Stage E`, whose parent is `8cf0b8b` and whose stat line reads `11 files changed`.  No agent wrote to that tree. |
+| SB-G7 REPO | pass | `git rev-list --count HEAD` printed 2, `git log -1 --format=%s` printed `M0 Stage A: skeleton and term`, `git diff --cached --name-only` printed nothing, and `git write-tree` printed `01f2645c6501eeeaa4015ce323e7368d04106224`, the Stage A tree.  The porcelain, read again after this log was written, holds 16 lines, ten ` M` working tree lines and six untracked kernel files, and lists no path under _build or .gatework. |
+| SB-G8 TRUSTED-LINES | pass | `cat lib/shape.ml lib/term.ml lib/rules.ml lib/check.ml lib/value.ml lib/eval.ml lib/conv.ml | wc -l` printed 2138, at most 3000. |
+| SB-G9 HOUSE | pass | `rg -n 'raise |failwith|assert |exception |\| _ ->|List\.nth|\.\('` over lib, surface, bin and test with the .ml and .mli globs printed nothing, exit 1;  `rg -n '\bref\b|\bmutable\b|Array\.|Hashtbl' lib` printed nothing, exit 1, after two comments that read "no ref cell" were reworded (SB-D28);  `rg -n '\btry\b'` over the same four directories printed only test/main.ml lines 24, 36 and 40, the F1 site of Stage A. |
+
+SB-G4 SUITE-KERNEL and SB-G10 AXIOMS read the surface half and the fixtures, which are the other builder's deliverables, so this half does not report them.
+
+### Decisions carried from the brief
+
+- SB-D1 sum and prod are sugar rows over Lan (SColl n) and Ran (SColl n), not formers;  the empty ones default to Prop and take Type 0 through an Ann (D-M0-6).
+- SB-D2 Prop is `Univ zero`, `Type n` is `Univ (n + 1)`, `Univ l` infers `Univ (succ l)`, no cumulativity;  the Stage A SPEC row is corrected.
+- SB-D3 quantity.ml gains One, the surface mark '1' reads it, the checker counts One as Many at M0, and the linear counter is an M1 obligation in SPEC.md section 10.
+- SB-D4 Nat stays an OCaml int:  natAdd and natMul answer `Error Overflow` instead of a wrong value and natSub truncates at zero, so the range half of D-M0-1 waits for a bignum the user pins.
+- SB-D5 check and axioms land at Stage B;  emit names Stage D and run names Stage E;  `check --print` is the golden generator.
+- SB-D6 `form_lan` and `form_ran` take `expected:Level.t option`, so SColl 0 takes its universe from an Ann;  `imax` lives in rules.ml, not in the carried level.ml.
+- SB-D7 the SColl 0 universe survives evaluation, and two SColl 0 formers at different universes are never convertible.
+- SB-D8 Nat is a primitive type constant of `Global.initial`;  Bool is not primitive, since natEq and natLt answer the two leg sum of the unit type;  the three arithmetic primitives have type `Nat -> Nat -> Nat`.
+- SB-D9 the SMu negative is built in OCaml inside test/main.ml;  Auto is a surface negative.
+- SB-D10 a negative compares `Error.message` exactly with its sidecar line.
+- SB-D11 no agent touches the git index;  the closer prints the commit blocks.
+- SB-D12 conv and check share the function record of rules.ml;  lib/ holds no cell of state, no field that changes, no Array and no Hashtbl.
+- SB-D13 the four mutation sites carry a `(* SB-Mk site *)` comment line.
+- SB-D14 `.1` and `.2` are the pair projections on a Lan SPi scrutinee and `.k` is the 0-based leg on a Ran (SColl n) scrutinee.
+- SB-D15 the runner's argument is the test root;  the Stage A mutation command is history.
+
+### Decisions taken during the build
+
+- SB-D16 the checker context stays abstract behind a `'c ops` record declared in rules.ml, so rules.ml never names check.ml and the knot needs no cell of state (SB-D12).  check.ml builds the one instance of the record.
+- SB-D17 `infer` answers the type as a value and `check` answers unit.  No arm restamps a term, so the checker never rewrites what it reads and the surface keeps the only elaboration step.
+- SB-D18 the pack carries both halves of eta:  the descriptive row that spec_count reads and the two expansion functions that conv applies.  One table then feeds the count and the rule, so the printed R0 block cannot drift from the behaviour.
+- SB-D19 error.ml gains `Cannot_infer` beside the named arms, because a bidirectional checker refuses In and Sec in inference position and that refusal is not a mismatch.  `Budget_exhausted` carries its text so the driver prints one line.
+- SB-D20 an axiom is usable at any mode at M0.  A postulate has no body, so no erased read can leak through it, and the quantity of a postulate arrives with the linear counter at M1.
+- SB-D21 a string literal has no type at M0:  `Lit (LString _)` answers `Not_yet "string types arrive at M1"`.  literal.ml is carried whole (SB-D4), so the constructor exists with no rule.
+- SB-D22 `Prim.reduce` answers None for natEq and natLt, and `Prim.apply` builds their collection answer through `Rules.bool_value`.  The literal fast path then stays a function on literals and the shape name stays inside rules.ml.
+- SB-D23 the diagram of a former is a closure:  the point shape opens it by application at the argument and the collection shape opens it by forcing.  `diagram_arity` on the pack tells quote how many binders to open.
+- SB-D24 every Stage B definition is `reducible = true`, `rec_arg = None` and `partial = false`.  A definition is added to the globals only after its body checks, so a self reference answers `Error (Unbound name)` and no recursion enters the kernel at M0.
+- SB-D25 `ops` gains `o_quote` and `o_head_ty` and the pack gains `diagram_arity` and `spine_ty`, so conv walks a neutral spine at the type the head's type assigns without spelling a shape name.  This keeps the R0-AUDIT gate true of conv.ml.
+- SB-D26 a comparison that goes under a binder binds the local at the placeholder type `VUniv Level.zero` when no type is available.  A placeholder can only lose the eta step and fall back to structural comparison, so it weakens conversion and never accepts two different terms.
+- SB-D27 the third mark of SB-D3 broke the exhaustive match of `mark` in surface/syntax.ml, the other half's file.  One arm, `| Kanon_kernel.Quantity.One -> "1 "`, was added there, the least edit that keeps the build green and the printer's round trip true.
+- SB-D28 the SB-G9 sweep reads text, not only code:  the pattern `List\.nth` also matches `List.nth_opt` and `\bref\b` also matches the word "ref" in a comment.  rules.ml therefore holds a hand rolled total index `at`, and two comments were reworded.
+- SB-D29 the SB-D7 carrier is a `Level.t option` slot on VLan and VRan.  The former's level is filled from the Ann when the diagram cannot name it, conversion compares the slot, and quote restores it as `Ann (core, Univ l)`, so the universe survives a round trip through values.
+
+### Findings
+
+- F2 the Stage A hand-off note and SB-D4 disagree, low, resolved by the brief.  The note at the end of the Stage A section says literal.ml widens Nat to arbitrary precision at Stage B (SA-D9, D-M0-1).  SB-D4 keeps the host integer, because zarith is not installed and no agent installs software.  literal.ml therefore stays carried at delta 2, natAdd and natMul answer `Error Overflow` at the boundary so no wrong number is ever produced, and SPEC.md section 10 lists arbitrary precision Nat as an M1 obligation that needs a bignum the user pins.
+- F3 blocker SB-B6 fired at the closing check, high, reported and not worked around.  `git -C /Users/oobi/Documents/tot status --porcelain | wc -l` printed 11 at the opening check and 0 at the closing check.  The cause is a user commit, not an agent write:  tot HEAD is now `6bcc1b7 M7 Stage E`, its parent is `8cf0b8b`, and its stat line reads `11 files changed`, the same eleven paths.  The pin worktree stays at 8cf0b8b with an empty porcelain and ROOT/vendor/tot stays at 8cf0b8b, so SB-B2 holds and nothing this half read has moved.
+- F4 a mutation site sits in a file the other half owns nothing of, low, no action.  The four `(* SB-Mk site *)` comments are all in lib/, at `expand_ran` of the point pack, at the irrelevance step of conv.ml, at `imax` in rules.ml and at the SMu arm of `rules`, so the verifier finds every site with one rg over lib/.
+- No other finding.  A reading of the delivered .ml files against plan section 11 found no exception, no raise, no failwith, no assert, no wildcard arm, no match on true and false, no partial index, no loop keyword and no cell of state;  every Option and Result flows through combinators.
+
+### Hand-off notes for Stage C
+
+- The zero positions the checker marks.  Mode is a `Quantity.t` argument threaded through `infer` and `check`.  Every type position goes through `infer_univ`, which reads its term at mode Zero:  the domain and the diagram of a former, the ascription of an Ann, the type of a Let and a motive.  A local stamped Zero reads at mode Zero and nowhere else, by `readable`, and a runtime read of it answers `Error (Quantity ..)`.  Erasure at Stage C drops exactly the arguments whose binder is stamped Zero, and the checker has already proved that no runtime position reads one.
+- The golden directory.  `kanon check --print FILE` is the golden generator (SB-D5) and test/golden/NAME.checked holds one file per positive fixture.  Stage C adds the erased goldens beside them;  the printed kernel form is the input of the erasure comparison, so the two files stay in step by name.
+- The SB-D7 carrier.  VLan and VRan hold a `Level.t option` beside the shape and the diagram (SB-D29).  Erasure ignores the slot, since a universe is check time only, but eterm.ml must keep the two SColl 0 formers apart if it ever compares types, because the slot is the only thing that separates them.
+- totality.ml's M1 signature.  No recursion exists at M0, so the guard is the invariant of SB-D24:  declarations are checked in order and the name is added to the globals only after the body checks, so a self call cannot resolve.  `Global.def_entry` already carries `rec_arg` and `partial`, which Stage B fills with None and false.  totality.ml at Stage C states the M1 signature over the globals, the declared name, the checked type and the body, answering the guarded argument index or an Error, and answers Ok at M0 by that invariant with no traversal.
+
+### Deliverables, brief sections 3.8 to 3.13
+
+- surface/token.ml and surface/lexer.ml gain the two reserved words of SB-D1, `KSum` and `KProd`, with `describe` writing `'sum'` and `'prod'`.
+- surface/syntax.ml gains `SSum of t list` and `SProd of t list` at atom level, printed `sum (A, B)` and `prod (A, B)`, and the binder mark reads and prints the third quantity.
+- surface/parser.ml reads the mark `1` as `Quantity.One` (SB-D3), lists the two words among the atom starters, and reads the one bracketed item list through `parse_items`, which three words now share:  `tuple`, `sum` and `prod`.
+- surface/elab.ml, new, the whole of brief section 3.9:  bidirectional, no metavariable, de Bruijn resolution against `Check.ctx`, one arm per surface constructor, the two projection views of SB-D14 with the projection motive of D-M0-3, `elab_program` folding the declarations against the globals, and `check_text`, `checked_form` and `axiom_names` for the driver and the suite.
+- bin/kanon.ml:  `check FILE`, `check --print FILE`, `axioms FILE`, `emit` and `run` naming Stages D and E at exit 64, and `spec-count` unchanged.  bin/dune links the surface library.
+- test/main.ml, rewritten to the four groups of brief section 3.11:  PARSE over fixtures and negatives, CHECK against the goldens, NEG against the `.err` sidecars, KNEG for the shapes M0 declares and does not admit, then `SUITE-KERNEL`.  The one catch site stays `attempt_sys`.
+- test/fixtures:  b01-function-eta, b02-sum-prod, b03-case-motive, b04-leg-proj, b05-proof-irrelevance, b06-impredicativity, b07-bool-prims and b08-axiom-disclosure, and the ten Stage A fixtures edited so that every one checks.
+- test/golden:  eighteen `.checked` files written by `kanon check --print` and read before they were kept.
+- test/neg:  n01-universe, n02-mismatch, n03-unbound, n04-quantity, n05-wrong-leg, n06-auto, n07-missing-branch and n08-not-a-function, each with a one line `.err` holding the `Error.message` text.  Every one fails in the checker and none in the parser.
+- SPEC.md:  the two `sum` and `prod` rows of section 7, the corrected `Type n` row, the two projection rows, the SB-D1 and SB-D3 blocks, and the two productions and the mark reading in section 9.  README.md gains the "Checking a file" paragraph.
+
+### Gates, the full run after sections 3.8 to 3.13
+
+| id | result | evidence |
+| --- | --- | --- |
+| SB-G1 BUILD | pass | `zsh dev/dune.sh clean` then `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0. |
+| SB-G2 CARRY | pass | `zsh dev/carry-check.sh` printed the seven OK rows and `CARRY-OK`, exit 0. |
+| SB-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0, and `spec-count` printed the eight lines byte for byte. |
+| SB-G4 SUITE-KERNEL | pass | `_build/default/test/main.exe test` printed `PARSE-OK 26/26`, `CHECK-OK 18/18`, `NEG-OK 8/8`, `KNEG-OK 1/1`, `SUITE-KERNEL OK`, exit 0. |
+| SB-G5 R0-AUDIT | pass | the rg sweep over lib with the three globs printed nothing, exit 1. |
+| SB-G6 PIN | pass | PIN, `vendor/tot` and the pin worktree all printed `8cf0b8b`, the pin worktree porcelain printed 0, tot printed `6bcc1b7` and its porcelain printed 0. |
+| SB-G7 REPO | pass | `rev-list --count HEAD` printed 2, `log -1 --format=%s` printed `M0 Stage A: skeleton and term`, `diff --cached --name-only` printed nothing, `write-tree` printed `01f2645c6501eeeaa4015ce323e7368d04106224` and no `_build` or `.gatework` path is in the porcelain. |
+| SB-G8 TRUSTED-LINES | pass | the seven kernel files piped to `wc -l` printed 2138, at most 3000. |
+| SB-G9 HOUSE | pass | the two rg sweeps printed nothing, exit 1;  the `\btry\b` sweep printed the one `attempt_sys` line of test/main.ml;  no match on true and false arms is in the tree. |
+| SB-G10 AXIOMS | pass | `kanon axioms test/fixtures/b08-axiom-disclosure.kan` printed the one line `Bit`, `kanon check` on that file exited 0, and `kanon check test/neg/n01-universe.kan` exited 1 with one line on stderr. |
+
+### Decisions taken during the build, sections 3.8 to 3.13
+
+- SB-D30 the elaborator emits `Term.Global x` for a name no local binds, without a lookup of its own.  The checker then reports an unknown name as `Unbound`, so a negative fixture for an unbound name fails in the checker and not in a second name table the elaborator would have to keep in step.
+- SB-D31 elaboration infers at mark Zero.  Every inference the elaborator needs is the type of a term, which is a check time reading, so no elaboration step spends a runtime read and no fixture fails on a quantity the surface never wrote.
+- SB-D32 a branch binder takes its type from the leg of the diagram, never from the type the branch writes.  The surface binder carries a type because the grammar gives it one, and the elaborator reads its name and its mark and drops the annotation, so a wrong annotation cannot widen a branch.
+- SB-D33 the driver reads a file behind `Sys.file_exists` and exits 64 when the guard fails.  The whole repository holds one catch site, in test/main.ml, so the driver cannot catch `Sys_error`;  a path that disappears between the guard and the read leaves the process loudly and never as a wrong answer.
+- SB-D34 the `auto` atom leaves the positive fixtures and lives in the negatives.  `auto` has no checked form at M0 by design, so a10 cannot both hold it and check;  n06-auto holds it and reads the exact refusal, which is the stronger test.
+- SB-D35 a passing PARSE line prints nothing.  Twenty six passing round trips would print twenty six lines that carry no reading, so the group prints a line for a failure alone and then its count, which is the shape gate SB-G4 reads.
+- SB-D36 a FAIL line carries its reason after a colon in every group, KNEG included.  A mutation run then reads why a fixture died and not only that it did, and the kill conditions of brief section 5, which read the prefix, are unaffected.
+- SB-D37 the empty forms `sum ()` and `prod ()` under an annotation take `Univ one`, which is D-M0-6 read at SB-D2:  the annotation `Type 0` is `Univ 1`, so `(prod () : Type 0)` is exactly `Rules.unit_ty Level.one` and `sum ((prod () : Type 0), (prod () : Type 0))` is exactly `Rules.bool_ty`.  The answer of `natEq` is then a term of a type the surface can spell, which b07-bool-prims reads.
+
+### Findings, sections 3.8 to 3.13
+
+- F5 six Stage A fixtures could not check as written, low, fixed in place as the brief allows.  a02 declared `erasedDomain` at `Type 0` where imax puts it at `Type 1`;  a04, a05 and a06 postulated the sum and the product types that SB-D1 now writes out;  a07 declared `Prop` at `Type 1` where SB-D2 puts it at `Type 0`;  a08 named two definitions `sum` and `prod`, which are reserved words from Stage B, and now names them `total` and `product`;  a10 held the two `auto` definitions of SB-D34.  Every edit is minimal and each fixture still reads the production it was written for.
+- F6 the projection motive of D-M0-3 does not convert with the kernel's own eta projections, low, no fixture depends on it.  `Rules.spi_eta_lan` expands a pair with `None` as the motive, and `conv_motive` answers false when one side has a motive and the other does not, so a comparison of a neutral pair against a rebuilt one is refused.  A rebuilt pair against a declared type checks, which b04-leg-proj reads, and the eta row of the R0 table is unaffected;  a Stage C fix belongs in `conv_motive`, which can read a materialized motive against an absent one.
+- F7 blocker SB-B6 does not fire in this half's run, informational.  `git -C /Users/oobi/Documents/tot rev-parse --short HEAD` printed `6bcc1b7` and `git -C /Users/oobi/Documents/tot status --porcelain | wc -l` printed 0, which is the brief's condition, and the pin worktree and `vendor/tot` both stayed at `8cf0b8b` with an empty porcelain.
+
+### Fix round after the Stage B review (2026-09-05)
+
+One round, two findings of the review, F1 high and F2 medium.  Nothing outside ROOT was written and no git command touched the index or HEAD.
+
+- F1 the fixture suite carried other scenarios than brief section 3.12 names, high, fixed.  Six required scenarios were absent:  the negatives n03-sec-non-ran and n08-pi-misuse and the positives b02-pair-eta, b03-tuple-eta, b04-unit-eta and b07-nat-fast-path.  Three negatives and four positives held their required numbers under other names, and two header comments were out of step with their file names.  The round restores every required name and scenario:  n01-universe keeps its file and takes the header id `n01`;  n04-quantity, n05-wrong-leg and n07-missing-branch move to n02-quantity, n04-wrong-leg and n05-missing-branch;  n03-sec-non-ran, n07-self-global and n08-pi-misuse are new;  b02-pair-eta, b03-tuple-eta, b04-unit-eta and b07-nat-fast-path are new.  No coverage is dropped:  the four substituted positives move to b09-sum-prod, b10-case-motive, b11-leg-proj and b12-bool-prims and the three substituted negatives move to n09-mismatch, n10-unbound and n11-not-a-function, each with its header id and its golden or its sidecar.  The suite now reads PARSE-OK 33/33, CHECK-OK 22/22, NEG-OK 11/11, KNEG-OK 1/1 and SUITE-KERNEL OK.
+- F2 the SB-B6 blocker report of the kernel half is stale, medium, adjudicated and closed.  `git -C /Users/oobi/Documents/tot rev-parse --short HEAD` prints `6bcc1b7` and `git -C /Users/oobi/Documents/tot status --porcelain | wc -l` prints 0 at this round, which is the pass condition of SB-G6 and is the state brief section 2 and brief section 6 both record.  The eleven line form of the blocker was waived after the user's own commit `6bcc1b7`, so SB-B6 is not open, no ruling is needed and SB-G6 passes on every leg.  The earlier F3 entry of this log stays as the history of that half's run.
+- F4 the eta rule at the left former of the point shape did not fire against a written pair, high, found by the new b02-pair-eta fixture and fixed in lib/rules.ml.  A projection of a neutral pair freezes on the spine, and two frozen eliminations convert only when their motives convert (conv.ml `conv_motive`, the pin's `conv_stuck_match` at kan-lang-tot-pin/lib/eval.ml:401).  The rule wrote no motive and marked the scrutinee with the mark of the domain, while surface/elab.ml writes the projection motive of D-M0-3 and marks the scrutinee `Many`, so `p` and `(p.1, p.2)` compared as two different neutrals and both directions of the eta row failed.  The fix gives the rule the same motive and the same mark, in the new `proj_motive` of rules.ml.  Conversion is not weakened by it:  no motive is ignored and no comparison is relaxed;  the two sides now freeze into the same shape.
+- No other finding.  The three new negatives each fail in the checker and not in the parser, and each sidecar holds the checker's own `Error.message` text (SB-D10).
+
+### Decisions taken during the fix round
+
+- SB-D38 the eta rule at the left former of the point shape writes the projection motive of D-M0-3 and the scrutinee mark `Many`, the same two things surface/elab.ml writes for ".1" and ".2".  A frozen projection of the rule and a frozen projection of the surface are then one stuck elimination, so the eta row holds for a pair a file writes out.  The motive of the first projection is the domain and the motive of the second is the diagram read at the first projection, as elab.ml builds them.
+- SB-D39 a scenario that brief section 3.12 does not name keeps its file and moves above the required numbering, at b09 to b12 and at n09 to n11.  The required eight positives and eight negatives take the names and the scenarios the brief names, and the four extra positives and three extra negatives stay in the suite, so the round adds coverage and removes none.
+- SB-D40 the sidecar of a new negative holds the text the checker printed, read from `kanon check` before the file was written (SB-D10).  The three texts are "a section needs a right former as its expected type" for n03-sec-non-ran, "bad" for n07-self-global and the two `Out SPi` types of n08-pi-misuse.
+- SB-D41 a golden is regenerated only where the fixture is new.  The five .checked files of b02-pair-eta, b03-tuple-eta, b04-unit-eta and b07-nat-fast-path come from `kanon check --print` and were read before they were kept;  the four goldens of the parked positives were renamed with their fixtures and their bytes did not change;  no other golden was written, and CHECK-OK 22/22 with the untouched goldens shows the rules.ml fix moves no checked form.
+
+### Gates, the rerun after the fix round
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| SB-G1 BUILD | pass | `zsh dev/dune.sh clean` then `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0. |
+| SB-G2 CARRY | pass | `zsh dev/carry-check.sh` printed the seven OK rows and `CARRY-OK`, exit 0. |
+| SB-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0, and `kanon.exe spec-count` printed the eight lines of the R0 block byte for byte. |
+| SB-G4 SUITE-KERNEL | pass | `main.exe test` printed `PARSE-OK 33/33`, `CHECK-OK 22/22`, `NEG-OK 11/11`, `KNEG-OK 1/1`, `SUITE-KERNEL OK`, exit 0;  fixtures/ holds 22 .kan files and neg/ holds 11. |
+| SB-G5 R0-AUDIT | pass | the shape name sweep over lib/ without shape.ml, pp.ml and rules.ml printed nothing, exit 1. |
+| SB-G6 PIN | pass | PIN, `vendor/tot` and the pin worktree all printed `8cf0b8b`, the pin porcelain printed 0, tot printed `6bcc1b7` and its porcelain printed 0. |
+| SB-G7 REPO | pass | `rev-list --count HEAD` printed 2, `log -1 --format=%s` printed `M0 Stage A: skeleton and term`, `diff --cached --name-only` printed nothing, and no porcelain line names a path under _build or .gatework. |
+| SB-G8 TRUSTED-LINES | pass | the seven kernel files piped to `wc -l` printed 2166, under the cap of 3000. |
+| SB-G9 HOUSE | pass | the raise, failwith, assert, wildcard arm, `List.nth` and partial index sweep printed nothing, exit 1;  the `ref`, `mutable`, `Array.` and `Hashtbl` sweep over lib/ printed nothing, exit 1;  the `try` sweep printed only `test/main.ml:44`, the one `attempt_sys` site;  a `true ->` count over the four directories printed nothing. |
+| SB-G10 AXIOMS | pass | `kanon.exe axioms test/fixtures/b08-axiom-disclosure.kan` printed the one line `Bit` and exit 0, `kanon check` on that file exited 0, and `kanon check test/neg/n01-universe.kan` exited 1 with the one stderr line `mismatch: the term has type Type 2 and the expected type is Type 1`. |
+
+### Judge rerun of the Stage B gates (2026-09-05)
+
+The judge reran every gate of brief section 4 on the delivered tree, after the fix round, from one script under SCRATCH and with no git command that writes the index or HEAD.  Ten gates of ten pass.
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| SB-G1 BUILD | pass | `zsh /Users/oobi/Documents/kanon/dev/dune.sh clean` exit 0, then `zsh /Users/oobi/Documents/kanon/dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0. |
+| SB-G2 CARRY | pass | `zsh dev/carry-check.sh` printed `CARRY lib/level.ml diff=2 expected=2 OK`, `lib/level.mli 2`, `lib/quantity.ml 34`, `lib/literal.ml 2`, `lib/global.ml 164`, `lib/budget.ml 2`, `lib/budget.mli 2`, then `CARRY-OK`, exit 0. |
+| SB-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0;  `kanon.exe spec-count` printed the eight lines of the R0 block byte for byte, `formers 2: Lan Ran` through `no eta 1: Lan-SColl`, exit 0. |
+| SB-G4 SUITE-KERNEL | pass | `_build/default/test/main.exe /Users/oobi/Documents/kanon/test` printed `PARSE-OK 33/33`, twenty two `CHECK NAME OK` lines, `CHECK-OK 22/22`, eleven `NEG NAME OK` lines, `NEG-OK 11/11`, `KNEG smu OK`, `KNEG-OK 1/1`, `SUITE-KERNEL OK`, exit 0;  fixtures/ holds 22 .kan files and neg/ holds 11, so N is 33, P is 22, Q is 11 and K is 1. |
+| SB-G5 R0-AUDIT | pass | the shape name sweep over lib/ without shape.ml, pp.ml and rules.ml printed nothing, exit 1. |
+| SB-G6 PIN | pass | PIN printed `8cf0b8b`, `vendor/tot` printed `8cf0b8b`, the pin worktree printed `8cf0b8b` with porcelain 0, and /Users/oobi/Documents/tot printed `6bcc1b7` with porcelain 0.  SB-B6 does not fire. |
+| SB-G7 REPO | pass | `rev-list --count HEAD` printed 2, `log -1 --format=%s` printed `M0 Stage A: skeleton and term`, `diff --cached --name-only` printed nothing, `write-tree` printed `01f2645c6501eeeaa4015ce323e7368d04106224`, and of the 46 porcelain lines none names a path under _build or .gatework. |
+| SB-G8 TRUSTED-LINES | pass | the seven kernel files piped to `wc -l` printed 2166, under the cap of 3000. |
+| SB-G9 HOUSE | pass | leg a printed nothing, exit 1;  leg b over lib/ printed nothing, exit 1;  leg c printed only `/Users/oobi/Documents/kanon/test/main.ml:44:  try Ok (thunk ()) with Sys_error m -> Error m`;  a `true ->` and `false ->` sweep over the four directories printed nothing, exit 1, so no match on true and false arms is in the tree. |
+| SB-G10 AXIOMS | pass | `kanon.exe axioms test/fixtures/b08-axiom-disclosure.kan` printed the one line `Bit`, exit 0;  `kanon check` on that file exited 0 with no output;  `kanon check test/neg/n01-universe.kan` exited 1 with the one stderr line `mismatch: the term has type Type 2 and the expected type is Type 1`. |
+
+The judge also read the fixture set against brief section 3.12.  Every required name and scenario is present:  the eight positives b01-function-eta to b08-axiom-disclosure and the eight negatives n01-universe to n08-pi-misuse, with the substituted scenarios kept above the required numbering as b09 to b12 and n09 to n11.  Every header id agrees with its file name.

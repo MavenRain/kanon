@@ -1,20 +1,89 @@
 (** The kanon driver.  SA-D4: the executable exists from Stage A with
-    spec-count only.  check, emit, run and axioms name Stage E and exit
-    64, the usage code, so a caller can tell "this command is not built
-    yet" from a check failure, which exits 1 once Stage B lands. *)
+    spec-count only.  Stage B lands check and axioms, which need the
+    checker and nothing else (SB-D5);  emit names Stage D and run names
+    Stage E, so a caller still tells "this command is not built yet",
+    which exits 64, from a check failure, which exits 1.
 
-let usage () : unit = prerr_endline "usage: kanon check|emit|run|axioms|spec-count [ARGS]"
+    Exit codes.  0 is a file that checks, 1 is a file that does not and
+    64 is a usage error, a missing file or a command that M0 does not
+    build.  A check failure writes one [Error.to_string] line to stderr
+    and nothing to stdout, so a caller reads stdout as the answer alone
+    (SB-D5).
 
-let stage_e (name : string) : unit =
-  prerr_endline (Printf.sprintf "kanon: %s arrives at Stage E" name)
+    Reading a file.  The whole repository holds one catch site, in
+    test/main.ml, so this file reaches [In_channel] behind a
+    [Sys.file_exists] guard (SB-D33) and reports a path it cannot see as
+    a usage error.  A path that disappears between the guard and the
+    read leaves the process, which is loud, and never a wrong answer.
+
+    [Option.fold] reads its [~none] argument eagerly, so no arm of this
+    file hides an [exit] behind it:  the two answers of a guard are an
+    if and an else. *)
+
+let usage () : unit =
+  prerr_endline
+    "usage: kanon check [--print] FILE | axioms FILE | emit | run | spec-count"
+
+let later (name : string) (stage : string) : unit =
+  prerr_endline (Printf.sprintf "kanon: %s arrives at Stage %s" name stage)
+
+let read_file (path : string) : string =
+  if Sys.file_exists path then In_channel.with_open_bin path In_channel.input_all
+  else (
+    prerr_endline (Printf.sprintf "kanon: cannot read %s" path);
+    exit 64)
+
+let checked (path : string) : (string * Kanon_kernel.Global.entry) list =
+  Kanon_surface.Elab.check_text Kanon_kernel.Global.initial (read_file path)
+  |> Result.fold
+       ~ok:(fun (rows : (string * Kanon_kernel.Global.entry) list) -> rows)
+       ~error:(fun (e : Kanon_kernel.Error.t) ->
+         prerr_endline (Kanon_kernel.Error.to_string e);
+         exit 1)
+
+(** Parse, elaborate and check one file against [Global.initial].  With
+    the flag, print the checked form of every entry in order. *)
+let run_check (print_form : bool) (path : string) : unit =
+  let rows = checked path in
+  if print_form then print_string (Kanon_surface.Elab.checked_form rows) else ()
+
+(** R-Q3: the postulates of the file, one name per line, in declaration
+    order.  A file with no postulate prints nothing. *)
+let run_axioms (path : string) : unit =
+  List.iter print_endline (Kanon_surface.Elab.axiom_names (checked path))
+
+(** "check [--print] FILE".  The flag is read before the path, so
+    "check --print F" and "check F" are the only two forms. *)
+let dispatch_check (args : string list) : unit =
+  match args with
+  | "--print" :: path :: _rest -> run_check true path
+  | [ "--print" ] ->
+      usage ();
+      exit 64
+  | path :: _rest -> run_check false path
+  | [] ->
+      usage ();
+      exit 64
+
+let dispatch_axioms (args : string list) : unit =
+  match args with
+  | path :: _rest -> run_axioms path
+  | [] ->
+      usage ();
+      exit 64
 
 (* A string match cannot be exhaustive without a last arm, so the last arm
    binds the unknown command instead of writing a wildcard. *)
-let dispatch (cmd : string) : unit =
+let dispatch (cmd : string) (args : string list) : unit =
   match cmd with
   | "spec-count" -> print_string (Kanon_kernel.Spec_count.print ())
-  | "check" | "emit" | "run" | "axioms" ->
-      stage_e cmd;
+  | "check" -> dispatch_check args
+  | "axioms" -> dispatch_axioms args
+  | "emit" ->
+      later cmd "D";
+      exit 64
+  | "run" ->
+      later cmd "E";
       exit 64
   | _unknown ->
       usage ();
@@ -30,4 +99,4 @@ let () =
       | [] ->
           usage ();
           exit 64
-      | cmd :: _args -> dispatch cmd)
+      | cmd :: args -> dispatch cmd args)

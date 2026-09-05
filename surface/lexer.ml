@@ -37,6 +37,8 @@ let keywords : (string * Token.kind) list =
     ("return", Token.KReturn);
     ("with", Token.KWith);
     ("tuple", Token.KTuple);
+    ("sum", Token.KSum);
+    ("prod", Token.KProd);
     ("absurd", Token.KAbsurd);
     ("Prop", Token.KProp);
     ("Type", Token.KType);

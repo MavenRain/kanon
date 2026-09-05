@@ -91,3 +91,52 @@ zsh SCRATCH/stageA/m3/dev/r0-count.sh
 The copy built clean, `OK build: 0 errors, 0 warnings`, exit 0, so the mutant is a live program and not a compile error.  Its R0 check printed `3c3`, `< shapes declared 5: SPi SColl SPar SMu SNu`, `> shapes declared 6: SPi SColl SPar SMu SNu SXx`, then `R0-COUNT FAIL`, and exited 1.
 
 Result: killed.  Caught by the R0-COUNT leg, because spec_count.ml counts with `List.length` over the very list that grew (a literal integer there would have let the mutant live).
+
+## Stage B
+
+Four mutations, brief section 5.  A fresh copy per mutation under SCRATCH/stageB, made with `rsync -a --exclude _build --exclude .gatework /Users/oobi/Documents/kanon/ SCRATCH/stageB/mN/`, never the repository itself.  Each copy builds with `zsh COPY/dev/dune.sh build` and runs with `COPY/_build/default/test/main.exe COPY/test`.  Each site carries a `(* SB-Mk site *)` comment, so `rg -n 'SB-Mk site' COPY/lib` finds it.
+
+### SB-M1 function eta
+
+Mutation: `expand_ran = Some spi_eta_ran` becomes `expand_ran = None` at the SB-M1 site of lib/rules.ml, so conv falls through to the head comparison at the right former of the point shape.
+
+The copy built clean, `OK build: 0 errors, 0 warnings`, so the mutant is a live program.  Its suite printed `CHECK b01-function-eta FAIL: mismatch: the term has type (Out SPi 0 g (Ran SPi w _ A A) (APt 0 f) F) and the expected type is (Out SPi 0 g (Ran SPi w _ A A) (APt 0 (Sec SPi w x A [x => (Out SPi w _ A (APt w x) f)])) F)`, then `CHECK-OK 17/18`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the CHECK leg on b01-function-eta.
+
+### SB-M2 proof irrelevance
+
+Mutation: the arm `| () when is_prop ops ctx ty -> Ok true` is dropped at the SB-M2 site of lib/conv.ml, so conversion starts at the eta step.
+
+The copy built clean.  Its suite printed `CHECK b05-proof-irrelevance FAIL: mismatch: the term has type (Out SPi 0 z P (APt 0 p1) G) and the expected type is (Out SPi 0 z P (APt 0 p2) G)`, then `CHECK-OK 17/18`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the CHECK leg on b05-proof-irrelevance.
+
+### SB-M3 imax
+
+Mutation: the body of `imax` at the SB-M3 site of lib/rules.ml becomes `Level.max l l'`, which drops the framework axiom of R-Q6.
+
+The copy built clean.  Its suite printed `CHECK b06-impredicativity FAIL: universe: the former lives at 1 and the expected universe is 0`, then `CHECK-OK 17/18`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the CHECK leg on b06-impredicativity, which declares an arrow out of `Type 0` at `Prop`.
+
+### SB-M4 closed shapes
+
+Mutation: the SMu arm of `rules` at the SB-M4 site of lib/rules.ml answers `Ok (coll_pack ())` instead of `Error (Not_yet smu_word)`, so a shape M0 declares and does not admit gets the collection pack.
+
+The site comment matters here:  the text `| Shape.SMu (_, _) -> Error (Error.Not_yet smu_word)` appears twice in rules.ml, at the shape equality and at `rules`, and only the second is the site.  A first attempt that edited the earlier occurrence did not build, `Error: Unbound value "coll_pack"`, and a dead mutant proves nothing, so the copy was made again and the anchored site was edited.
+
+The second copy built clean.  Its suite printed `KNEG smu FAIL: the message is "the rule pack does not match the shape of the term"`, then `KNEG-OK 0/1`, `SUITE-KERNEL FAIL`, exit 1.
+
+Result: killed.  Caught by the KNEG leg.  The mutant does not admit SMu quietly:  it gets a pack whose shape does not match, which the suite reads as the wrong message and refuses.
+
+### Judge rerun of the four mutations (2026-09-05)
+
+The judge remade one copy per mutation after the fix round, with `rsync -a --exclude _build --exclude .gatework /Users/oobi/Documents/kanon/ SCRATCH/judgeB/stageB/mN/`, and edited each site through an anchored replacement that first counts the anchor and stops when the count is not one.  This is the guard the SB-M4 trap of the first run needs:  the anchor holds the `(* SB-Mk site *)` comment line and the line under it, so the earlier identical arm of the shape equality cannot be edited by mistake.  The counts below are the counts of the fixed suite, 22 checked positives and 11 negatives, so they read one higher than the counts of the first run.
+
+- SB-M1 function eta.  `expand_ran = Some spi_eta_ran;` becomes `expand_ran = None;` at lib/rules.ml.  The copy built clean, `m1-BUILD-EXIT=0`, and its suite printed `CHECK b01-function-eta FAIL: mismatch: the term has type (Out SPi 0 g (Ran SPi w _ A A) (APt 0 f) F) and the expected type is (Out SPi 0 g (Ran SPi w _ A A) (APt 0 (Sec SPi w x A [x => (Out SPi w _ A (APt w x) f)])) F)`, then `CHECK-OK 21/22`, `SUITE-KERNEL FAIL`, exit 1.  Killed.
+- SB-M2 proof irrelevance.  The guard at lib/conv.ml becomes `| () when false && is_prop ops ctx ty -> Ok true`, so the step never fires and conversion starts at eta.  The copy built clean and its suite printed `CHECK b05-proof-irrelevance FAIL: mismatch: the term has type (Out SPi 0 z P (APt 0 p1) G) and the expected type is (Out SPi 0 z P (APt 0 p2) G)`, then `CHECK-OK 21/22`, `SUITE-KERNEL FAIL`, exit 1.  Killed.
+- SB-M3 imax.  The body of `imax` at lib/rules.ml becomes `Level.max l l'`.  The copy built clean and its suite printed `CHECK b06-impredicativity FAIL: universe: the former lives at 1 and the expected universe is 0`, then `CHECK-OK 21/22`, `SUITE-KERNEL FAIL`, exit 1.  Killed.
+- SB-M4 closed shapes.  The SMu arm of `rules` at lib/rules.ml answers `Ok (coll_pack ())`.  The copy built clean and its suite printed `KNEG smu FAIL: the message is "the rule pack does not match the shape of the term"`, then `KNEG-OK 0/1`, `SUITE-KERNEL FAIL`, exit 1.  Killed.
+
+Four mutants of four are killed, each by the leg brief section 5 names.

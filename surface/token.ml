@@ -27,7 +27,8 @@ let next_line (l : loc) : loc = { line = l.line + 1; col = 1 }
     [Unit] is the two-character form "()", one token because the
     grammar reads it as one form.  [Dot1] and [Dot2] are the pair
     projections and [Dot] with a following [Nat] is the collection
-    projection (SA-D16).  [KMu] and [KNu] are reserved: the parser
+    projection (SA-D16).  [KSum] and [KProd] are the two collection type
+    words that Stage B adds (SB-D1).  [KMu] and [KNu] are reserved: the parser
     refuses both with their milestone name (SA-D3). *)
 type kind =
   | LParen
@@ -53,6 +54,8 @@ type kind =
   | KReturn
   | KWith
   | KTuple
+  | KSum
+  | KProd
   | KAbsurd
   | KProp
   | KType
@@ -101,6 +104,8 @@ let describe (k : kind) : string =
   | KReturn -> "'return'"
   | KWith -> "'with'"
   | KTuple -> "'tuple'"
+  | KSum -> "'sum'"
+  | KProd -> "'prod'"
   | KAbsurd -> "'absurd'"
   | KProp -> "'Prop'"
   | KType -> "'Type'"

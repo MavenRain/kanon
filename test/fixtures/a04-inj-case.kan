@@ -1,10 +1,10 @@
 -- a04: inj, and case with a motive and without one.
--- The M0 surface grammar has no production for the collection
--- formers, so the two-leg type arrives as an axiom.  Stage B either
--- adds the production or reads the type the checker expects.
+-- SB-D1 gives the two-leg type a production, so the sum that Stage A
+-- had to postulate is now written out.
 
 axiom Nat : Type 0
-axiom Two : Type 0
+
+def Two : Type 0 := sum (Nat, Nat)
 
 def left : Two := inj 0 of 2 1
 def right : Two := inj 1 of 2 2

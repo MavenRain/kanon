@@ -9,4 +9,4 @@ def arrowCurried : Type 0 := Nat -> Nat -> Nat
 def starNamed : Type 0 := (a : Nat) * Nat
 def starPlain : Type 0 := Nat * Nat
 def starOfArrow : Type 0 := (f : Nat -> Nat) * Nat
-def erasedDomain : Type 0 := (0 A : Type 0) -> Nat
+def erasedDomain : Type 1 := (0 A : Type 0) -> Nat

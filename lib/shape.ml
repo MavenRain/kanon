@@ -18,10 +18,6 @@ type 'a t =
     prints the length of this list, so a sixth shape moves the R0 count. *)
 let declared : string list = [ "SPi"; "SColl"; "SPar"; "SMu"; "SNu" ]
 
-(** The two shapes admitted at M0 (R-Q2).  The other three are refused by
-    rules.ml at Stage B with their milestone name. *)
-let admitted : string list = [ "SPi"; "SColl" ]
-
 let name (s : 'a t) : string =
   match s with
   | SPi (_, _, _) -> "SPi"

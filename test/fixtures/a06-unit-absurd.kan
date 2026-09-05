@@ -1,9 +1,9 @@
 -- a06: the empty collection at both formers.  "()" is the section and
 -- "absurd" is the elimination with no branch.
--- Neither type has an M0 production, so both arrive as axioms.
+-- SB-D1 writes both types out, which Stage A postulated.
 
-axiom Unit : Type 0
-axiom Empty : Prop
+def Unit : Type 0 := prod ()
+def Empty : Prop := sum ()
 
 def u : Unit := ()
 def uTuple : Unit := tuple ()

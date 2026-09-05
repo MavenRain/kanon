@@ -65,3 +65,16 @@ let formers : string list = [ "Lan"; "Ran" ]
 (** The four schema constructors: two introductions and two eliminations,
     one pair per former. *)
 let schema : string list = [ "In"; "Elim"; "Sec"; "Out" ]
+
+(** Total views on an address (Stage B).  Plan section 11 bans a partial
+    projection, so a rule asks one of these and folds the [option]. *)
+
+let as_apt (a : addr) : (Quantity.t * t) option =
+  match a with
+  | APt (q, arg) -> Some (q, arg)
+  | ALeg _ | ACtor _ -> None
+
+let as_aleg (a : addr) : int option =
+  match a with
+  | ALeg k -> Some k
+  | APt (_, _) | ACtor _ -> None

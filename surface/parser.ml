@@ -41,8 +41,9 @@ let expected (what : string) (ts : Token.t list) : ('a, Error.t) result =
 let kind_starts_atom (k : Token.kind) : bool =
   match k with
   | Token.Ident _ | Token.Nat _ | Token.LParen | Token.Unit | Token.KProp | Token.KType
-  | Token.KAuto | Token.KTuple | Token.KNatAdd | Token.KNatSub | Token.KNatMul
-  | Token.KNatEq | Token.KNatLt | Token.KMu | Token.KNu ->
+  | Token.KAuto | Token.KTuple | Token.KSum | Token.KProd | Token.KNatAdd
+  | Token.KNatSub | Token.KNatMul | Token.KNatEq | Token.KNatLt | Token.KMu
+  | Token.KNu ->
       true
   | Token.RParen | Token.Colon | Token.ColonEq | Token.Arrow | Token.DArrow | Token.Star
   | Token.Comma | Token.Dot | Token.Dot1 | Token.Dot2 | Token.Pipe | Token.KDef
@@ -55,13 +56,13 @@ let starts_atom (ts : Token.t list) : bool =
   | { Token.kind; loc = _ } :: _rest -> kind_starts_atom kind
   | [] -> false
 
-(** The binder's mark, SPEC.md section 9 and SA-D17.  "0" is the erased
-    mark and "1" is the runtime mark, which an absent mark also means.
+(** The binder's mark, SPEC.md section 9 and SB-D3.  "0" is the erased
+    mark, "1" is the linear mark and an absent mark is the runtime one.
     Total:  a token that is neither leaves the list where it was. *)
 let mark_prefix (ts : Token.t list) : Quantity.t * Token.t list =
   match ts with
   | { Token.kind = Token.Nat 0; loc = _ } :: rest -> (Quantity.Zero, rest)
-  | { Token.kind = Token.Nat 1; loc = _ } :: rest -> (Quantity.Many, rest)
+  | { Token.kind = Token.Nat 1; loc = _ } :: rest -> (Quantity.One, rest)
   | ({ Token.kind = _; loc = _ } :: _ | []) as same -> (Quantity.Many, same)
 
 let rec parse_term (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
@@ -287,7 +288,12 @@ and parse_atom_head (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) res
   | { Token.kind = Token.KNatMul; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PMul, rest)
   | { Token.kind = Token.KNatEq; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PEq, rest)
   | { Token.kind = Token.KNatLt; loc = _ } :: rest -> Ok (Syntax.SPrim Syntax.PLt, rest)
-  | { Token.kind = Token.KTuple; loc = _ } :: rest -> parse_tuple rest
+  | { Token.kind = Token.KTuple; loc = _ } :: rest ->
+      parse_items "tuple" (fun (xs : Syntax.t list) -> Syntax.STuple xs) rest
+  | { Token.kind = Token.KSum; loc = _ } :: rest ->
+      parse_items "sum" (fun (xs : Syntax.t list) -> Syntax.SSum xs) rest
+  | { Token.kind = Token.KProd; loc = _ } :: rest ->
+      parse_items "prod" (fun (xs : Syntax.t list) -> Syntax.SProd xs) rest
   (* SA-D3:  the two reserved words are refused at the first pass over
      the text, with the milestone that admits them. *)
   | { Token.kind = Token.KMu; loc } :: _rest -> parse_err loc "mu arrives at M1"
@@ -315,27 +321,34 @@ and parse_paren (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result 
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')'" rest3)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "')', ',' or ':'" rest
 
-(** "tuple (t1, .., tn)".  The empty tuple is the one token "()", which
-    the lexer reads whole, so both "tuple ()" and "tuple ( )" are the
-    empty collection. *)
-and parse_tuple (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+(** "WORD (t1, .., tn)", the one bracketed item list of the grammar.
+    Three words read it:  "tuple", the section at the collection shape,
+    and the two type words "sum" and "prod" of SB-D1.  The empty list is
+    the one token "()", which the lexer reads whole, so both "sum ()"
+    and "sum ( )" are the width zero form. *)
+and parse_items (word : string) (build : Syntax.t list -> Syntax.t)
+    (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   match ts with
-  | { Token.kind = Token.Unit; loc = _ } :: rest -> Ok (Syntax.STuple [], rest)
-  | { Token.kind = Token.LParen; loc = _ } :: rest -> parse_tuple_body rest
-  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'(' after 'tuple'" ts
+  | { Token.kind = Token.Unit; loc = _ } :: rest -> Ok (build [], rest)
+  | { Token.kind = Token.LParen; loc = _ } :: rest -> parse_items_body word build rest
+  | ({ Token.kind = _; loc = _ } :: _ | []) ->
+      expected (Printf.sprintf "'(' after '%s'" word) ts
 
-and parse_tuple_body (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+and parse_items_body (word : string) (build : Syntax.t list -> Syntax.t)
+    (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   match ts with
-  | { Token.kind = Token.RParen; loc = _ } :: rest -> Ok (Syntax.STuple [], rest)
-  | ({ Token.kind = _; loc = _ } :: _ | []) -> parse_tuple_items ts []
+  | { Token.kind = Token.RParen; loc = _ } :: rest -> Ok (build [], rest)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> parse_items_rest word build ts []
 
-and parse_tuple_items (ts : Token.t list) (acc : Syntax.t list) :
+and parse_items_rest (word : string) (build : Syntax.t list -> Syntax.t)
+    (ts : Token.t list) (acc : Syntax.t list) :
     (Syntax.t * Token.t list, Error.t) result =
   let* item, rest = parse_term ts in
   match rest with
-  | { Token.kind = Token.Comma; loc = _ } :: rest2 -> parse_tuple_items rest2 (item :: acc)
+  | { Token.kind = Token.Comma; loc = _ } :: rest2 ->
+      parse_items_rest word build rest2 (item :: acc)
   | { Token.kind = Token.RParen; loc = _ } :: rest2 ->
-      Ok (Syntax.STuple (List.rev (item :: acc)), rest2)
+      Ok (build (List.rev (item :: acc)), rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "',' or ')'" rest
 
 (** Items, oldest first, up to the [Eof] token. *)

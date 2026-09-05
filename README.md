@@ -3,10 +3,27 @@
 Kan extensions are the sole type former: every type in kanon is a left or
 a right Kan extension of a diagram along a shape.
 
-Status: M0 Stage A.  The skeleton, the closed term grammar, the carried
-kernel leaves, the R0 counts, the lexer, the parser and the surface
-printer are built.  The checker, the evaluator, erasure and WasmGC
-emission arrive at Stages B to E.
+Status: M0 Stage B.  The skeleton, the closed term grammar, the carried
+kernel leaves, the R0 counts, the lexer, the parser, the surface printer,
+the evaluator, conversion, the checker and the elaborator are built.
+Erasure and WasmGC emission arrive at Stages C to E.
+
+## Checking a file
+
+`kanon check FILE` parses the file, elaborates every declaration to the
+kernel grammar and checks it against the declarations before it.  It
+prints nothing and exits 0 when the whole file checks, and prints one
+line on stderr and exits 1 when it does not, so a caller reads stdout as
+the answer alone.  `kanon check --print FILE` adds the checked form of
+every entry to stdout, one `def NAME : TYPE := BODY` or `axiom NAME :
+TYPE` line per declaration, in kernel terms and in declaration order;
+the golden files under test/golden hold exactly that text.  `kanon
+axioms FILE` prints what the file postulates, one name per line in
+declaration order, and prints nothing for a file that postulates
+nothing, so the trust base of a checked file is one command away.  A
+missing file, an unknown command and the two commands that later stages
+bring, `emit` and `run`, all exit 64, which a caller tells from the exit
+1 of a file that does not check.
 
 ## Layout
 
@@ -18,7 +35,7 @@ vendor/tot/         git submodule, checked out at PIN
 lib/                library kanon_kernel
 surface/            library kanon_surface
 bin/kanon.ml        driver: check | emit | run | axioms | spec-count
-test/               main.ml and fixtures/*.kan
+test/               main.ml, fixtures/*.kan, golden/*.checked, neg/*.kan
 dev/                the runners, the gate scripts and the logs
 ```
 
@@ -33,7 +50,7 @@ zsh dev/dunecho.sh build          # build, warnings are errors
 zsh dev/dune.sh clean             # remove _build
 zsh dev/carry-check.sh            # the carried files match the pin
 zsh dev/r0-count.sh               # spec-count agrees with SPEC.md
-_build/default/test/main.exe test/fixtures    # the parser round trip
+_build/default/test/main.exe test               # the kernel suite
 ```
 
 Each script finds the repository root from its own path, so a copy of the

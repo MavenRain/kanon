@@ -7,17 +7,16 @@
     from [Shape] and the former and schema lists from [Term], so a sixth
     shape or a third former moves its own count with no edit here.
 
-    Stage B hand-off: [rules_present] and the two eta lists become derived
-    values, read from the rule pack that [Rules.rules] returns per shape,
-    and the literal lists below go away.  The eta rows are already built
-    from [Term.formers] and [Shape.admitted] rather than written out, both
-    because the row names are then derived and because a shape name in
+    Stage B: every list below is derived.  A shape is admitted when
+    [Rules.rules] gives it a pack, and an eta row exists when the pack
+    says so, so a pack that gains or loses a row moves its own count with
+    no edit here.  The row names are built by concatenation from
+    [Term.formers] and the names [Rules.admitted] reports, both because
+    the names are then derived and because a shape name written out in
     this file would fail the R0-AUDIT gate leg. *)
 
-let rules_declared : string list =
-  [ "proof-irrelevance"; "subsingleton-large-elimination"; "literal-fast-path" ]
-
-let rules_present : string list = [ "proof-irrelevance"; "literal-fast-path" ]
+let rules_declared : string list = Rules.named_declared
+let rules_present : string list = Rules.named_present
 
 (* total lookup;  plan section 11 bans the partial indexing combinators *)
 let rec at (n : int) (xs : string list) : string option =
@@ -28,14 +27,23 @@ let rec at (n : int) (xs : string list) : string option =
 let pick (n : int) (xs : string list) : string = at n xs |> Option.value ~default:"?"
 let lan : string = pick 0 Term.formers
 let ran : string = pick 1 Term.formers
-let point : string = pick 0 Shape.admitted
-let coll : string = pick 1 Shape.admitted
+let admitted : string list = Rules.admitted
 
 (** The derived eta table, plan section 5: a row exists where the shape has
-    a unique introduction address and the structural expansion ends. *)
-let eta_rows : string list = [ ran ^ "-" ^ point; lan ^ "-" ^ point; ran ^ "-" ^ coll ]
+    a unique introduction address and the structural expansion ends.  The
+    two lists partition the four former and shape pairs of the admitted
+    shapes, right former first within each shape. *)
+let eta_of (keep : bool) : string list =
+  List.concat_map
+    (fun ((n : string), (e : Rules.eta_row)) ->
+      List.filter_map
+        (fun ((former : string), (has : bool)) ->
+          if Bool.equal has keep then Some (former ^ "-" ^ n) else None)
+        [ (ran, e.Rules.eta_ran); (lan, e.Rules.eta_lan) ])
+    Rules.eta_table
 
-let no_eta : string list = [ lan ^ "-" ^ coll ]
+let eta_rows : string list = eta_of true
+let no_eta : string list = eta_of false
 
 let row (label : string) (items : string list) : string =
   Printf.sprintf "%s %d: %s\n" label (List.length items) (String.concat " " items)
@@ -46,7 +54,7 @@ let print () : string =
       row "formers" Term.formers;
       row "schema constructors" Term.schema;
       row "shapes declared" Shape.declared;
-      row "shapes admitted" Shape.admitted;
+      row "shapes admitted" admitted;
       row "named rules declared" rules_declared;
       row "named rules present" rules_present;
       row "eta rows" eta_rows;

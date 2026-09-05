@@ -23,10 +23,10 @@ type prim =
   | PLt
 
 (** A binder, SPEC.md section 9:  "(" mark? name ":" term ")".  SA-D17:
-    the mark "0" is [Quantity.Zero] and the mark "1" is
-    [Kanon_kernel.Quantity.Many], as is an absent mark, because the
-    carried quantity has two marks at M0 (SA-D8).  Stage B's third mark
-    gives "1" its own reading. *)
+    the mark "0" is [Quantity.Zero] and an absent mark is
+    [Kanon_kernel.Quantity.Many].  SB-D3:  Stage B gives the mark "1"
+    its own reading, [Kanon_kernel.Quantity.One], which the M0 checker
+    counts as [Many] and the printer writes back as "1 ". *)
 type binder = {
   b_q : Kanon_kernel.Quantity.t;
   b_name : string;
@@ -59,6 +59,11 @@ and t =
   | SAuto
   | SPair of t * t
   | STuple of t list
+  | SSum of t list
+      (** SB-D1.  [sum (A1, .., An)] is the left former at the
+          collection shape over the diagram of its items, and the empty
+          form [sum ()] takes its universe from an annotation. *)
+  | SProd of t list  (** SB-D1.  The right former at the same shape. *)
   | SProj of t * int
       (** SA-D16.  One projection node for ".1", ".2" and ".k":  the
           three spell the same text for the same leg and the sugar
@@ -102,6 +107,8 @@ let level_of (s : t) : int =
   | SAuto -> 2
   | SPair (_, _) -> 2
   | STuple _ -> 2
+  | SSum _ -> 2
+  | SProd _ -> 2
   | SProj (_, _) -> 2
   | SAnn (_, _) -> 2
   | SInj (_, _, _) -> 1
@@ -116,6 +123,7 @@ let level_of (s : t) : int =
 let mark (q : Kanon_kernel.Quantity.t) : string =
   match q with
   | Kanon_kernel.Quantity.Zero -> "0 "
+  | Kanon_kernel.Quantity.One -> "1 "
   | Kanon_kernel.Quantity.Many -> ""
 
 let rec at (lvl : int) (s : t) : string =
@@ -149,6 +157,10 @@ and raw (s : t) : string =
   | SPair (a, b) -> Printf.sprintf "(%s, %s)" (at 0 a) (at 0 b)
   | STuple items ->
       Printf.sprintf "tuple (%s)" (String.concat ", " (List.map (at 0) items))
+  | SSum items ->
+      Printf.sprintf "sum (%s)" (String.concat ", " (List.map (at 0) items))
+  | SProd items ->
+      Printf.sprintf "prod (%s)" (String.concat ", " (List.map (at 0) items))
   | SProj (a, k) -> Printf.sprintf "%s.%d" (at 2 a) k
   | SInj (k, n, a) -> Printf.sprintf "inj %d of %d %s" k n (at 1 a)
   | SAbsurd a -> "absurd " ^ at 1 a
