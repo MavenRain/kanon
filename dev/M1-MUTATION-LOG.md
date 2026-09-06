@@ -354,3 +354,96 @@ ones of the copy, which are the ROOT numbers before the edit.
   is printed is the mismatch of `Order.translate`, not the termination
   line of SI-D6, so SI-G7 goes red.  The mutation also breaks the
   indexed positive, which the honest order accepts.
+
+## Stage J
+
+Four mutations, each on its own fresh copy of the repository made with
+`rsync -a --exclude _build --exclude .gatework`, built through the
+copy's own dev/dunecho.sh, which printed `OK build: 0 errors, 0 warnings`
+and exit 0 for all four (SJ-D17).  ROOT was never mutated.  The judge
+reran all four at 2026-09-06 15:30, on the copies judge-m1, judge-m2,
+judge-m3 and judge-m4 under the session work directory.  Each copy ran
+its own `_build/default/test/main.exe test`, its own
+`_build/default/test/wasm.exe test`, its own dev/encoder-subset.sh, and
+the m2 copy also ran the stage local gate SJ-G8 through its own
+`_build/default/bin/kanon.exe`.  The line numbers below are the ones of
+the copy, which are the ROOT numbers before the edit.
+
+### SJ-M1 the group boundary of brief 3.8
+
+- Site.  The copy's wasm/link.ml:926, the head of `family_groups`, which
+  reads the strongly connected components of the reference edges the leg
+  tids carry and gives one group name to each recursive member.
+- Edit.  The body becomes `[]`, with the two arguments renamed to `_es`
+  and `_fams`, so no member ever joins a group and each member of a
+  mutual family is emitted in its own rec group.
+- Killing line.  The copy's Wasm suite printed
+  `EMIT mu-mutual-emit FAIL: golden differs`, with `WASM-OK 16/17` and
+  `SUITE-WASM FAIL`, exit 1, so SJ-G3 goes red.  The kernel suite stayed
+  `SUITE-KERNEL OK` and `ENCODER-SUBSET OK` still printed.  Direct
+  `wasm-opt --enable-gc --enable-reference-types --enable-tail-call
+  --print` on the mutated module exited 0 with an empty stderr and the
+  mutated module still answered 4 under node, so the killer is the byte
+  for byte golden compare and not the validator (finding SJ-F2).
+
+### SJ-M2 the tail call of brief 3.9
+
+- Site.  The copy's wasm/emit.ml:428, the row
+  `if tail_ok c tail result then [ G.Return_call fi ]`, the known global
+  call of an Elim translated recursion.
+- Edit.  The guard becomes `if false`, so the site emits `G.Call fi` and
+  the tail eligible recursion becomes an ordinary nested call.
+- Killing line.  The stage local gate SJ-G8 printed
+  `TAIL-DEPTH mu-tail-100k node exit 2 answer kanon: run: node invalid:
+  Maximum call stack size exceeded want 100000` and
+  `TAIL-DEPTH mu-tail-100k wasmtime exit 4 answer kanon: run: wasmtime
+  trap: call stack exhausted want 100000`, with
+  `TAIL-DEPTH-OK 2/4 tail return_call 1 cata return_call 0` and
+  `TAIL-DEPTH FAIL`, exit 1.  The second half of the mutation holds:  the
+  general catamorphism fixture is unchanged, at
+  `TAIL-DEPTH mu-cata-depth node exit 0 answer 4095 want 4095` and
+  `TAIL-DEPTH mu-cata-depth wasmtime exit 0 answer 4095 want 4095`,
+  because it never held a `return_call` (A10, SJ-D38).  The Wasm suite
+  also went red, at `EMIT d02-tail-call FAIL: golden differs`,
+  `WASM-OK 13/17` and `SUITE-WASM FAIL`, exit 1.
+
+### SJ-M3 the index rule of brief 3.1
+
+- Site.  The copy's lib/erase.ml:1089, the row
+  `let* keep = point_runtime ec q tyv in` of the branch binder fold,
+  which drops a binder whose field is not a runtime field.
+- Edit.  The answer is bound to `_keep` and `keep` becomes `true`, so
+  every branch binder is kept, including an index binder at quantity
+  Zero.
+- Killing line.  The copy's kernel suite printed
+  `ERASE mu-rec-indexed FAIL: the erased form is not the golden text`,
+  with `SUITE-KERNEL FAIL`, exit 1, so SJ-G2 goes red.
+
+### SJ-M4 the binary form of brief 3.6
+
+- Site.  The copy's wasm/gc_encode.ml:226, the row
+  `let type_section : string = section 1 (vec rectype m.types) in` of
+  `encode`, which writes one entry for each rec group.
+- Edit.  The groups are flattened to singletons before `vec rectype`, so
+  every member of every group becomes a standalone type entry and no
+  `0x4E` rec group entry is written.
+- Killing line.  The copy's Wasm suite printed
+  `EMIT mu-mutual-emit FAIL: golden differs`, with `WASM-OK 16/17` and
+  `SUITE-WASM FAIL`, exit 1, so SJ-G3 goes red.  `ENCODER-SUBSET OK`
+  still printed and direct
+  `wasm-opt --enable-gc --enable-reference-types --enable-tail-call
+  --print` on the mutated module exited 0, so the leg the plan names
+  first, ENCODER-SUBSET, does not kill this mutation and the golden
+  compare does (finding SJ-F2).
+
+### Staged review regressions (2026-09-06)
+
+| Case | Original staged implementation | Fixed implementation |
+| --- | --- | --- |
+| mu-parameter-layout: Box Nat before Box (Nat -> Nat) | check exits 0; emit exits 2, application head is not a function | check and emit exit 0; Wasm validates; kernel, Node and Wasmtime return 9 |
+| mu-dependent-layout: erased generic payload before a Nat field | check exits 0; emit exits 2, argument list is shorter than its signature | check and emit exit 0; Wasm validates; kernel, Node and Wasmtime return 27 |
+| Delete migrated fixtures/mu-erase.kan | SUITE-KERNEL OK, exit 0 | MIGRATED mu-erase FAIL, MIGRATED-OK 3/4, SUITE-KERNEL FAIL, exit 1 |
+
+The baseline was freshly built from the original staged tree.  The deletion
+mutation ran only in a scratch copy.  Both new language fixtures and all
+six associated goldens are part of the normal kernel and Wasm suites.

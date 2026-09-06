@@ -72,14 +72,19 @@ let write_file (path : string) (bytes : string) : (unit, string) result =
       Out_channel.with_open_bin path (fun (oc : Out_channel.t) ->
           Out_channel.output_string oc bytes))
 
-(** The rows of one fixture, checked against [Global.initial] exactly as
-    the driver checks them. *)
-let rows_of (root : string) (name : string) :
-    ((string * Kanon_kernel.Global.entry) list, string) result =
+(** The globals and the rows of one fixture, checked against
+    [Global.initial] exactly as the driver checks them
+    (bin/kanon.ml:41).  The globals the elaborator answers hold the
+    inductive families of the file, which the rows alone do not carry, so
+    the suite reads them and never rebuilds them from the rows. *)
+let checked_of (root : string) (name : string) :
+    ( Kanon_kernel.Global.t * (string * Kanon_kernel.Global.entry) list,
+      string )
+    result =
   let* src =
     Sys_io.read_file (path_of (Filename.concat root "fixtures") name ".kan")
   in
-  Kanon_surface.Elab.check_text Kanon_kernel.Global.initial src
+  Kanon_surface.Elab.check_in Kanon_kernel.Global.initial src
   |> Result.map_error Kanon_kernel.Error.to_string
 
 let defines_main (rows : (string * Kanon_kernel.Global.entry) list) : bool =
@@ -87,21 +92,11 @@ let defines_main (rows : (string * Kanon_kernel.Global.entry) list) : bool =
     (fun ((n : string), (_e : Kanon_kernel.Global.entry)) -> String.equal n "main")
     rows
 
-(** The globals the file was checked in, which the evaluator reads. *)
-let globals_of (rows : (string * Kanon_kernel.Global.entry) list) :
-    Kanon_kernel.Global.t =
-  List.fold_left
-    (fun (g : Kanon_kernel.Global.t) (((n : string), (e : Kanon_kernel.Global.entry)))
-    -> Kanon_kernel.Global.add n e g)
-    Kanon_kernel.Global.initial rows
-
 let not_a_literal : string = "kernel value not a literal"
 
 (** The value the kernel gives [main], the only source of the
     expectation (SD-D9). *)
-let kernel_value (rows : (string * Kanon_kernel.Global.entry) list) :
-    (int, string) result =
-  let globals = globals_of rows in
+let kernel_value (globals : Kanon_kernel.Global.t) : (int, string) result =
   let* v =
     Kanon_kernel.Eval.eval globals [] (Kanon_kernel.Term.Global "main")
     |> Result.map_error Kanon_kernel.Error.to_string
@@ -116,15 +111,12 @@ let kernel_value (rows : (string * Kanon_kernel.Global.entry) list) :
 
 (** The module bytes, along the driver path:  erase in the globals the
     file was checked in, then emit with the export [main]. *)
-let emitted (rows : (string * Kanon_kernel.Global.entry) list) :
-    (string, string) result =
+let emitted (globals : Kanon_kernel.Global.t)
+    (rows : (string * Kanon_kernel.Global.entry) list) : (string, string) result =
   let refuse (e : Kanon_kernel.Error.t) : string =
     "emit: " ^ Kanon_kernel.Error.to_string e
   in
-  let* erased =
-    Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
-    |> Result.map_error refuse
-  in
+  let* erased = Kanon_kernel.Erase.program globals rows |> Result.map_error refuse in
   Kanon_wasm.Emit.program Kanon_kernel.Global.initial erased ~export:"main"
   |> Result.map_error refuse
 
@@ -197,15 +189,16 @@ let node_answer (repo : string) (outdir : string) (name : string) (expected : in
 
 (** The five steps for one fixture, in the order of the brief. *)
 let one (root : string) (repo : string) (outdir : string) (name : string)
+    (globals : Kanon_kernel.Global.t)
     (rows : (string * Kanon_kernel.Global.entry) list) : (unit, string) result =
-  let* bytes = emitted rows in
+  let* bytes = emitted globals rows in
   let* () =
     write_file (path_of outdir name ".wasm") bytes
     |> Result.map_error (fun (m : string) -> "emit: " ^ m)
   in
   let* () = validate outdir name in
   let* () = golden_same root outdir name in
-  let* expected = kernel_value rows in
+  let* expected = kernel_value globals in
   node_answer repo outdir name expected
 
 let report (name : string) (r : (unit, string) result) : bool =
@@ -221,13 +214,18 @@ let report (name : string) (r : (unit, string) result) : bool =
 (** The fixtures of the suite:  those that elaborate and define main
     (SD-D9).  Every other fixture is skipped without a line. *)
 let selected (root : string) (names : string list) :
-    (string * (string * Kanon_kernel.Global.entry) list) list =
+    (string
+    * (Kanon_kernel.Global.t * (string * Kanon_kernel.Global.entry) list))
+    list =
   List.filter_map
     (fun (name : string) ->
       Option.bind
-        (rows_of root name |> Result.to_option)
-        (fun (rows : (string * Kanon_kernel.Global.entry) list) ->
-          if defines_main rows then Some (name, rows) else None))
+        (checked_of root name |> Result.to_option)
+        (fun (((globals : Kanon_kernel.Global.t),
+               (rows : (string * Kanon_kernel.Global.entry) list)) :
+               Kanon_kernel.Global.t
+               * (string * Kanon_kernel.Global.entry) list) ->
+          if defines_main rows then Some (name, (globals, rows)) else None))
     names
 
 let verdict (passed : int) (total : int) : unit =
@@ -266,8 +264,10 @@ let run (root_arg : string) (outdir_arg : string option) : unit =
            List.fold_left
              (fun (acc : int)
                   (((name : string),
-                    (rows : (string * Kanon_kernel.Global.entry) list))) ->
-               if report name (one root repo outdir name rows) then acc + 1 else acc)
+                    ((globals : Kanon_kernel.Global.t),
+                     (rows : (string * Kanon_kernel.Global.entry) list)))) ->
+               if report name (one root repo outdir name globals rows) then acc + 1
+               else acc)
              0 chosen
          in
          verdict passed (List.length chosen))

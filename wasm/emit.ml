@@ -226,26 +226,22 @@ let closure_value (c : ctx) (s : st) (n : string) (m : int) :
 
 (** The distinct leg struct shapes of a sum, in the order the legs give
     them. *)
-let leg_shapes (c : ctx) (legs : L.leg list) : ((int * E.repr) list, Err.t) result =
-  let keys : (string * E.repr) list =
+let leg_shapes (c : ctx) (legs : L.leg list) : (int list, Err.t) result =
+  let keys : string list =
     List.filter_map
       (fun (l : L.leg) ->
-        match l with
-        | L.LUnit -> None
-        | L.LRepr r -> Some (L.leg_key [ r ], r))
+        Option.map
+          (fun (((k : string), (_rs : E.repr list)) : string * E.repr list) -> k)
+          (L.leg_type l))
       legs
   in
-  let once : (string * E.repr) list =
+  let once : string list =
     List.fold_left
-      (fun (acc : (string * E.repr) list) (((k : string), (r : E.repr)) : string * E.repr) ->
-        if List.mem_assoc k acc then acc else acc @ [ (k, r) ])
+      (fun (acc : string list) (k : string) ->
+        if List.mem k acc then acc else acc @ [ k ])
       [] keys
   in
-  L.seq
-    (List.map
-       (fun (((k : string), (r : E.repr)) : string * E.repr) ->
-         Result.map (fun (i : int) -> (i, r)) (L.type_index c.l k))
-       once)
+  L.seq (List.map (fun (k : string) -> L.type_index c.l k) once)
 
 (** The tag of a case scrutinee.  A payload free leg is the bare tagged
     integer and a leg with a payload is a struct whose first field is the
@@ -275,6 +271,33 @@ let tag_block (sv : int) (shapes : int list) : G.instr =
         layers (j + 1) ([ blk ] @ post) more
   in
   G.Block (Some G.I32, layers 0 start shapes)
+
+(** The type key and the fields of the leg a branch reads.  A branch
+    that binds a field of a payload free leg is a mismatch. *)
+let leg_payload (lg : L.leg) : (string * E.repr list, Err.t) result =
+  Option.fold
+    ~none:(Error (Err.Mismatch "a branch binds a field of a payload free leg"))
+    ~some:(fun ((x : string * E.repr list)) -> Ok x)
+    (L.leg_type lg)
+
+(** The reads of a leg payload:  one local per runtime field, in
+    declaration order, out of the field of the leg struct that follows
+    the tag.  The answer carries the binders innermost first, so the
+    last runtime field is the binder of index zero (SJ-D25). *)
+let rec leg_reads (c : ctx) (s : st) (sv : int) (li : int) (i : int)
+    (rs : E.repr list) : (G.instr list * (int * E.repr) list * st, Err.t) result =
+  match rs with
+  | [] -> Ok ([], [], s)
+  | r :: more ->
+      let* vt = L.valtype_of c.l r in
+      let idx, s1 = alloc s vt in
+      let* cz = coerce c.l L.any_repr r in
+      let* irest, brest, s2 = leg_reads c s1 sv li (i + 1) more in
+      Ok
+        ( [ G.Local_get sv; G.Ref_cast (G.HType li); G.Struct_get (li, i + 1) ]
+          @ cz @ [ G.Local_set idx ] @ irest,
+          brest @ [ (idx, r) ],
+          s2 )
 
 (** One term.  [tail] is true when the value of the term is the value of
     the function, so a call in that place is a tail call. *)
@@ -328,19 +351,20 @@ let rec go (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool) (tm : E.
       let* cz = coerce c.l L.any_repr r in
       Ok (ix @ [ G.Struct_get (ti, k) ] @ cz, s1)
   | E.KTag (E.Tid t, k, ps) ->
-      let* ls = L.sum_legs t in
+      let* ls = L.sum_legs_p c.l.L.prog t in
       let* lg = nth_leg ls k t in
       let head : G.instr list = [ G.I32_const k; G.Ref_i31 ] in
-      (match lg with
-      | L.LUnit -> Ok (head, s)
-      | L.LRepr r ->
-          let* li = L.type_index c.l (L.leg_key [ r ]) in
+      Option.fold
+        ~none:(Ok (head, s))
+        ~some:(fun (((key : string), (rs : E.repr list)) : string * E.repr list) ->
+          let* li = L.type_index c.l key in
           let* ip, s1 =
             each2
               (fun (s0 : st) (x : E.ktm) (rr : E.repr) -> arg_at c s0 env x rr)
-              s ps [ r ]
+              s ps rs
           in
           Ok (head @ ip @ [ G.Struct_new li ], s1))
+        (L.leg_type lg)
   | E.KCase (tid, sc, bs) -> (
       let* isc, s1 = go c s env false sc in
       match bs with
@@ -485,15 +509,13 @@ and case (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool)
     (isc : G.instr list) (bs : E.kbranch list) : (G.instr list * st, Err.t) result =
   let sr = E.RUnion tid in
   let* stid = tid_of sr in
-  let* legs = L.sum_legs stid in
+  let* legs = L.sum_legs_p c.l.L.prog stid in
   let* shapes = leg_shapes c legs in
   let sv, s1 = alloc s (G.Ref G.HEq) in
   let tg, s2 = alloc s1 G.I32 in
   let* cr = rep c env (E.KCase (tid, sc, bs)) in
   let* cvt = L.valtype_of c.l cr in
-  let block : G.instr =
-    tag_block sv (List.map (fun (((i : int), (_r : E.repr)) : int * E.repr) -> i) shapes)
-  in
+  let block : G.instr = tag_block sv shapes in
   let* dis, s3 = branches c s2 env tail sr sv cvt cr tg bs in
   Ok (isc @ [ G.Local_set sv; block; G.Local_set tg ] @ dis, s3)
 
@@ -514,27 +536,23 @@ and branches (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool) (sr : 
 and branch_body (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool)
     (sr : E.repr) (sv : int) (cr : E.repr) (b : E.kbranch) :
     (G.instr list * st, Err.t) result =
-  let* binders = L.branch_binders sr b in
+  let* binders = L.branch_binders c.l.L.prog sr b in
   match binders with
   | [] ->
       let* ib, s1 = go c s env tail b.E.body in
       let* br = rep c env b.E.body in
       let* cz = coerce c.l br cr in
       Ok (with_coercion ib cz, s1)
-  | r :: _more ->
-      let* li = L.type_index c.l (L.leg_key [ r ]) in
-      let* vt = L.valtype_of c.l r in
-      let idx, s1 = alloc s vt in
-      let env2 : (int * E.repr) list = (idx, r) :: env in
+  | _r :: _more ->
+      let* lg = L.branch_leg c.l.L.prog sr b in
+      let* key, rs = leg_payload lg in
+      let* li = L.type_index c.l key in
+      let* reads, benv, s1 = leg_reads c s sv li 0 rs in
+      let env2 : (int * E.repr) list = benv @ env in
       let* ib, s2 = go c s1 env2 tail b.E.body in
       let* br = rep c env2 b.E.body in
       let* cz = coerce c.l br cr in
-      let* payload_cast = coerce c.l L.any_repr r in
-      Ok
-        ( [ G.Local_get sv; G.Ref_cast (G.HType li); G.Struct_get (li, 1) ]
-          @ payload_cast @ [ G.Local_set idx ]
-          @ with_coercion ib cz,
-          s2 )
+      Ok (reads @ with_coercion ib cz, s2)
 
 (* ---------- the functions of the module ---------- *)
 
@@ -748,7 +766,7 @@ let program (_g : Kanon_kernel.Global.t)
     (string, Err.t) result =
   let* _u = check_export (L.program_table rows) export in
   let* l = L.build rows in
-  let* types = L.comptypes l in
+  let* types = L.comptype_groups l in
   let* funcs =
     L.seq
       (List.map

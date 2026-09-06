@@ -88,8 +88,8 @@ let run_emit (path : string) (out : string) (export : string) : unit =
   else (
     prerr_endline (Printf.sprintf "kanon: cannot write %s" out);
     exit 64);
-  let rows = checked path in
-  Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+  let globals, rows = checked_in path in
+  Kanon_kernel.Erase.program globals rows
   |> Result.fold
        ~ok:(fun (erased : (string * Kanon_kernel.Erase.entry) list) ->
          Kanon_wasm.Emit.program Kanon_kernel.Global.initial erased ~export

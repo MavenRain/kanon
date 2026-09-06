@@ -380,9 +380,17 @@ def neutral : N -> Nat := fun (n : N) => keep 7 n
 
 let full ((passed : int), (total : int)) : bool = Int.equal passed total && total > 0
 
-let verdict (groups : (int * int) list) : unit =
+(** Stage J moves these refusal tests to the positive suite.  Require
+    all replacements before accepting an empty erasure-negative group,
+    so deleting the migrated coverage cannot silently pass the suite. *)
+let migrated_erasure_fixtures : string list =
+  [ "mu-erase"; "mu-rec-direct"; "mu-rec-indexed"; "mu-rec-mutual" ]
+
+let sound ((passed : int), (total : int)) : bool = Int.equal passed total
+
+let verdict (groups : (int * int) list) (may_be_empty : (int * int) list) : unit =
   match () with
-  | () when List.for_all full groups ->
+  | () when List.for_all full groups && List.for_all sound may_be_empty ->
       print_string "SUITE-KERNEL OK\n";
       exit 0
   | () ->
@@ -410,7 +418,15 @@ let run (root : string) (fixtures : string list) (negatives : string list)
   in
   let closed = group "KNEG" "KNEG-OK" kneg [ "smu"; "self" ] in
   let recursive = group "REC" "REC-OK" recursive_values [ "values" ] in
-  verdict [ parsed; checked; erased; refused; unerased; closed; recursive ]
+  let migration =
+    group "MIGRATED" "MIGRATED-OK"
+      (fun (name : string) ->
+        if List.mem name fixtures then Ok ()
+        else Error "the migrated erasure fixture is missing")
+      migrated_erasure_fixtures
+  in
+  verdict [ parsed; checked; erased; refused; closed; recursive; migration ]
+    [ unerased ]
 
 let fail_out (m : string) : unit =
   print_string (Printf.sprintf "SUITE %s\n" m);

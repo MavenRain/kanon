@@ -1237,3 +1237,420 @@ described in SI-D27, SI-D28 and SI-F1 above.
   M0-TIME median 89.349 ms against 150 ms; M0-RATIO 0.250.
   `TRUSTED-LINES kernel=3993/4000 encoder=216/600 OK` after shortening
   duplicate order comments.  No bound, denominator or gate was changed.
+
+## Stage J (2026-09-06)
+
+Erasure, rec groups and emission of recursive values (M1-PLAN.md:212-218).
+The stage lands the SMu rows of the erasure, the multi-member rec group
+form of the encoder, one rec group for each mutual family in the link
+pass, the dispatch over recursive payloads in the emitter and the two
+A10 fixtures.  SPar and SNu keep the refused arm (A6).
+
+### Deliverables
+
+- `lib/erase.ml` 1439 lines, from 1146 at stage entry.  `mu_tid` at :211
+  and `mu_leg_tid` at :219 write the tid text;  the `KTag` answer is at
+  :956 and the `KCase` answer at :1031;  the interim word `mu_erase_word`
+  and `mu_refused` are gone.
+- `lib/eterm.ml` 117 lines, unchanged.  No IR constructor was added.
+- `wasm/gc_encode.ml` 237 lines, from 216.  The rec group form and the
+  rewritten header invariant.
+- `wasm/link.ml` 1091 lines, from 842.  `family_groups` at :926 reads the
+  group boundary from the `KRec` groups the erasure publishes.
+- `wasm/emit.ml` 778 lines, from 760.  One kernel binder for each runtime
+  field, `local.get`, `ref.cast` to the leg type and `struct.get`.
+- `bin/kanon.ml` 308 lines.  Two line defect fix at `run_emit`, which
+  erased in `Global.initial` and now erases in the globals the file was
+  checked in.
+- `test/main.ml` 448 lines, from 440.  The ERASE-NEG group verdict is
+  `passed = total` alone, because the directory is now empty.
+- `test/wasm.ml` 283 lines.  The suite elaborates with `Elab.check_in`
+  and keeps the globals it answers.
+- `SPEC.md` 519 lines, from 516.  Two erasure rows in section 2.3, the
+  rewritten milestone row at :127 and one `rec groups` row at :354.
+- Fixtures that left `test/erase-neg` and became positives, each with a
+  driver produced `.checked` and `.erased` golden: `mu-erase.kan` 13
+  lines, `mu-rec-direct.kan` 19, `mu-rec-indexed.kan` 26 and
+  `mu-rec-mutual.kan` 26.  Their four `.err` sidecars are deleted and
+  `test/erase-neg` holds only `.gitkeep`.
+- New A10 fixtures: `test/fixtures/mu-cata-depth.kan` 22 lines with
+  `.checked`, `.erased` and `.wat` goldens, and
+  `test/fixtures/mu-mutual-emit.kan` 16 lines with the same three.
+  `test/golden` now holds 17 `.wat` files.
+- Stage local, outside the repository: the tail eligible fixture
+  `mu-tail-100k.kan` 29 lines and the gate script `sj-g8.sh`, both under
+  the session work directory (SJ-D40, SJ-D42).
+
+### Gates
+
+Every leg below was rerun by the judge on ROOT at 2026-09-06 15:22,
+after `zsh dev/dune.sh clean`.  The lines are the exact final lines.
+
+- SJ-G1 BUILD.  `zsh dev/dune.sh clean` exit 0, then
+  `zsh dev/dunecho.sh build`: `OK build: 0 errors, 0 warnings`, exit 0.
+- SJ-G2 SUITE-KERNEL.  `_build/default/test/main.exe test`:
+  `PARSE-OK 90/90`, `CHECK-OK 59/59`, `ERASE-OK 59/59`, `NEG-OK 31/31`,
+  `ERASE-NEG-OK 0/0`, `KNEG-OK 2/2`, `REC-OK 1/1` and `SUITE-KERNEL OK`,
+  exit 0.  The four fixtures of brief 3.3 count in the CHECK group and
+  in the ERASE group, and the erase-neg group line reads its zero count,
+  because the directory is empty (SJ-D27, SJ-D44).
+- SJ-G3 SUITE-WASM.  `_build/default/test/wasm.exe test`:
+  `EMIT mu-cata-depth OK`, `EMIT mu-mutual-emit OK`, `WASM-OK 17/17` and
+  `SUITE-WASM OK`, exit 0.
+- SJ-G4 ENCODER-SUBSET.  `zsh dev/encoder-subset.sh .`:
+  `ENCODER-SUBSET OK`, exit 0.
+- SJ-G5 TRUSTED-LINES.  `zsh dev/trusted-lines.sh .`:
+  `TRUSTED-LINES kernel=3993/4000 encoder=237/600 OK`, exit 0.  The
+  kernel delta against the entry reading of 3993 is 0 and the 7 lines of
+  headroom are untouched, so SJ-B2 does not fire.  The encoder delta
+  against 216 is plus 21 and the headroom left for Stage K is 363 lines.
+- SJ-G6 M0-E2E.  `zsh dev/gates.sh --leg e2e`: `PASS M0-E2E main=521`,
+  exit 0.  The answer is the M0 answer and `examples/m0-spine.kan` was
+  not edited.
+- SJ-G7 HOUSE.  `zsh dev/house.sh .`: `HOUSE no-exception OK`,
+  `HOUSE no-mutable-state OK`, `HOUSE one-catch-site OK` with the one
+  allowed site `test/sys_io.ml:19`, `HOUSE no-bool-match OK`,
+  `HOUSE no-em-dash OK`, `HOUSE OK`, exit 0.
+- SJ-G8 TAIL-DEPTH, stage local (brief 3.10, SJ-D42).
+  `zsh sj-g8.sh /Users/oobi/Documents/kanon`:
+  `TAIL-DEPTH mu-tail-100k node exit 0 answer 100000 want 100000`,
+  `TAIL-DEPTH mu-tail-100k wasmtime exit 0 answer 100000 want 100000`,
+  `TAIL-DEPTH mu-cata-depth node exit 0 answer 4095 want 4095`,
+  `TAIL-DEPTH mu-cata-depth wasmtime exit 0 answer 4095 want 4095`,
+  `TAIL-DEPTH-OK 4/4 tail return_call 15 cata return_call 0` and
+  `TAIL-DEPTH OK`, exit 0.  The measured depth of the general
+  catamorphism fixture is 4095 (SJ-D39).
+- SJ-G9 LOGS.  `dev/M1-BUILD-LOG.md` holds one `## Stage J (2026-09-06)`
+  line and `dev/M1-MUTATION-LOG.md` holds one `## Stage J` line, both
+  appended after the Stage I section, which is unchanged.
+  `git diff --stat -- dev/M0-BUILD-LOG.md dev/MUTATION-LOG.md` is empty
+  and the porcelain lists Stage J paths only.
+
+The whole battery.  `zsh dev/gates.sh` ran once at 15:23 and printed
+`PASS` for BUILD, CARRY, R0-COUNT, R0-AUDIT, SUITE-KERNEL, SUITE-WASM,
+ENCODER-SUBSET, AXIOMS, `PASS M0-E2E main=521`, `PASS M0-RATIO
+ratio=2.821`, TRUSTED-LINES, DENOMINATORS, HOUSE and
+`PASS PIN sha=8cf0b8b`.  R0-COUNT is green with no count edit (SJ-D10)
+and CARRY is green because no carried file was edited.  M0-TIME failed
+alone under host load: `FAIL M0-TIME median_ms=179.126 bound_ms=150` at
+load average 35.91, then the three reruns of `zsh dev/gates.sh --leg
+time` read `FAIL M0-TIME median_ms=188.525 bound_ms=150` at load 27.74,
+`FAIL M0-TIME median_ms=248.392 bound_ms=150` at load 29.68 and
+`FAIL M0-TIME median_ms=236.997 bound_ms=150` at load 29.68.  The main
+loop waived SJ-B9 for this leg at 15:06 on the readings 97.3, 101.1 and
+95.1 ms at load 21.7, and the fixer read
+`PASS M0-TIME median_ms=149.873 bound_ms=150` at load 48.46 on the same
+tree.  `M0_TIME_MS` stays 150 at `dev/gates.sh:48` and no agent edited
+it.  The plan calls a real regression a reading above the bound at a
+load average at or under 3 (M1-PLAN.md:233), which this host is far
+above.
+
+### MEASURE table
+
+The judge ran the whole battery `zsh dev/gates.sh` once on ROOT at
+2026-09-06 15:23, at the load average 35.91 35.13 32.87 before the run
+and 32.63 34.45 32.67 after it.  The rows are copied from that run.  The
+timed leg failed alone and was rerun three times;  the readings and
+their load averages are in the Gates section above.
+
+```
+MEASURE BUILD tier=SLOW elapsed_ms=381.414 exit=0
+MEASURE CARRY tier=MED elapsed_ms=1305.905 exit=0
+MEASURE R0-COUNT tier=FAST elapsed_ms=118.605 exit=0
+MEASURE R0-AUDIT tier=FAST elapsed_ms=52.972 exit=0
+MEASURE SUITE-KERNEL tier=SUITE elapsed_ms=529.114 exit=0
+MEASURE SUITE-WASM tier=SUITE elapsed_ms=3384.375 exit=0
+MEASURE ENCODER-SUBSET tier=FAST elapsed_ms=137.438 exit=0
+MEASURE AXIOMS tier=MED elapsed_ms=60.054 exit=0
+MEASURE M0-E2E tier=SLOW elapsed_ms=1531.513 exit=0
+MEASURE M0-TIME tier=SLOW elapsed_ms=1248.338 exit=1
+MEASURE M0-RATIO tier=SLOW elapsed_ms=2592.306 exit=0
+MEASURE TRUSTED-LINES tier=FAST elapsed_ms=51.477 exit=0
+MEASURE DENOMINATORS tier=MED elapsed_ms=82.821 exit=0
+MEASURE HOUSE tier=MED elapsed_ms=153.936 exit=0
+MEASURE PIN tier=FAST elapsed_ms=156.141 exit=0
+MEASURE M0-RATIO kanon_ms=292.438 tot_ms=103.662 ratio=2.821
+BENCH m0_e2e median_ms=179.126 min_ms=157.531 max_ms=200.455 runs=5
+BENCH m0_ratio median_ms=292.438 min_ms=254.743 max_ms=970.102 runs=5
+```
+
+### Decisions
+
+SJ-D1 to SJ-D20 are pinned by the stage brief.  SJ-D21 to SJ-D42 are the
+builder decisions.  SJ-D43 to SJ-D45 are the fixer decisions, renumbered
+by the judge because the builders reached SJ-D42.
+
+- SJ-D1 The erasure lands the four rows of M1-PLAN.md:103-106 and
+  nothing else;  SPar and SNu keep the refused arm (A6).
+- SJ-D2 No IR constructor is added;  every mu row lands on KTag, KCase,
+  KTail and KErased.
+- SJ-D3 No believed kernel file is edited.
+- SJ-D4 An index argument is erased on the quantity Zero rule of A2.
+- SJ-D5 The tid text is mu of the family name with the leg tid at the
+  constructor index.
+- SJ-D6 The rec group form is one composite type list with the rec group
+  opcode and one sub final entry for each member.
+- SJ-D7 The group boundary is the family record and never the emitter.
+- SJ-D8 The four interim sidecars go and their .kan files become
+  positives with driver produced goldens.
+- SJ-D9 No SPEC.md obligation row moves at Stage J.
+- SJ-D10 No R0 count moves and R0-COUNT stays green.
+- SJ-D11 SJ-B1 does not fire for the multi-member rec group form.
+- SJ-D12 The tail eligible fixture keeps the depth of 100,000;  the
+  depth of the general catamorphism fixture is measured by this stage.
+- SJ-D13 The general catamorphism fixture lands under test/fixtures;  the
+  100,000-deep fixture is driven by the stage local gate SJ-G8.
+- SJ-D14 Every golden is produced by the driver.
+- SJ-D15 The two TRUSTED-LINES budgets stay 4,000 and 600.
+- SJ-D16 The encoder headroom is shared with Stage K and is reported at
+  the end of this stage.
+- SJ-D17 Every mutation runs on a fresh copy and ROOT is never mutated.
+- SJ-D18 A leg name that dev/gates.sh does not accept is read from one
+  full run of the battery (erratum SG-D25).
+- SJ-D19 examples/m0-spine.kan is never edited.
+- SJ-D20 This brief adds SJ-G8 and SJ-G9 beyond the plan's seven gates.
+- SJ-D21 The tid text is pinned in two forms: the family tid is
+  `mu<NAME>` and never carries an index, and the leg struct of
+  constructor K is `leg<mu<NAME>,K,R1,...,Rn>` with one repr for each
+  runtime field in declaration order, or `leg<mu<NAME>,K>` for a
+  constructor with no runtime field (lib/erase.ml:211 and :219).
+- SJ-D22 The family tid is nominal and not structural, because the
+  structural text of a recursive family would contain itself, and
+  `tid_of` must agree with `repr_of` for one type (SC-D5).  A mu type
+  reprs as the union `mu<NAME>` (lib/erase.ml:276).
+- SJ-D23 erase.ml publishes the leg names through the rec group the
+  declaration already emits:  `acc` gains a `groups` field, each KTag and
+  KCase site appends the leg names of its family, and `def_code` folds
+  them into KRec.  Every M0 golden is unchanged, because a program with
+  no mu contributes no group name.
+- SJ-D24 erase.ml discovers no mutual component:  each site publishes the
+  legs of the family it names, a sibling appears inside a leg text as
+  `union mu<SIBLING>`, and link.ml joins the group from those reference
+  edges, so lib/global.ml needs no new accessor and SJ-B2 does not fire.
+- SJ-D25 A branch of a KCase binds one kernel binder for each runtime
+  field in declaration order, mirroring `rules.ml mu_branch`;  a field at
+  quantity Zero binds no runtime binder and the last runtime field is the
+  innermost one.
+- SJ-D26 The interim words `mu_erase_word` and `mu_refused` are deleted.
+  A `Sec` at SMu and an `Out` at SMu keep a refusal and read the word
+  `Rules.mu_ran_word` that rules.ml already holds, so Stage J writes no
+  new milestone word (SA-D5).
+- SJ-D27 The empty `test/erase-neg` directory stays alive with an empty
+  `.gitkeep`, because `kan_names` reads the .kan files of the directory
+  and a directory that no commit carries would make the suite exit
+  through `fail_out` on a fresh checkout.
+- SJ-D28 The test/main.ml verdict is split:  the ERASE-NEG group is
+  checked with `passed = total` alone and every other group keeps
+  `passed = total && total > 0`, because brief 3.3 foresees the empty
+  directory and SJ-G2 still requires SUITE-KERNEL OK.
+- SJ-D29 For Stage K:  the leg text of a parameterised family is read at
+  the parameter values of the site, so one family at two different
+  runtime parameters would give two leg texts under one family tid.  No
+  M1 fixture reaches that case;  the array and bignum forms of Stage K
+  should pin whether the leg text is canonicalised at the parameter
+  variables instead.
+- SJ-D30 wasm/gc_encode.ml carries the rec groups as `comptype list
+  list`, one entry for each group:  a group of one is the bare comptype,
+  so every M0 module keeps its bytes, and a group of two or more is
+  `0x4E`, the member count, then one `0x4F` sub final entry with an empty
+  supertype vector for each member.  The index of a type stays its
+  position in the flat reading of the groups and the header invariant
+  comment is rewritten in the same edit (D-M1-5, SD-D17).
+- SJ-D31 SPEC.md section 8 gains one row named `rec groups`.  No other
+  row is widened and dev/encoder-subset.sh reads only the six instruction
+  rows, so the allowlist does not move and SJ-B1 does not fire
+  (RATIFICATIONS.md:75).
+- SJ-D32 wasm/link.ml reads the legs of a family from the KRec groups the
+  erasure publishes, held in `prog.mus`, because a family tid is nominal
+  and carries no leg text.  `sum_legs_p` prefers that table and falls
+  back to the structural reading of the tid text, which keeps every M0
+  sum on its old path.
+- SJ-D33 The rec group boundary is the strongly connected component of
+  the reference edges the leg tids carry, and not the connected
+  component:  a family that only holds a value of another family stays
+  its own group, and only families that reach each other share a group
+  (D-M1-5, probe p4).
+- SJ-D34 A family that does not reach itself is not recursive and keeps
+  one composite one group, which is SD-D17;  a recursive family, direct
+  or mutual, puts every leg struct of every constructor of every member
+  in one group.
+- SJ-D35 wasm/emit.ml binds one kernel binder for each runtime field in
+  declaration order, the last field innermost, and reads a field with
+  `local.get`, `ref.cast` to the leg type and `struct.get` of field k+1,
+  then the coercion to the field repr (SJ-D25, SD-D5).
+- SJ-D36 Defect fix in bin/kanon.ml:  `run_emit` erases in the globals
+  the file was checked in and not in `Global.initial`, because every mu
+  family was unbound at emit.  Two lines.
+- SJ-D37 Defect fix in test/wasm.ml:  the suite elaborates with
+  `Elab.check_in` and keeps the globals it answers, because the rows
+  alone do not carry the inductive families.  `kernel_value` and
+  `emitted` read those globals and the fold `globals_of` is gone.
+- SJ-D38 The general catamorphism fixture `test/fixtures/mu-cata-depth`
+  at depth 4,095 holds no `return_call` at all:  its doubling builder is
+  a recursion whose branch body consumes the recursive result, each chain
+  global is a constructor application and `main` goes through `natAdd`,
+  so the SJ-G8 reading of no `return_call` is exact and SJ-M2 cannot
+  touch it.
+- SJ-D39 The measured depth of the general catamorphism:  node answers
+  8191 and fails at 16383 with `Maximum call stack size exceeded`;
+  wasmtime answers 8191 and fails at 16383 with `call stack exhausted`.
+  The fixture keeps 4,095, which is less than half of the smallest
+  failing depth, and the kernel supplies its expectation in about 51 ms.
+- SJ-D40 Placement under SJ-D13:  the 100,000-deep tail eligible fixture
+  stays out of test/fixtures and is driven by the stage local gate SJ-G8
+  out of the work directory, because the kernel needs 4.11 s to reduce
+  its expectation while the whole SUITE-WASM leg measures 1.96 s.  The
+  general catamorphism fixture lands under test/fixtures with its three
+  goldens.
+- SJ-D41 A third fixture, `test/fixtures/mu-mutual-emit.kan` with its
+  checked, erased and wat goldens, lands beside the two A10 fixtures,
+  because no golden held a multi-member rec group and SJ-M1 and SJ-M4
+  would have had no subject.  It is the mutual family A and B with
+  `sizeA` and `sizeB`, and `main` answers 4.
+- SJ-D42 SJ-G8 is the stage local script `sj-g8.sh`, which takes the
+  repository root as its one argument and defaults to ROOT, so a
+  mutation copy runs it unchanged.  No dev/gates.sh leg is added, which
+  stays the Stage L deliverable (M1-PLAN.md:230).
+- SJ-D43 The fixer makes no source edit at Stage J.  SJ-F1 is a reporting
+  defect and its remedy is the reproduced gate line, which the judge
+  quotes;  SJ-F2 and SJ-F3 carry no one line fix, so the code of the
+  stage stands as the builders left it.  The judge renumbered this
+  decision and the two below from SJ-D26 to SJ-D28, because the builders
+  reached SJ-D42.
+- SJ-D44 The SJ-G2 entry of this log quotes the numeric group lines of
+  the final reproduced run and never a terse later run that omits them.
+  The erase-neg group line is quoted at its zero count, which brief 3.3
+  requires because the directory is empty and holds only
+  `test/erase-neg/.gitkeep`.
+- SJ-D45 The Stage K and Stage L hand-off carries the SJ-F2 fact as a
+  build rule and not as a gate change:  wasm-opt and ENCODER-SUBSET are
+  confirmed not to reject a wrong rec group split, so every new
+  multi-member-group fixture needs a .wat golden that holds the `(rec`
+  form.  No leg of dev/gates.sh moves at Stage J.
+
+### Findings
+
+- SJ-F1, medium, resolved by this log.  The builder hand-off quoted
+  `PARSE-OK 88/88, CHECK-OK 57/57, ERASE-OK 57/57` for SJ-G2, which does
+  not reproduce:  the tree reads `PARSE-OK 90/90`, `CHECK-OK 59/59` and
+  `ERASE-OK 59/59`, and 59 files match `test/fixtures/*.kan`.  The stale
+  figure was read before `mu-cata-depth.kan` and `mu-mutual-emit.kan`
+  landed.  No committed file carries it;  the only `88/88` in the
+  repository is the Stage I section of this file, where it is correct.
+  The Gates section above holds the reproduced numbers (SJ-D44).
+- SJ-F2, low, disclosed and carried into the hand-off.  SJ-M1 and SJ-M4
+  are not caught by wasm-opt or by ENCODER-SUBSET.  On both mutation
+  copies `wasm-opt --enable-gc --enable-reference-types
+  --enable-tail-call --print` exited 0 with an empty stderr, node still
+  answered 4, and `ENCODER-SUBSET OK` still printed.  The killer in both
+  cases is the byte for byte golden compare in test/wasm.ml against
+  `test/golden/mu-mutual-emit.wat`, the one golden of the 17 that holds a
+  `(rec` form.  The remedy is the build rule of SJ-D45.
+- SJ-F3, info, no edit.  M0-TIME is load sensitive on this host and is
+  not a code defect.  The readings and their load averages are in the
+  Gates section.  `M0_TIME_MS` stays 150.
+
+### Hand-off notes for Stage K
+
+- The encoder count.  `wasm/gc_encode.ml` is 237 lines of the 600 line
+  encoder budget, from 216 at Stage J entry, so 363 lines are left for
+  the array composite type and its three opcodes (SJ-D16,
+  M1-PLAN.md:130).  The budget does not move (D-M1-7, correction C6);  a
+  form above 363 lines is SJ-B3 at Stage K and a halt for the user.
+- The erased rows the bignum representation must keep sound.  SPEC.md
+  section 2.3 now holds two mu rows:  `In` at `Lan (SMu ..)` erases to
+  `KTag (tid, the constructor index in declaration order, the runtime
+  fields)`, with a tag and no payload for a constructor with no runtime
+  field, and no index argument ever enters it;  `Elim` at `Lan (SMu ..)`
+  erases to `KCase (tid, scrutinee, one branch for each constructor in
+  declaration order)`, and a branch body that is the recursive call
+  itself is `KTail`.  A branch binds one kernel binder for each runtime
+  field in declaration order, the last field innermost (SJ-D25).  The two
+  representation runtime of Stage K must keep both rows true for a Nat
+  that is a bignum:  a field at the bignum representation is still one
+  runtime field of the leg struct and still one branch binder.
+- The tid text the array tid joins.  The family tid is `mu<NAME>` and
+  carries no index.  The leg struct of constructor K is
+  `leg<mu<NAME>,K,R1,...,Rn>`, one repr for each runtime field in
+  declaration order, and `leg<mu<NAME>,K>` for a constructor with no
+  runtime field (SJ-D5, SJ-D21, lib/erase.ml:211 and :219).  A mu type
+  reprs as the union `mu<NAME>`, which is nominal and not structural
+  (SJ-D22).  The array tid of Stage K joins that text and link.ml dedups
+  by it.
+- The measured depth of the general catamorphism.  The fixture
+  `test/fixtures/mu-cata-depth.kan` runs at depth 4,095 and holds no
+  `return_call`.  Both hosts answer 8191 at depth 8,191 and both fail at
+  16,383:  node prints `Maximum call stack size exceeded` and wasmtime
+  prints `call stack exhausted`.  The fixture depth is less than half of
+  the smallest failing depth (SJ-D12, SJ-D39, RATIFICATIONS.md:80).
+- The fixtures that left test/erase-neg.  Four files moved to
+  `test/fixtures` and each gained a driver produced `.checked` golden and
+  a driver produced `.erased` golden:  `mu-erase.kan`,
+  `mu-rec-direct.kan`, `mu-rec-indexed.kan` and `mu-rec-mutual.kan`.
+  Their four `.err` sidecars are deleted, none of the four defines
+  `main`, so none has a `.wat` golden, and `test/erase-neg` now holds
+  only `.gitkeep` and reads `ERASE-NEG-OK 0/0` (SJ-D8, SJ-D27, SJ-D28).
+- The build rule for a new rec group fixture.  wasm-opt and
+  ENCODER-SUBSET do not reject a wrong rec group split, so every new
+  fixture with a multi-member group needs a `.wat` golden that holds the
+  `(rec` form.  Today `test/golden/mu-mutual-emit.wat` is the only one of
+  the 17 `.wat` goldens that holds it (SJ-F2, SJ-D45).
+- The stage local gate.  SJ-G8 lives outside the repository with the
+  100,000-deep fixture `mu-tail-100k.kan`.  Stage L owns dev/gates.sh and
+  decides whether the leg joins the battery (M1-PLAN.md:230).
+
+### Notes for the user, not a ruling
+
+- Gates beyond the plan row.  The plan gives SJ-G1 to SJ-G7.  This stage
+  ran SJ-G8 TAIL-DEPTH and SJ-G9 LOGS as well, which the stage brief adds
+  on the Stage G, Stage H and Stage I precedent (SJ-D20).
+- The encoder reading.  237 of 600 lines, 363 left for Stage K.
+- The placement of the 100,000-deep fixture.  It stays out of
+  test/fixtures and rides SJ-G8, because the kernel needs 4.11 s to
+  reduce its expectation (SJ-D13, SJ-D40).
+- The measured catamorphism depth.  4,095 in the fixture, 8,191 answered
+  and 16,383 failing on both hosts (SJ-D12, SJ-D39).
+- Builder work beyond the brief file list.  The defect fixes in
+  bin/kanon.ml (SJ-D36) and test/wasm.ml (SJ-D37), the third fixture
+  mu-mutual-emit (SJ-D41), and the `.gitkeep` and the split ERASE-NEG
+  verdict that keep the empty directory alive (SJ-D27, SJ-D28).
+
+### Staged review fixes (2026-09-06)
+
+Review scope: the 36 staged Stage J paths, before commit.  Validation ran
+in an isolated copy of that tree, with the original vendor tree read only.
+
+- CI coverage blocker, fixed in test/main.ml: the empty ERASE-NEG exception
+  accepted deletion of migrated positives.  Removing mu-erase.kan from
+  fixtures made the original staged suite exit 0.  The new MIGRATED group
+  requires all four replacements; the same mutation now reports the
+  missing fixture, MIGRATED-OK 3/4, and exits 1.
+- MEDIUM, fixed in lib/erase.ml: mu_group_tids published site-specific
+  representations under one nominal family tid.  Checked eliminators for
+  Box Nat and Box (Nat -> Nat) made emission exit 2 with "an application
+  head is not a function".  Layouts now open family parameters as neutral
+  variables in a fresh context.  This resolves and supersedes SJ-D29.
+- MEDIUM, fixed in lib/erase.ml: mu_fields dropped a dependent payload
+  instantiated at prod (), while its declaration layout and case branch
+  retained a field.  The checked mu-dependent-layout fixture made emission
+  exit 2 with "an argument list is shorter than its signature".  Payloads
+  and branch slots now follow the same declaration layout.  A generic
+  field instantiated at an erased type carries KErased as a placeholder.
+
+Added mu-parameter-layout and mu-dependent-layout to the normal fixture
+suite, with checked, erased and validated Wasm text goldens.  The first
+covers Nat, function, tuple and empty tuple parameter instantiations.  The
+second exercises constructors at Nat, empty tuple and function types, with
+a trailing Nat field to check binder positions.  Node and Wasmtime answer
+9 and 27 respectively, agreeing with the kernel expectations.
+
+Validation: build 0 errors and 0 warnings; PARSE-OK 92/92, CHECK-OK 61/61,
+ERASE-OK 61/61, NEG-OK 31/31, ERASE-NEG-OK 0/0, KNEG-OK 2/2, REC-OK 1/1,
+MIGRATED-OK 4/4, SUITE-KERNEL OK; WASM-OK 19/19, SUITE-WASM OK.  The full
+15-leg dev/gates.sh battery passed with GATES-OK.  M0-E2E returned 521;
+M0-TIME median was 132.583 ms against 150 ms; TRUSTED-LINES remained
+kernel=3993/4000 and encoder=237/600.  Existing goldens stayed unchanged.
+
+Blockers: none remain from this review.  Merge verdict: merge with these
+staged fixes, which make nominal constructor layouts consistent across
+instantiations and preserve migrated test coverage.  No commit was made.

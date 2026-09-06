@@ -56,11 +56,17 @@ type ectx = {
 }
 
 (** The state that crosses the whole declaration:  the number of lambdas
-    already lifted, in preorder from 0, and the lifted functions in the
-    order they finished (SC-D29). *)
+    already lifted, in preorder from 0, the lifted functions in the order
+    they finished (SC-D29), and the leg names of every mu family the
+    declaration builds or eliminates (M1 Stage J, SJ-D21). *)
 type acc = {
   next : int;
   lifted : Eterm.kdecl list;
+  groups : Eterm.tid list;
+      (** The leg struct names, in first mention order.  The rec group of
+          the declaration carries them, so one rec group names one family
+          and link.ml reads the layout of every branch binder off the tid
+          text alone (D-M1-5, brief 3.2). *)
 }
 
 let globals_of (ec : ectx) : Global.t = ec.c.Check.globals
@@ -196,6 +202,47 @@ let unit_leg : string = "unit"
     scrutinee (SC-D24). *)
 let scrut_name : string = "scrut"
 
+(** M1 Stage J, brief 3.2 and SJ-D5:  the tid of a value of a mu family
+    is the family name alone.  An index argument never reaches the text,
+    because every index binder of the family record stands at quantity
+    Zero and erases (A2, M1-PLAN.md:105), so two constructors that differ
+    only in indices carry one tid and one tag.  link.ml dedups by this
+    text (wasm/link.ml:167-168). *)
+let mu_tid (n : string) : Eterm.tid = Eterm.Tid ("mu<" ^ n ^ ">")
+
+(** SJ-D5:  the leg struct of the constructor at index [k] of the family
+    [n], in the shape of the M0 leg name:  the family tid, the
+    constructor index and the reprs of the runtime fields in declaration
+    order, and no repr at all for a constructor with no runtime field.
+    The legs of one family share the prefix [leg<mu<NAME>,], so the
+    boundary of a rec group reads off the text alone (brief 3.2). *)
+let mu_leg_tid (n : string) (k : int) (rs : Eterm.repr list) : Eterm.tid =
+  Eterm.Tid
+    (Printf.sprintf "leg<%s,%d%s>"
+       (Eterm.tid_text (mu_tid n))
+       k
+       (String.concat ""
+          (List.map (fun (r : Eterm.repr) -> "," ^ Eterm.print_repr r) rs)))
+
+(** The position of a name in a list, which is the constructor index of
+    SJ-D5.  The fold answers the first hit and never indexes the list. *)
+let position (x : string) (xs : string list) : int option =
+  snd
+    (List.fold_left
+       (fun ((i : int), (found : int option)) (y : string) ->
+         ( i + 1,
+           lazy_fold found
+             ~none:(fun (() : unit) ->
+               match String.equal x y with true -> Some i | false -> None)
+             ~some:(fun (j : int) -> Some j) ))
+       (0, None) xs)
+
+(** The word a branch whose binders do not match its constructor gets.
+    The checker rejects such a leg long before erasure (rules.ml
+    [mu_branch]), so the arm stands for totality alone. *)
+let branch_arity_word : string =
+  "a branch binds a different number of fields than its constructor takes"
+
 (** The repr table of SC-D5, read off the type after weak head normal
     form.  The tid is the structural name, printed the same way
     everywhere, so link.ml dedups by string at Stage D. *)
@@ -222,6 +269,14 @@ and ran_repr (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
   | POther -> Ok any_repr
 
 and lan_repr (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
+    (Eterm.repr, Error.t) result =
+  lazy_fold (Rules.as_vmu s)
+    ~none:(fun (() : unit) -> lan_point_repr ec s d)
+    ~some:(fun (((n : string), (_ix : Value.t list)) : string * Value.t list) ->
+      Ok (Eterm.RUnion (mu_tid n)))
+
+(** Every left former that is not a mu family (SC-D5). *)
+and lan_point_repr (ec : ectx) (s : Value.t Shape.t) (d : Value.closure) :
     (Eterm.repr, Error.t) result =
   match point_of s with
   | PPoint (q, x, dom) ->
@@ -322,6 +377,65 @@ and tid_of (ec : ectx) (ty : Value.t) : (Eterm.tid, Error.t) result =
   | Eterm.RThunk t -> Ok t
   | Eterm.RI31 ->
       Error (Error.Mismatch "a structured value stands at a type whose repr is i31")
+
+(** One layout slot per constructor field, in declaration order.
+    Parameters and earlier fields remain neutral here.  None marks a
+    field that always erases; Some records its storage representation. *)
+let rec mu_leg_reprs (ec : ectx) (env : Value.t list)
+    (tele : Positivity.telescope) : (Eterm.repr option list, Error.t) result =
+  match tele with
+  | [] -> Ok []
+  | ((q : Quantity.t), (x : string), (ty : Term.t)) :: rest ->
+      let* tyv = Eval.eval (globals_of ec) env ty in
+      let* keep = point_runtime ec q tyv in
+      let* here =
+        if keep then Result.map Option.some (repr_of ec tyv)
+        else Ok None
+      in
+      let ec' =
+        { ec with c = Check.bind x q tyv ec.c; slots = SDrop :: ec.slots }
+      in
+      let* more = mu_leg_reprs ec' (Value.var (size_of ec) :: env) rest in
+      Ok (here :: more)
+
+(** Layouts open parameters as variables, so every instantiation of a
+    nominal family uses the same fields and representations. *)
+let rec mu_parameters (ec : ectx) (tele : Positivity.telescope) :
+    (ectx, Error.t) result =
+  match tele with
+  | [] -> Ok ec
+  | (q, x, ty) :: rest ->
+      let* tyv = Eval.eval (globals_of ec) (env_of ec) ty in
+      mu_parameters
+        { ec with c = Check.bind x q tyv ec.c; slots = SDrop :: ec.slots }
+        rest
+
+let mu_layout (ec : ectx) (fam : Positivity.family) (ct : Positivity.ctor) :
+    (Eterm.repr option list, Error.t) result =
+  let fresh =
+    { ec with c = Check.make (globals_of ec) ec.c.Check.budget; slots = [] }
+  in
+  let* params = mu_parameters fresh fam.Positivity.f_params in
+  mu_leg_reprs params (env_of params) ct.Positivity.c_args
+
+(** SJ-D5 and SJ-D21:  the leg names of a whole family, in declaration
+    order.  A declaration publishes these names in its rec group, so
+    link.ml has one text channel that carries the layout of every branch
+    binder and the boundary of the group (D-M1-5, brief 3.2). *)
+let mu_group_tids (ec : ectx) (n : string) (fam : Positivity.family) :
+    (Eterm.tid list, Error.t) result =
+  let* names = Rules.mu_ctor_names n fam in
+  Rules.all_ok
+    (List.mapi
+       (fun (k : int) (c : string) ->
+         let* ct =
+           Positivity.ctor_of c fam
+           |> Option.to_result
+                ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+         in
+         let* rs = mu_layout ec fam ct in
+         Ok (mu_leg_tid n k (List.filter_map Fun.id rs)))
+       names)
 
 (** A total zip:  a pair list as long as the shorter side.  The lists
     this file zips are two readings of one leg list, so they are the same
@@ -439,14 +553,13 @@ let refused (s : Term.t Shape.t) : (Eterm.ktm * acc, Error.t) result =
   let* (_pack : Check.ctx Rules.rule_pack) = Rules.rules s in
   Error (Error.Not_yet "an erasure at a shape past M0")
 
-(** M1 Stage G, brief 3.8 and SG-D7.  The mu shape HAS a pack from this
-    stage, so [refused] above would answer the generic past-M0 word for a
-    checked mu term (SA-D5, erase.ml:435-437).  The interim word names the
-    stage that brings the real arm, M1 Stage J (A6, M1-PLAN.md:101 and
-    :214), and the SG-M5 mutation returns this site to [refused]. *)
-let mu_erase_word : string = "an erasure at a mu shape arrives at M1 Stage J"
-
-let mu_refused (() : unit) : ('a, Error.t) result = Error (Error.Not_yet mu_erase_word)
+(** M1 Stage J, brief 3.1 and A6.  The interim word of Stage G is gone:
+    an introduction at a mu family and an elimination of a mu family have
+    rows of their own below ([mu_intro] and [mu_elim],
+    M1-PLAN.md:103-106).  SPar and SNu keep [refused] above, and a
+    section and a section elimination at a mu shape keep the word
+    rules.ml already holds, because the right former at that shape
+    arrives at M2 (rules.ml [mu_ran_word], SA-D5). *)
 
 (** The application view.  [Out] at a point shape with a point address is
     one argument of a spine;  every other node ends the spine. *)
@@ -582,7 +695,7 @@ and sec_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
   | Shape.SPi (_, _, _) -> lift_arm ec ac ~ty t
   | Shape.SColl n -> tuple_arm ec ac ~ty n legs
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> mu_refused ()
+  | Shape.SMu (_, _) -> Error (Error.Not_yet Rules.mu_ran_word)
   | Shape.SNu (_, _) -> refused s
 
 (** A tuple keeps its runtime legs alone, and a tuple with no runtime leg
@@ -741,7 +854,7 @@ and in_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
     (a : Term.addr) (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
   match s with
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> mu_refused ()
+  | Shape.SMu (_, _) -> mu_intro ec ac ~ty a args
   | Shape.SNu (_, _) -> refused s
   | Shape.SPi (_, _, _) -> in_typed ec ac ~ty a args
   | Shape.SColl _ -> in_typed ec ac ~ty a args
@@ -808,6 +921,200 @@ and tag_intro (ec : ectx) (ac : acc) ~(ty : Value.t) (n : int) (d : Value.closur
   let* tid = tid_of ec ty in
   Ok (Eterm.KTag (tid, k, fields), ac1)
 
+(** M1 Stage J, brief 3.1 and the row of M1-PLAN.md:103.  A constructor
+    of a mu family becomes [KTag] of the family tid, the constructor
+    index in declaration order and the erased runtime fields.  A
+    constructor with no runtime field carries no payload, which is
+    exactly the tagged integer [tag_intro] above already writes for a
+    payload-free leg (SD-D5).  The index arguments of the type are never
+    read here, so two constructors that differ only in indices give one
+    tid and one tag (A2, SJ-D4, M1-PLAN.md:105). *)
+and mu_intro (ec : ectx) (ac : acc) ~(ty : Value.t) (a : Term.addr)
+    (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
+  let* w = Eval.whnf (globals_of ec) ty in
+  match form_of w with
+  | FLan (sv, d) ->
+      let* n, _ixv =
+        Rules.as_vmu sv
+        |> Option.to_result
+             ~none:(Error.Mismatch "an introduction at a shape past M0")
+      in
+      mu_tag ec ac n d a args
+  | FRan (_, _) | FUniv | FNat | FOther ->
+      Error
+        (Error.Mismatch "an introduction stands at a type that is not a left former")
+
+(** The tag itself, once the family is known.  The rec group of the
+    declaration gains the leg names of the family, so the group a link
+    step reads names every constructor and not the one built here
+    (SJ-D21). *)
+and mu_tag (ec : ectx) (ac : acc) (n : string) (d : Value.closure)
+    (a : Term.addr) (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
+  let* c =
+    Term.as_actor a
+    |> Option.to_result
+         ~none:(Error.Mismatch "a constructor takes a constructor address")
+  in
+  let* fam = Rules.mu_family Check.ops ec.c n in
+  let* names = Rules.mu_ctor_names n fam in
+  let* k =
+    position c names
+    |> Option.to_result
+         ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+  in
+  let* ct =
+    Positivity.ctor_of c fam
+    |> Option.to_result
+         ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+  in
+  let* penv = Rules.mu_param_env Check.ops ec.c d in
+  let* layout = mu_layout ec fam ct in
+  let* fields, ac1 = mu_fields ec ac penv ct.Positivity.c_args args layout in
+  let* group = mu_group_tids ec n fam in
+  Ok (Eterm.KTag (mu_tid n, k, fields), { ac1 with groups = ac1.groups @ group })
+
+(** Payload slots follow the declaration layout.  Actual field types
+    still guide erasure.  When a generic slot is instantiated at an
+    erased type, KErased supplies its placeholder so subsequent fields
+    and branch binders keep their positions. *)
+and mu_fields (ec : ectx) (ac : acc) (env : Value.t list)
+    (tele : Positivity.telescope) (args : Term.t list)
+    (layout : Eterm.repr option list) :
+    (Eterm.ktm list * acc, Error.t) result =
+  match (tele, args, layout) with
+  | [], [], [] -> Ok ([], ac)
+  | ((_q : Quantity.t), (_x : string), (ty : Term.t)) :: tele',
+    arg :: args', field :: layout' ->
+      let* tyv = Eval.eval (globals_of ec) env ty in
+      let* here, ac1 =
+        if Option.is_some field then
+          let* f, a1 = term ec ac ~tail:false ~expected:(Some tyv) arg in
+          Ok ([ f ], a1)
+        else Ok ([], ac)
+      in
+      let* v = Eval.eval (globals_of ec) (env_of ec) arg in
+      let* more, ac2 = mu_fields ec ac1 (v :: env) tele' args' layout' in
+      Ok (here @ more, ac2)
+  | _tele, _args, _layout -> Error (Error.Mismatch branch_arity_word)
+
+(** Brief 3.1 and the row of M1-PLAN.md:104.  An elimination at a family
+    becomes [KCase] over the same dispatch [case_elim] below writes, with
+    one branch per constructor in declaration order, so the tag a branch
+    answers is the tag [mu_tag] wrote.  The motive is a type and is
+    dropped (SC-D10).  The tail flag reaches the branch bodies unchanged,
+    so a branch body that IS the recursive call becomes [KTail] at
+    [app_arm] above and this row writes no guard of its own (A10,
+    M1-PLAN.md:106). *)
+and mu_elim (ec : ectx) (ac : acc) ~(tail : bool) (e : Term.elim) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* sty = Check.infer ec.c Quantity.Many e.Term.e_scrut in
+  let* w = Eval.whnf (globals_of ec) sty in
+  match form_of w with
+  | FLan (sv, d) ->
+      let* n, ixv =
+        Rules.as_vmu sv
+        |> Option.to_result
+             ~none:(Error.Mismatch "an elimination at a shape past M0")
+      in
+      mu_case ec ac ~tail ~sty e n ixv d
+  | FRan (_, _) | FUniv | FNat | FOther ->
+      Error
+        (Error.Mismatch
+           "an elimination stands on a value that is not a left former")
+
+(** The case itself, once the family is known. *)
+and mu_case (ec : ectx) (ac : acc) ~(tail : bool) ~(sty : Value.t)
+    (e : Term.elim) (n : string) (ixv : Value.t list) (d : Value.closure) :
+    (Eterm.ktm * acc, Error.t) result =
+  let* fam = Rules.mu_family Check.ops ec.c n in
+  let* mo = Rules.mu_motive_of n fam ixv e in
+  let* names = Rules.mu_ctor_names n fam in
+  let* penv = Rules.mu_param_env Check.ops ec.c d in
+  let* scrut, ac1 = term ec ac ~tail:false ~expected:(Some sty) e.Term.e_scrut in
+  let* brs, ac2 =
+    List.fold_left
+      (fun (r : (Eterm.kbranch list * acc, Error.t) result)
+           (((k : int), (c : string)) : int * string) ->
+        let* bs, a = r in
+        let* b, a' = mu_branch_of ec a ~tail n fam mo penv e.Term.e_branches k c in
+        Ok (bs @ [ b ], a'))
+      (Ok ([], ac1))
+      (List.mapi (fun (k : int) (c : string) -> (k, c)) names)
+  in
+  let* group = mu_group_tids ec n fam in
+  Ok
+    ( Eterm.KCase (mu_tid n, scrut, brs),
+      { ac2 with groups = ac2.groups @ group } )
+
+(** One branch:  the leg its constructor address names, its binders at
+    the marks the field record carries, and its body at the type the
+    motive gives that constructor, which is the rule the checker uses
+    (rules.ml [mu_branch], SH-D7 and SH-D9).  The arity counts the
+    runtime fields alone, so a field at quantity Zero binds no runtime
+    binder and the last runtime field is the innermost one. *)
+and mu_branch_of (ec : ectx) (ac : acc) ~(tail : bool) (n : string)
+    (fam : Positivity.family) (mo : Term.motive) (penv : Value.t list)
+    (branches : (Term.addr * Term.leg) list) (k : int) (c : string) :
+    (Eterm.kbranch * acc, Error.t) result =
+  let* ct =
+    Positivity.ctor_of c fam
+    |> Option.to_result
+         ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+  in
+  let* _key, lg =
+    List.find_opt
+      (fun ((a : Term.addr), (_l : Term.leg)) ->
+        Option.equal String.equal (Term.as_actor a) (Some c))
+      branches
+    |> Option.to_result
+         ~none:
+           (Error.Missing_branch
+              (Printf.sprintf "the elimination of %s has no branch at %s" n c))
+  in
+  let* layout = mu_layout ec fam ct in
+  let* ec', env, vals, arity =
+    mu_binders ec (penv, [], 0) ct.Positivity.c_args lg.Term.l_binders layout
+  in
+  let* idx =
+    Rules.all_ok
+      (List.map
+         (fun (r : Term.t) -> Eval.eval (globals_of ec) env r)
+         ct.Positivity.c_res_idx)
+  in
+  let self = Value.VIn (Shape.SMu (n, idx), Value.VACtor c, List.rev vals) in
+  let* target = Rules.mu_result Check.ops ec.c mo idx self in
+  let* body, ac1 = term ec' ac ~tail ~expected:(Some target) lg.Term.l_body in
+  Ok ({ Eterm.tag = k; arity; body }, ac1)
+
+(** The binders of one branch:  one kernel binder per field, in
+    declaration order, at the field's own mark, and a runtime slot for
+    the fields that survive.  The environment and the value list mirror
+    the checker's fold, so the erased body reads the indices the checker
+    bound (rules.ml [mu_branch]). *)
+and mu_binders (ec : ectx) (st : Value.t list * Value.t list * int)
+    (tele : Positivity.telescope) (binders : (Quantity.t * string) list)
+    (layout : Eterm.repr option list) :
+    (ectx * Value.t list * Value.t list * int, Error.t) result =
+  let env, vals, arity = st in
+  match (tele, binders, layout) with
+  | [], [], [] -> Ok (ec, env, vals, arity)
+  | ( ((q : Quantity.t), (_x : string), (ty : Term.t)) :: tele',
+      ((_bq : Quantity.t), (bx : string)) :: binders', field :: layout' ) ->
+      let* tyv = Eval.eval (globals_of ec) env ty in
+      let keep = Option.is_some field in
+      let v = Value.var (size_of ec) in
+      let ec' =
+        {
+          ec with
+          c = Check.bind bx q tyv ec.c;
+          slots = (if keep then SKeep else SDrop) :: ec.slots;
+        }
+      in
+      mu_binders ec'
+        (v :: env, v :: vals, (if keep then arity + 1 else arity))
+        tele' binders' layout'
+  | _tele, _binders, _layout -> Error (Error.Missing_branch branch_arity_word)
+
 and out_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t)
     (s : Term.t Shape.t) (a : Term.addr) (head : Term.t) (t : Term.t) :
     (Eterm.ktm * acc, Error.t) result =
@@ -815,7 +1122,7 @@ and out_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t)
   | Shape.SPi (_, _, _) -> app_arm ec ac ~tail ~ty t
   | Shape.SColl n -> proj_arm ec ac n a head
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> mu_refused ()
+  | Shape.SMu (_, _) -> Error (Error.Not_yet Rules.mu_ran_word)
   | Shape.SNu (_, _) -> refused s
 
 (** An empty erased application preserves its head when source
@@ -887,7 +1194,7 @@ and elim_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (e : Term.eli
     (Eterm.ktm * acc, Error.t) result =
   match e.Term.e_shape with
   | Shape.SPar (_, _) -> refused e.Term.e_shape
-  | Shape.SMu (_, _) -> mu_refused ()
+  | Shape.SMu (_, _) -> mu_elim ec ac ~tail e
   | Shape.SNu (_, _) -> refused e.Term.e_shape
   | Shape.SPi (_, _, _) -> elim_typed ec ac ~tail ~ty e
   | Shape.SColl _ -> elim_typed ec ac ~tail ~ty e
@@ -1109,11 +1416,13 @@ let rec decl (g : Global.t) (budget : Budget.t) (name : string) (en : Global.ent
 and def_code (ec : ectx) (name : string) (ty_v : Value.t) (body : Term.t) :
     (entry, Error.t) result =
   let* params, ret, body', ac =
-    chain ec { next = 0; lifted = [] } [] ~ty:ty_v body
+    chain ec { next = 0; lifted = []; groups = [] } [] ~ty:ty_v body
   in
   let own = Eterm.KFun (Eterm.Fid name, params, ret, body') in
   let ds = ac.lifted @ [ own ] in
-  Ok (Code (Eterm.KRec (dedup_tids (List.concat_map tids_decl ds)) :: ds))
+  Ok
+    (Code
+       (Eterm.KRec (dedup_tids (List.concat_map tids_decl ds @ ac.groups)) :: ds))
 
 (** The whole program, in declaration order.  Every row extends the
     environment the next row is erased in, exactly as check_decls built

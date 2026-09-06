@@ -3,9 +3,15 @@
     indices and instructions and answers the binary text.  link.ml owns
     the indices and emit.ml owns the instruction lists.
 
-    Every composite type is its own rec group (SD-D17), so a type section
-    entry is the plain final form of the composite type, 0x5F for a
-    struct and 0x60 for a function, and no [sub] form is written.
+    A type section entry is one rec group (D-M1-5).  A group of one
+    member is the plain final form of the composite type, 0x5F for a
+    struct and 0x60 for a function, with no rec byte and no [sub] form:
+    that is the M0 shape of SD-D17 and it keeps the bytes of every M0
+    module.  A group of two or more members is the rec opcode 0x4E, the
+    member count and one sub final entry per member, 0x4F with an empty
+    supertype vector (A8).  The index of a type stays its position in
+    the flat reading of the groups, which is the invariant [types]
+    carries.
 
     The array form is not encoded at M0 (SD-D19):  an OCaml constructor
     that no caller builds is an error under [-warn-error +a], so the arm
@@ -73,7 +79,9 @@ type func = {
 }
 
 type modul = {
-  types : comptype list;  (** the index of a type is its position *)
+  types : comptype list list;
+      (** one rec group per entry;  the index of a type is its position
+          in the concatenation of the groups *)
   funcs : func list;  (** the index of a function is its position *)
   exports : (string * int) list;
   declared : int list;  (** the functions the module declares *)
@@ -127,6 +135,19 @@ let comptype (c : comptype) : string =
   match c with
   | CStruct fields -> byte 0x5F ^ vec field fields
   | CFunc (params, results) -> byte 0x60 ^ vec valtype params ^ vec valtype results
+
+(** A member of a multi-member group is a sub final entry:  0x4F, the
+    empty vector of supertypes and the composite type. *)
+let sub_final (c : comptype) : string = byte 0x4F ^ uleb 0 ^ comptype c
+
+(** One type section entry.  A group of one keeps the M0 bytes and a
+    group of two or more takes the rec opcode (D-M1-5, A8). *)
+let rectype (g : comptype list) : string =
+  match g with
+  | [ c ] -> comptype c
+  | [] -> byte 0x4E ^ uleb 0
+  | _c1 :: _c2 :: _rest ->
+      byte 0x4E ^ uleb (List.length g) ^ String.concat "" (List.map sub_final g)
 
 let blocktype (b : valtype option) : string =
   Option.fold ~none:(byte 0x40) ~some:valtype b
@@ -202,7 +223,7 @@ let magic : string = "\x00asm\x01\x00\x00\x00"
     reference reads a function (SD-D15:  the module has no import, table, memory,
     global, start or data section). *)
 let encode (m : modul) : string =
-  let type_section : string = section 1 (vec comptype m.types) in
+  let type_section : string = section 1 (vec rectype m.types) in
   let func_section : string =
     section 3 (vec (fun (f : func) -> uleb f.ftype) m.funcs)
   in

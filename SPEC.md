@@ -118,15 +118,23 @@ column gives the name the row writes, either a `tid` or a `fid`.
 | `Elim` at `Lan (SColl n)` | `KCase (tid, scrutinee, one branch for each leg in leg order)` | the checked scrutinee `tid` is `sum<R\|R>`, or `any` for an empty sum |
 | `Sec` at `Ran (SColl n)` | `KStruct (tid, the runtime legs)` | `tid` is `tuple<R,R>` |
 | `Out` at `ALeg k` | `KProj (tid, k renumbered over the runtime legs, the term)` | `tid` is `tuple<R,R>` |
+| `In` at `Lan (SMu ..)` | `KTag (tid, the constructor index in declaration order, the runtime fields)`, and a tag with no payload for a constructor that takes no runtime field | `tid` is `mu<NAME>`, and an index argument never enters it, because every index binder carries the mark 0, so two constructors that differ only in indices give one tid and one tag |
+| `Elim` at `Lan (SMu ..)` | `KCase (tid, scrutinee, one branch for each constructor in declaration order)`, and a branch body that is the recursive call itself is `KTail` | the checked scrutinee `tid` is `mu<NAME>`, and the rec group of the declaration also names the leg struct `leg<mu<NAME>,K,R,R>` of each constructor |
 | `Let` | `KLet (x, value, body)` for a runtime value, and the binder is dropped for a value that is not | none |
 | `Ann` | the term under it, erased | none |
 | `Global` | `KGlobal name` | none |
 | `Lit` | `KLit` | none |
-| `Auto`, a shape past M0 | `Error (Not_yet ..)` with the milestone word | none |
+| `Auto`, `Sec` and `Out` at `SMu`, every form at `SPar` and at `SNu` | `Error (Not_yet ..)` with the milestone word | none |
 
 A function type takes the repr `func fn<n>`, where n counts the runtime
 points of the whole chain.  `Nat` takes `i31`.  A type that the table
 does not name takes the tid `any`.
+
+Constructor layouts are computed with the family parameters and earlier
+fields bound as variables.  Each nominal family therefore has one layout
+across parameter instantiations as well as indices.  A field that always
+erases has no slot.  A generic slot instantiated at an erased type holds
+`KErased`, preserving the positions of later fields and branch binders.
 
 Function definitions and lifted functions take the parameters of their
 whole type chain.  When the body supplies fewer lambdas, erasure adds
@@ -349,6 +357,7 @@ growth is visible in a diff of this table.
 | sections used | type, function, export, element (declarative segments only), code |
 | sections refused | table, memory, global, start, data |
 | composite types | struct, array, func, in rec groups, final subtypes only |
+| rec groups | a group of one composite is the bare composite, which keeps the M0 bytes; a group of two or more composites is `0x4E`, the member count, then one `0x4F` sub final entry with an empty supertype vector for each member, in declaration order (D-M1-5) |
 | control | `block`, `loop`, `if`, `br`, `br_if`, `br_on_cast`, `return`, `unreachable` |
 | calls | `call`, `return_call`, `call_ref`, `return_call_ref` |
 | locals | `local.get`, `local.set`, `local.tee` |
