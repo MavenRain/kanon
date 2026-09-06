@@ -33,6 +33,17 @@ type t =
   | Index_above_universe of string
       (** M1 Stage G:  an index type is above the declared level (A5,
           kan-lang-tot-pin/lib/check.ml:1820-1823) *)
+  | Termination of string
+      (** M1 Stage I, SI-D6:  the definition named here failed the
+          structural termination guard of lib/order.ml.  The arm is
+          mirrored from kan-lang-tot-pin/lib/error.ml:25 and it carries
+          the name, so the one message below is written once *)
+
+(** The text of the termination arm, kan-lang-tot-pin/lib/error.ml:185
+    word for word.  Every negative fixture of M1 Stage I pins this line
+    (SI-D6), so it is written here and nowhere else. *)
+let termination_msg (n : string) : string =
+  Printf.sprintf "recursive definition %s failed the structural termination guard" n
 
 let message (e : t) : string =
   match e with
@@ -50,6 +61,7 @@ let message (e : t) : string =
   | Budget_exhausted m -> m
   | Index_not_zero m -> m
   | Index_above_universe m -> m
+  | Termination n -> termination_msg n
 
 let to_string (e : t) : string =
   match e with
@@ -67,3 +79,4 @@ let to_string (e : t) : string =
   | Budget_exhausted m -> "budget: " ^ m
   | Index_not_zero m -> "index not zero: " ^ m
   | Index_above_universe m -> "index above universe: " ^ m
+  | Termination n -> "termination: " ^ termination_msg n

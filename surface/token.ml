@@ -67,6 +67,11 @@ type kind =
   | KAnd
       (** M1 Stage G, correction C7:  the one word the minimal mu
           production adds, which joins the members of a mutual group. *)
+  | KRec
+      (** M1 Stage I, SI-D8:  the one word the minimal recursive
+          definition production adds, which stands after "def".  The
+          members of a recursive group are joined by [KAnd], as the mu
+          group joins its members. *)
   | KNatAdd
   | KNatSub
   | KNatMul
@@ -118,6 +123,7 @@ let describe (k : kind) : string =
   | KMu -> "'mu'"
   | KNu -> "'nu'"
   | KAnd -> "'and'"
+  | KRec -> "'rec'"
   | KNatAdd -> "'natAdd'"
   | KNatSub -> "'natSub'"
   | KNatMul -> "'natMul'"

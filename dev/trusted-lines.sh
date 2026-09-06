@@ -44,6 +44,10 @@ kernel_files=(
   # join the believed list and the two budgets above do not move.
   $root/lib/positivity.ml
   $root/lib/global.ml
+  # M1 Stage I, brief 3.10 and SI-D15:  the file that holds the
+  # structural order and the certificate joins the believed list and the
+  # two budgets above do not move.
+  $root/lib/order.ml
 )
 encoder_file=$root/wasm/gc_encode.ml
 

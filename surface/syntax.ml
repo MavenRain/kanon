@@ -85,6 +85,17 @@ and fam = {
   fm_ctors : fam_ctor list;
 }
 
+(** M1 Stage I, SI-D8.  One member of a recursive definition group:
+    the name, the declared type and the body, which is the same triple
+    the M0 [DDef] row carries.  A group of one is the direct case and a
+    group of two or more is the mutual case, which is the reading the
+    order of lib/order.ml takes (brief 3.2). *)
+and rec_def = {
+  rd_name : string;
+  rd_ty : t;
+  rd_body : t;
+}
+
 and t =
   | SVar of string
   | SNat of int
@@ -122,6 +133,10 @@ type decl =
       (** M1 Stage G:  a mutual group, one member per "mu" or "and"
           header.  Every member is declared before the first constructor
           of the group is installed (A4). *)
+  | DRec of rec_def list
+      (** M1 Stage I, SI-D8:  a recursive definition group, one member
+          per "def rec" or "and" header.  The elaborator guards the
+          whole group before it translates any member (SI-D9). *)
 
 let prim_name (p : prim) : string =
   match p with
@@ -261,6 +276,14 @@ let decl_text (d : decl) : string =
            (fun (i : int) (fm : fam) ->
              fam_text (if Int.equal i 0 then "mu" else "and") fm)
            fams)
+  | DRec ms ->
+      String.concat ""
+        (List.mapi
+           (fun (i : int) (m : rec_def) ->
+             Printf.sprintf "%s %s : %s := %s\n"
+               (if Int.equal i 0 then "def rec" else "and")
+               m.rd_name (at 0 m.rd_ty) (at 0 m.rd_body))
+           ms)
 
 (** The printer of SA-D2:  its output re-parses to an equal tree.  An
     empty tree prints as the empty text, which parses back to the empty

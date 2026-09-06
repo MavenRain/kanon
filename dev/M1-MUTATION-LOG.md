@@ -285,3 +285,72 @@ of the copy, which are the ROOT numbers before the edit.
   `ELIM-SUITE NEG mu-large-elim-nonsub exit=0 SIDECAR-MISMATCH line=`,
   where the sidecar promises `a large elimination out of a proposition
   needs a subsingleton family at Box`.
+
+## Stage I
+
+Three mutations, each on its own fresh copy of the repository made with
+`rsync -a --exclude _build --exclude .gatework`, built through the copy's
+own dev/dunecho.sh, which printed `OK build: 0 errors, 0 warnings` and
+exit 0 for all three (SI-D16).  ROOT was never mutated.  The judge reran
+all three at 2026-09-06 12:02, on the copies judge-m1, judge-m2 and
+judge-m3 under the session scratch directory.  Each copy ran its own
+`_build/default/test/main.exe test` and the stage local checks of
+brief 3.8 and 3.11 through the copy's own
+`_build/default/bin/kanon.exe check`.  The line numbers below are the
+ones of the copy, which are the ROOT numbers before the edit.
+
+### SI-M1 the call order of brief 3.7
+
+- Site.  The copy's surface/elab.ml:1003-1009, the `let* cert =` row
+  that calls `Totality.guard_group`, with :1023 and :1047, the branch
+  that hands the certificate to `Order.translate`.
+- Edit.  `let* cert =` becomes `let cert : Order.t option =` with
+  `|> Result.value ~default:None` appended, so the refusal of the guard
+  is discarded;  `guarded` is renamed `_guarded` and the dispatch at
+  :1047 becomes `(fun (_c : Order.t option) -> plain) cert`, so no
+  certificate ever reaches the translation and the guard gates nothing.
+- Killing line.  The copy's suite printed `NEG mu-nonstructural FAIL:
+  the message is "spin"`, with `NEG mu-rec-guard-order FAIL: the message
+  is "grow"`, `NEG-OK 27/31`, `ERASE-NEG-OK 1/4` and `SUITE-KERNEL FAIL`,
+  exit 1.  The direct run
+  `kanon.exe check test/neg/mu-nonstructural.kan` printed
+  `unbound: spin`, exit 1, where the sidecar promises `recursive
+  definition spin failed the structural termination guard`, so the
+  fixture fails to fail with its own line and SI-G6 and SI-G7 both go
+  red.
+
+### SI-M2 the strictness of the order
+
+- Site.  The copy's lib/order.ml:282-288, the `smaller_at` helper of
+  `passes`, the port of the status read at
+  kan-lang-tot-pin/lib/totality.ml:82-88.
+- Edit.  The arm `| Principal | Other -> false` becomes
+  `| Principal -> true` and `| Other -> false`, so a self call at an
+  argument equal to the scrutinee, which stands at status Principal, is
+  read as Smaller and passes.
+- Killing line.  The copy's suite printed `NEG mu-rec-nondecreasing
+  FAIL: the file checks and the negative expects it to fail`, with
+  `NEG-OK 28/31` and `SUITE-KERNEL FAIL`, exit 1.  The direct run
+  `kanon.exe check test/neg/mu-rec-nondecreasing.kan` printed no output
+  and exit 0, which is the acceptance the sidecar refuses, so SI-G7 goes
+  red.
+
+### SI-M3 the mutual rule of brief 3.2
+
+- Site.  The copy's lib/order.ml:482-491, the `rows_at` helper of
+  `certify`, which asks every member of the group to pass at the one
+  shared position `k` (SI-D7, SI-D24).
+- Edit.  `passes ~rule ~group k formals inner` becomes a search
+  `try_pos 0` that walks every position of that member and answers the
+  first that passes, so each member takes its own decreasing position
+  and a sibling call at another argument position is allowed.
+- Killing line.  The copy's suite printed `NEG mu-rec-sibling-position
+  FAIL: the message is "a structurally recursive definition eliminates
+  its recursive argument at the head of its body"`, with
+  `ERASE-NEG mu-rec-indexed FAIL: mismatch: a structurally recursive
+  definition eliminates its recursive argument at the head of its body`,
+  `NEG-OK 30/31`, `ERASE-NEG-OK 3/4` and `SUITE-KERNEL FAIL`, exit 1.
+  The guard admits the group the sidecar refuses, and the refusal that
+  is printed is the mismatch of `Order.translate`, not the termination
+  line of SI-D6, so SI-G7 goes red.  The mutation also breaks the
+  indexed positive, which the honest order accepts.

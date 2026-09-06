@@ -1,0 +1,17 @@
+-- mu-rec-direct: a structural recursion over the direct family (M1
+-- Stage I, brief 3.8, M1-PLAN.md:171).  The definition eliminates its
+-- only argument at the head of its body, and the one call of double
+-- stands at the field of succ, which is a leg binder of a branch whose
+-- scrutinee is that argument, so the call is guarded at position 0 and
+-- the certificate of lib/order.ml admits it (M1-PLAN.md:110).
+--
+-- The file stands here and not under fixtures because the driver
+-- refuses its erased form:  an erasure at a mu shape answers the
+-- interim word of Stage J until Stage J lands the rows (SG-D7, SI-D12,
+-- M1-PLAN.md:214).  The checked form of the file is the SI-G7 reading.
+
+mu N : Type 0 with
+| zero : N
+| succ : N -> N
+
+def rec double : N -> N := fun (n : N) => case n as x in N return N with | zero => zero | succ m => succ (succ (double m))

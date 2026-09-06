@@ -154,21 +154,93 @@ let kneg_smu () : (unit, string) result =
          if String.equal got "a right former at a mu shape arrives at M2" then Ok ()
          else Error (Printf.sprintf "the message is \"%s\"" got))
 
-(** The totality guard of M1, reached from OCaml because no surface
-    production spells a self reference:  the elaborator refuses one as
-    unbound before the guard can read it (SB-D24, n07), so the term is
-    built here.  [guard] is not wired into the check path at M0
-    (SC-D15). *)
+(** A body the M1 guard admits, built here because this row reads the
+    guard itself and not the elaborator that calls it (SI-D11):  one
+    formal, one elimination of that formal, and one call of "self" at a
+    leg binder of a branch of that elimination, which is a binder the
+    order marks Smaller (lib/order.ml:392).  The certificate therefore
+    guards the definition at position 0. *)
+let guarded_self : Kanon_kernel.Term.t =
+  let arrow : Kanon_kernel.Term.t Kanon_kernel.Shape.t =
+    Kanon_kernel.Shape.SPi
+      (Kanon_kernel.Quantity.Many, "n", Kanon_kernel.Term.Global "N")
+  in
+  let call : Kanon_kernel.Term.t =
+    Kanon_kernel.Term.Out
+      ( arrow,
+        Kanon_kernel.Term.APt (Kanon_kernel.Quantity.Many, Kanon_kernel.Term.Var 0),
+        Kanon_kernel.Term.Global "self" )
+  in
+  let branch : Kanon_kernel.Term.addr * Kanon_kernel.Term.leg =
+    ( Kanon_kernel.Term.ACtor "succ",
+      {
+        Kanon_kernel.Term.l_binders = [ (Kanon_kernel.Quantity.Many, "m") ];
+        l_body = call;
+      } )
+  in
+  let inner : Kanon_kernel.Term.t =
+    Kanon_kernel.Term.Elim
+      {
+        Kanon_kernel.Term.e_shape = Kanon_kernel.Shape.SMu ("N", []);
+        e_scrut = Kanon_kernel.Term.Var 0;
+        e_scrut_q = Kanon_kernel.Quantity.Many;
+        e_motive =
+          Some
+            {
+              Kanon_kernel.Term.m_ind = Some "N";
+              m_idx = [];
+              m_self = "x";
+              m_body = Kanon_kernel.Term.Global "N";
+            };
+        e_branches = [ branch ];
+      }
+  in
+  Kanon_kernel.Term.Sec
+    ( arrow,
+      [
+        {
+          Kanon_kernel.Term.l_binders = [ (Kanon_kernel.Quantity.Many, "n") ];
+          l_body = inner;
+        };
+      ] )
+
+(** The totality guard at M1 (brief 3.9, SI-D6).  The first half is the
+    bare self reference:  no chain of elimination legs makes the
+    argument of that call smaller, so the guard refuses it with the
+    termination line every negative fixture of this stage pins, and no
+    longer with the M0 milestone word.  The second half is the guarded
+    body above, which the guard answers with its position.  The row
+    reads both M1 answers;  the fixtures of M1 Stage I enter as ".kan"
+    files through the "def rec" production of brief 3.7 and never
+    here. *)
 let kneg_self () : (unit, string) result =
+  let* () =
+    Kanon_kernel.Totality.guard Kanon_kernel.Global.initial "self"
+      (Kanon_kernel.Term.Global "Nat") (Kanon_kernel.Term.Global "self")
+    |> Result.fold
+         ~ok:(fun (_g : int option) ->
+           Error "the unguarded self reference is admitted at M1")
+         ~error:(fun (e : Kanon_kernel.Error.t) ->
+           let got = Kanon_kernel.Error.message e in
+           if
+             String.equal got
+               "recursive definition self failed the structural termination guard"
+           then Ok ()
+           else Error (Printf.sprintf "the message is \"%s\"" got))
+  in
   Kanon_kernel.Totality.guard Kanon_kernel.Global.initial "self"
-    (Kanon_kernel.Term.Global "Nat") (Kanon_kernel.Term.Global "self")
+    (Kanon_kernel.Term.Global "Nat") guarded_self
   |> Result.fold
-       ~ok:(fun (_g : int option) ->
-         Error "the self reference is admitted at M0")
+       ~ok:(fun (g : int option) ->
+         g
+         |> Option.fold
+              ~none:(Error "the guarded self reference answers no position")
+              ~some:(fun (k : int) ->
+                if Int.equal k 0 then Ok ()
+                else Error (Printf.sprintf "the guarded position is %d" k)))
        ~error:(fun (e : Kanon_kernel.Error.t) ->
-         let got = Kanon_kernel.Error.message e in
-         if String.equal got "structural recursion arrives at M1" then Ok ()
-         else Error (Printf.sprintf "the message is \"%s\"" got))
+         Error
+           (Printf.sprintf "the message is \"%s\"" (Kanon_kernel.Error.message e)))
 
 (** The KNEG rows by name, so the group reads one list of names as
     every other group does. *)
@@ -228,6 +300,84 @@ let parse_group (dirs : (string * string list) list) : int * int =
   print_string (Printf.sprintf "PARSE-OK %d/%d\n" passed total);
   (passed, total)
 
+(** Exercise computation as well as admission of recursive groups. *)
+let recursive_values (_name : string) : (unit, string) result =
+  let open Kanon_kernel in
+  let source = {|
+mu N : Type 0 with | zero : N | succ : N -> N
+mu A : Type 0 with | leaf : A | node : B -> A
+and B : Type 0 with | cons : A -> B
+mu V : (0 i : N) -> Type 0 with
+| vz : V zero
+| vs : (0 i : N) -> V i -> V (succ i)
+def rec length : (0 i : N) -> V i -> N := fun (0 i : N) (v : V i) => case v as x in V j return N with | vz => zero | vs 0 j w => succ (length j w)
+def rec double : N -> N := fun (n : N) => case n as x in N return N with | zero => zero | succ m => succ (succ (double m))
+def rec sizeA : A -> Nat := fun (a : A) => case a as x in A return Nat with | leaf => 0 | node b => natAdd 1 (sizeB b)
+and sizeB : B -> Nat := fun (b : B) => case b as x in B return Nat with | cons a => natAdd 1 (sizeA a)
+def rec f : N -> N := fun (n : N) => case n as x in N return N with | zero => zero | succ m => g m
+and g : N -> N := fun (n : N) => zero
+and spare : N := zero
+def rec keep : Nat -> N -> Nat := fun (a : Nat) => fun (n : N) => case n as x in N return Nat with | zero => a | succ m => keep a m
+def rec choose : N -> Nat -> Nat := fun (n : N) => case n as x in N return (Nat -> Nat) with | zero => fun (a : Nat) => a | succ m => choose m
+def doubled : N := double (succ (succ zero))
+def four : N := succ (succ (succ (succ zero)))
+def z : N := zero
+def mutual : Nat := sizeA (node (cons leaf))
+def two : Nat := 2
+def helper : N := f (succ zero)
+def helperDirect : N := g zero
+def kept : Nat := keep 7 (succ (succ zero))
+def seven : Nat := 7
+def chosen : Nat := choose (succ (succ zero)) 7
+def indexed : N := length (succ zero) (vs zero vz)
+def one : N := succ zero
+def partial : N -> Nat := keep 7
+def neutral : N -> Nat := fun (n : N) => keep 7 n
+|} in
+  let run () =
+    let* globals, _rows = Kanon_surface.Elab.check_in Global.initial source in
+    let normal n =
+      let* v = Eval.eval globals [] (Term.Global n) in
+      let* t = Eval.quote globals 0 v in
+      Ok (Pp.term [] t)
+    in
+    let* () =
+      List.fold_left (fun acc (actual, expected) ->
+          let* () = acc in
+          let* got = normal actual in
+          let* want = normal expected in
+          if String.equal got want then Ok ()
+          else Error (Error.Mismatch (actual ^ " did not compute: " ^ got)))
+        (Ok ()) ["doubled", "four"; "mutual", "two"; "helper", "z";
+                 "helperDirect", "z"; "spare", "z"; "kept", "seven";
+                 "chosen", "seven"; "indexed", "one"]
+    in
+    let* () =
+      List.fold_left (fun acc n ->
+          let* () = acc in
+          let* v = Eval.eval globals [] (Term.Global n) in
+          if Option.is_some (Value.as_neutral v) then Ok ()
+          else Error (Error.Mismatch (n ^ " unfolded before its guarded argument")))
+        (Ok ()) ["double"; "keep"; "partial"]
+    in
+    let* neutral = Eval.eval globals [] (Term.Global "neutral") in
+    let* legs = Value.as_sec neutral |> Option.to_result ~none:(Error.Mismatch "neutral lambda") in
+    let _shape, legs = legs in
+    let* leg = Rules.one_of legs |> Option.to_result ~none:(Error.Mismatch "neutral leg") in
+    let* body = Rules.open_closure (Eval.ev globals) leg.Value.vl_clo [Value.var 0] in
+    let* () =
+      if Option.is_some (Value.as_neutral body) then Ok ()
+      else Error (Error.Mismatch "recursive call unfolded on a neutral argument")
+    in
+    let* entry = Global.find "double" globals |> Option.to_result ~none:(Error.Unbound "double") in
+    let* def = Global.def_of entry |> Option.to_result ~none:(Error.Mismatch "double definition") in
+    let opaque = Global.add "double" (Global.Def {def with reducible = false}) globals in
+    let* value = Eval.eval opaque [] (Term.Global "doubled") in
+    if Option.is_some (Value.as_neutral value) then Ok ()
+    else Error (Error.Mismatch "an explicitly opaque recursive definition unfolded")
+  in
+  Result.map_error Error.to_string (run ())
+
 let full ((passed : int), (total : int)) : bool = Int.equal passed total && total > 0
 
 let verdict (groups : (int * int) list) : unit =
@@ -259,7 +409,8 @@ let run (root : string) (fixtures : string list) (negatives : string list)
     group "ERASE-NEG" "ERASE-NEG-OK" (erase_negative root) erase_negatives
   in
   let closed = group "KNEG" "KNEG-OK" kneg [ "smu"; "self" ] in
-  verdict [ parsed; checked; erased; refused; unerased; closed ]
+  let recursive = group "REC" "REC-OK" recursive_values [ "values" ] in
+  verdict [ parsed; checked; erased; refused; unerased; closed; recursive ]
 
 let fail_out (m : string) : unit =
   print_string (Printf.sprintf "SUITE %s\n" m);

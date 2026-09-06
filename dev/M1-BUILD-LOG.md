@@ -899,3 +899,341 @@ scratch copy: build with zero errors and warnings, `SUITE-KERNEL OK`
 `SUITE-WASM OK` (15/15), HOUSE, R0-COUNT, R0-AUDIT and TRUSTED-LINES
 all pass.  The existing Prop and empty-family large elimination
 fixtures still pass.  The full runtime gate battery was not rerun.
+
+## Stage I (2026-09-06)
+
+### Deliverables
+
+The line counts are read on ROOT after the build of SI-G1.
+
+| file | lines | note |
+| --- | --- | --- |
+| lib/order.ml | 581 | new;  the status type at :49, the certificate record at :87, passes at :280, certify at :460, translate at :538 |
+| lib/totality.ml | 155 | +105 -89;  guard_group at :127, guard at :151 as the group of one, the budget backstop at :32 |
+| lib/error.ml | 82 | +13;  the arm `Termination` at :36, termination_msg at :45, read at :64 and :82 |
+| surface/elab.ml | 1145 | +137;  elab_rec_group at :962, the guard call at :1004, Order.translate at :1029, rec_arg at :1040 |
+| surface/parser.ml | 544 | +43 -2;  the `def rec` row at :422, parse_rec_group at :459, the member row at :467 |
+| surface/syntax.ml | 291 | +23;  rec_def at :93 and DRec at :136 |
+| surface/token.ml | 134 | +6;  KRec at :70 and its describe row at :126 |
+| surface/lexer.ml | 143 | +3;  the `rec` keyword row at :57 |
+| test/main.ml | 361 | +83 -11;  guarded_self at :163, the KNEG row at :216-243, the name list at :333 |
+| SPEC.md | 516 | +1 -1;  the obligation row at :515 marked discharged |
+| dev/trusted-lines.sh | 78 | +4;  lib/order.ml at :50 with the two line reason at :47-49 |
+| test/neg/mu-nonstructural.kan | 15 | new;  a self call at an argument no chain of legs makes smaller |
+| test/neg/mu-rec-nondecreasing.kan | 15 | new;  a self call at the scrutinee itself, the SI-M2 killer |
+| test/neg/mu-rec-sibling-position.kan | 18 | new;  a sibling call that decreases at another position, the SI-M3 killer |
+| test/neg/mu-rec-guard-order.kan | 22 | new;  the SI-G6 fixture, a well typed Elim whose certificate is refused |
+| test/erase-neg/mu-rec-direct.kan | 17 | new;  the direct positive, moved by the SI-D12 split |
+| test/erase-neg/mu-rec-indexed.kan | 24 | new;  the indexed positive, moved by the SI-D12 split |
+| test/erase-neg/mu-rec-mutual.kan | 24 | new;  the mutual positive, moved by the SI-D12 split |
+| the seven .err sidecars | 1 each | new;  four termination lines and three interim erasure lines |
+
+The surface widening of brief 3.7 is 212 insertions and 2 deletions over
+the five surface files elab.ml, parser.ml, syntax.ml, token.ml and
+lexer.ml.  lib/order.ml joins the believed list and the two budgets stay
+at 4000 and 600 (SI-D15).  No file under test/fixtures was added, which
+is the split of SI-D12.
+
+### Gates
+
+The judge reran SI-G1 to SI-G7 on ROOT at 2026-09-06 11:59, after
+`zsh dev/dune.sh clean`, at the load average 19.97 22.47 21.49.  Each
+line below is the exact final line of the command, with its exit code.
+
+- SI-G1 BUILD.  `zsh dev/dune.sh clean` exit 0, then
+  `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`,
+  exit 0.
+- SI-G2 SUITE-KERNEL.  The leg name is not an accepted argument of
+  dev/gates.sh (I-F15), so the whole battery ran once under SI-D17 and
+  printed `PASS SUITE-KERNEL`.  The direct run
+  `_build/default/test/main.exe test` printed `PARSE-OK 88/88`,
+  `CHECK-OK 53/53`, `ERASE-OK 53/53`, `NEG-OK 31/31`,
+  `ERASE-NEG-OK 4/4`, `KNEG-OK 2/2` and `SUITE-KERNEL OK`, exit 0.
+  The Stage H counts of 53 checks and 53 erasures are unchanged;  the
+  parses rise from 80 to 88, the negatives from 26 to 31 and the erasure
+  negatives from 1 to 4.
+- SI-G3 R0-AUDIT.  `zsh dev/r0-audit.sh` printed `R0-AUDIT OK`, exit 0.
+- SI-G4 TRUSTED-LINES.  `zsh dev/trusted-lines.sh ROOT` printed
+  `TRUSTED-LINES kernel=3982/4000 encoder=216/600 OK`, exit 0.  The
+  kernel reading is 3982 over the eleven believed files and the encoder
+  reading is 216.  The headroom under the bound is 18 lines.
+- SI-G5 HOUSE.  `zsh dev/house.sh ROOT` printed `HOUSE no-exception OK`,
+  `HOUSE no-mutable-state OK`, `HOUSE one-catch-site OK`,
+  `HOUSE no-bool-match OK`, `HOUSE no-em-dash OK` and `HOUSE OK`,
+  exit 0.
+- SI-G6 GUARD-FIRST.  `_build/default/bin/kanon.exe check
+  test/neg/mu-rec-guard-order.kan` printed
+  `termination: recursive definition grow failed the structural
+  termination guard`, exit 1, which is the line of the sidecar
+  test/neg/mu-rec-guard-order.err and never a type error of the
+  translated form.
+- SI-G7 REC-SUITE, the stage local leg of brief 3.8.  The three
+  positives check and the three negatives are refused with the exact
+  line of their sidecar.  The six lines, each from
+  `_build/default/bin/kanon.exe check`:
+  `test/erase-neg/mu-rec-direct.kan exit=0`, no output;
+  `test/erase-neg/mu-rec-indexed.kan exit=0`, no output;
+  `test/erase-neg/mu-rec-mutual.kan exit=0`, no output;
+  `test/neg/mu-nonstructural.kan exit=1` line `termination: recursive
+  definition spin failed the structural termination guard`;
+  `test/neg/mu-rec-nondecreasing.kan exit=1` line `termination:
+  recursive definition same failed the structural termination guard`;
+  `test/neg/mu-rec-sibling-position.kan exit=1` line `termination:
+  recursive definition left failed the structural termination guard`.
+  The checked half of each positive is read by the suite row
+  `ERASE-NEG mu-rec-direct OK`, `ERASE-NEG mu-rec-indexed OK` and
+  `ERASE-NEG mu-rec-mutual OK`, which fails unless the file elaborates,
+  guards, translates and checks.  The erased half is the interim word of
+  SI-D12 and no .erased golden was written.
+- The whole battery `zsh dev/gates.sh` printed `GATES-OK`, exit 0, with
+  the 15 PASS lines, `PASS M0-TIME median_ms=121.153 bound_ms=150` and
+  `PASS PIN sha=8cf0b8b`.  `PASS R0-COUNT` is green with no SPEC.md
+  count edit (SI-D14) and `PASS CARRY` is green with no CARRIED.md row
+  moved (SI-D36).  The bound of M0-TIME was not moved and no timed leg
+  failed, so no leg was rerun.
+- SI-G8 LOGS.  dev/M1-BUILD-LOG.md holds `## Stage I (2026-09-06)`
+  exactly once and dev/M1-MUTATION-LOG.md holds `## Stage I` exactly
+  once.  The Stage G and the Stage H sections of both files are
+  unchanged, because both sections are appended after the last line of
+  the file.  `git diff --stat -- dev/M0-BUILD-LOG.md dev/MUTATION-LOG.md`
+  is empty and the porcelain lists only Stage I paths.
+
+### MEASURE table
+
+The judge ran the whole battery `zsh dev/gates.sh` once on ROOT at
+2026-09-06 11:59, at the load average 19.97 22.47 21.49 before the run
+and 19.01 22.23 21.41 after it.  The rows are copied from that run.  No
+timed leg failed, so no leg was rerun.
+
+```
+MEASURE BUILD tier=SLOW elapsed_ms=210.356 exit=0
+MEASURE CARRY tier=MED elapsed_ms=467.837 exit=0
+MEASURE R0-COUNT tier=FAST elapsed_ms=69.544 exit=0
+MEASURE R0-AUDIT tier=FAST elapsed_ms=32.143 exit=0
+MEASURE SUITE-KERNEL tier=SUITE elapsed_ms=71.944 exit=0
+MEASURE SUITE-WASM tier=SUITE elapsed_ms=3085.572 exit=0
+MEASURE ENCODER-SUBSET tier=FAST elapsed_ms=55.046 exit=0
+MEASURE AXIOMS tier=MED elapsed_ms=27.062 exit=0
+MEASURE M0-E2E tier=SLOW elapsed_ms=266.326 exit=0
+MEASURE M0-TIME tier=SLOW elapsed_ms=819.407 exit=0
+MEASURE M0-RATIO tier=SLOW elapsed_ms=320.932 exit=0
+MEASURE TRUSTED-LINES tier=FAST elapsed_ms=26.044 exit=0
+MEASURE DENOMINATORS tier=MED elapsed_ms=41.689 exit=0
+MEASURE HOUSE tier=MED elapsed_ms=84.616 exit=0
+MEASURE PIN tier=FAST elapsed_ms=86.774 exit=0
+```
+
+The two bench rows and the ratio row of the same run:
+
+```
+BENCH m0_e2e median_ms=121.153 min_ms=112.977 max_ms=139.639 runs=5
+PASS M0-TIME median_ms=121.153 bound_ms=150
+BENCH m0_ratio median_ms=31.649 min_ms=29.921 max_ms=36.071 runs=5
+MEASURE M0-RATIO kanon_ms=31.649 tot_ms=103.662 ratio=0.305
+PASS M0-RATIO ratio=0.305
+```
+
+### Decisions
+
+SI-D1 to SI-D18 are pinned by the Stage I brief section 3.12.  SI-D19 to
+SI-D38 are raised by the builders during the build.
+
+- SI-D1 The order is subterm only, syntactic and checked, and no sized
+  and no lexicographic order enters (D-M1-4).
+- SI-D2 lib/order.ml is a new kernel file and each function cites the
+  pin line it mirrors.
+- SI-D3 The certificate is a returned record and never a driver flag.
+- SI-D4 The guard keeps the signature of I-F7.
+- SI-D5 An argument that is an application is never guarded (ruling R1).
+- SI-D6 The refusal is the one arm `Termination of string` with the pin
+  message, and every .err sidecar pins that line.
+- SI-D7 One order over the group;  the direct case is the group of one.
+- SI-D8 The production is `def rec` with `and` joining the members.
+- SI-D9 The guard is called at the elaborator declaration row, after the
+  body is elaborated and before the translation.
+- SI-D10 The translation builds one Elim at the Stage H fibered form and
+  adds no term constructor and no motive field.
+- SI-D11 test/main.ml is edited for the KNEG row alone.
+- SI-D12 A recursive positive whose erased form is refused lands under
+  test/erase-neg with the interim word.
+- SI-D13 The SPEC.md obligation row is marked discharged at Stage I.
+- SI-D14 No R0 count moves and R0-COUNT stays green.
+- SI-D15 lib/order.ml joins the believed list and no budget moves.
+- SI-D16 Every mutation runs on a fresh copy and ROOT is never mutated.
+- SI-D17 A leg that dev/gates.sh does not accept is read from one full
+  battery run (erratum SG-D25).
+- SI-D18 This brief adds SI-G7 and SI-G8 beyond the plan's six gate ids
+  and carries SI-B1 as the lexicographic blocker.
+- SI-D19 lib/totality.ml keeps `guard ?budget globals name ty body` at
+  its M0 signature (totality.ml:151-155) and is a thin reader of the
+  certificate:  it is guard_group at the group of one, so the direct
+  case and the mutual case cannot drift apart.
+- SI-D20 totality.ml exports `guard_group ?budget globals members`
+  (totality.ml:127) so the caller hands the same value to
+  Order.translate and the order is computed once.
+- SI-D21 The budget stays a backstop with its M0 text unmoved
+  (budget_msg at totality.ml:32, Error.Budget_exhausted at :41), and the
+  M0 seek walk becomes a name free walk that polls once per node before
+  the certificate runs, because lib/order.ml carries no budget.
+- SI-D22 The M0 milestone word and its refusal arm leave lib/totality.ml,
+  so guard answers `Ok (Some k)`, `Ok None` or
+  `Error (Error.Termination name)` and nothing else.
+- SI-D23 lib/error.ml gains the arm `Termination of string` (error.ml:36)
+  plus termination_msg (error.ml:45), which holds the pin text of
+  kan-lang-tot-pin/lib/error.ml:185 word for word, read at error.ml:64
+  and :82;  no wildcard arm was added.
+- SI-D24 The certificate of M1-PLAN.md:111 is the record group in
+  lib/order.ml (step at :60, call at :67, row at :73, t at :87) with one
+  o_arg for the whole group.
+- SI-D25 lib/order.ml reads no family record at all, which is stronger
+  than brief 3.5:  Rules.mu_family keeps its single reader and R0-AUDIT
+  stays clean.
+- SI-D26 The pin status read `List.nth_opt` is spelled `Rules.at` at
+  order.ml:251 because dev/house.sh:23 refuses the pin spelling;  the
+  read is the same total combinator.
+- SI-D27 DEVIATION from the wording of brief 3.4 and I-F2.
+  Order.translate (order.ml:538) validates the Elim the body already
+  holds and returns it (order.ml:581), and the recursive result of a
+  field is the guarded call at the leg binder the certificate row names,
+  rather than legs physically extended by extra binders.  Reason:
+  Rules.mu_branch zips the constructor fields against l_binders and
+  errors when the lengths differ, and Rules.mu_beta substitutes the
+  constructor arguments alone, so a longer leg is refused by the checker
+  and would read an unbound index at reduction.  Recorded in the
+  translate doc comment.
+- SI-D28 Order.translate refuses rather than guesses at three shapes,
+  each with its own message constant (order.ml:509-514):  the peeled
+  body must be exactly one Elim, the Elim must carry a motive, and every
+  branch address must carry a constructor address.
+- SI-D29 No fixture was written by builder 1 and no file under test was
+  touched by it;  its behaviour claims were checked on a copy of ROOT
+  under WORK and then deleted, so ROOT was never mutated for a check.
+- SI-D30 The caller stands at surface/elab.ml:1004
+  (`Totality.guard_group`), after every body is elaborated at
+  surface/elab.ml:999 and before Order.translate at surface/elab.ml:1029,
+  which is the pin order at kan-lang-tot-pin/lib/check.ml:1545 then
+  :1558, and only the translated term reaches the kernel at
+  surface/elab.ml:1030.
+- SI-D31 The surface/token.ml and surface/lexer.ml edits are kept
+  (token.ml:70 KRec, token.ml:126 its describe row, lexer.ml:57 the
+  keyword row), because the shape the mu group of correction C7 uses
+  spells its group word as a keyword.
+- SI-D32 The SI-D12 split FIRED, and for all three positives:
+  test/fixtures gained no file, and mu-rec-direct.kan, mu-rec-indexed.kan
+  and mu-rec-mutual.kan stand under test/erase-neg with a .err sidecar
+  that pins the interim word of lib/erase.ml.  No Stage J erasure row was
+  landed to make a golden.
+- SI-D33 test/neg/mu-rec-guard-order.kan refuses under ruling R1 and
+  SI-D5 at lib/order.ml:303-311:  its self call stands at an
+  application, which never guards a call, so the file reads the ORDER of
+  the two steps and not the refusal alone.
+  test/neg/mu-rec-nondecreasing.kan is kept distinct:  its call argument
+  is the scrutinee variable itself at status Principal
+  (lib/order.ml:289-295), which is what SI-M2 kills.
+- SI-D34 The KNEG row of I-F8 is rewritten to BOTH M1 answers
+  (test/main.ml:216-243) and the row name list does not move
+  (test/main.ml:333).  The acceptance half hands the guard a body built
+  in OCaml at test/main.ml:163-205 and demands `Ok (Some 0)`.
+- SI-D35 The obligation row at SPEC.md:515 is marked discharged in the
+  form of the `any` row at SPEC.md:516, and no other row moved.
+- SI-D36 dev/CARRIED.md is not edited and no row moves, because
+  Global.def_entry already carries rec_arg (lib/global.ml:20).
+- SI-D37 lib/order.ml joins the believed list at dev/trusted-lines.sh:50
+  with a reason comment at :47-49, and kernel_bound=4000 and
+  encoder_bound=600 are byte for byte unmoved.
+- SI-D38 No fixture exposed a defect in a builder 1 file, so
+  lib/order.ml, lib/totality.ml and lib/error.ml were not edited by
+  builder 2.
+
+### Findings
+
+Stage I ran twice:  run wf_f5c9600e-24a (session 26b4aae2) died in
+builder 2 on the five hour usage limit at 10:26 PDT before any gate ran,
+and this run carried the preflight and the builder 1 results inline and
+resumed builder 2 on the salvaged tree.
+
+- SI-F1, info, open for the user.  SI-D27 is a disclosed deviation from
+  the wording of brief 3.4 and I-F2.  Order.translate does not build new
+  leg binders for recursive results;  it validates the Elim the source
+  already holds (lib/order.ml:538-581).  The kernel refuses the literal
+  reading (Rules.mu_branch zips the constructor fields against l_binders
+  and Rules.mu_beta substitutes the constructor arguments alone), so the
+  deviation is forced.  Resolution:  the user rules on SI-D27 before
+  Stage J reads a computed recursive value out of a leg binder.
+- SI-F2, low, accepted.  The TRUSTED-LINES headroom after Stage I is 18
+  lines under the 4000 kernel bound:
+  `TRUSTED-LINES kernel=3982/4000 encoder=216/600 OK`, with lib/order.ml
+  at 581 lines.  The gate is green and D-M1-7 forbids moving the bound
+  again, so Stage J and Stage K must budget any new kernel line against
+  a compensating deletion.  SI-B6 did not fire.
+- No high and no medium finding stands.  The preflight drift of I-F5,
+  where the Stage H hand-off notes cite line numbers five to six lines
+  short of the committed tree, is recorded there and is not a defect:
+  every named site is present and behaves as described.
+
+### Hand-off notes for Stage J
+
+What Stage J reads on this tree.
+
+- The Elim the translation builds.  `Order.translate` at
+  lib/order.ml:538 answers `Ok (rewrap ws (Term.Elim e))` at
+  lib/order.ml:581, so the term the kernel checks at
+  surface/elab.ml:1030 is one Elim at the Stage H fibered form under the
+  peeled lambdas, with a motive and one branch per constructor address.
+  The recursive result of a field is not a new binder:  it is the
+  guarded call at the leg binder the certificate row names, which is
+  SI-D27 and the finding SI-F1 the user rules on.  The leg binder itself
+  is `Term.leg.l_binders` at lib/term.ml:27 with `l_body` at :28, and
+  the certificate names the branch through `step.st_ctor` at
+  lib/order.ml:62 and the chain of `call.cl_chain` at lib/order.ml:69.
+  The erasure rows and the KTail guard of M1-PLAN.md:106 and :214 read
+  that leg.
+- The definition group, the rec group boundary of D-M1-5.  The group is
+  `Order.t.o_group` at lib/order.ml:88, built by `certify` at
+  lib/order.ml:462 from the members the parser collects in
+  `parse_rec_group` at surface/parser.ml:459 through the `def rec ...
+  and ...` production at surface/parser.ml:422, carried as
+  `Syntax.DRec` at surface/syntax.ml:136 and handed to the guard at
+  surface/elab.ml:1004.  One rec group per mutual family is that list.
+- The interim erasure word and the files of the SI-D12 split.  The word
+  is at lib/erase.ml and it is pinned by four sidecars under
+  test/erase-neg:  mu-erase.err from Stage G, and the three of this
+  stage, test/erase-neg/mu-rec-direct.kan with .err,
+  test/erase-neg/mu-rec-indexed.kan with .err and
+  test/erase-neg/mu-rec-mutual.kan with .err.  Stage J turns each of the
+  three back into a positive under test/fixtures with its .checked and
+  its .erased golden and drops the sidecar.
+- The certificate site the tail eligible shape of A10 reads.  The
+  guarded position is stored at surface/elab.ml:1040 as
+  `rec_arg = Some c.Order.o_arg` into the `Global.Def` entry field
+  `rec_arg` at lib/global.ml:20, and the live certificate is
+  `Order.t` at lib/order.ml:87 as `guard_group` answers it at
+  lib/totality.ml:127.
+
+### Review fixes, 2026-09-06
+
+The staged review reproduced two defects: `double (succ zero)` stayed
+neutral, and a guarded group rejected a constant helper without a case.
+The following corrections supersede the evaluator and helper behavior
+described in SI-D27, SI-D28 and SI-F1 above.
+
+- `Eval.whnf` now unfolds a reducible recursive global only when its
+  guarded argument is a constructor.  Bare globals, missing guarded
+  arguments, neutral arguments and explicitly opaque definitions stay
+  frozen.  Replay preserves application and elimination frames.
+- `Elab.elab_rec_group` marks definitions reducible and gives `rec_arg`
+  only to members that contain group calls.  `Order.translate` preserves
+  helpers without requiring a case.  Helpers with no group calls do not
+  constrain the certificate's formal-position search.
+- `Order.translate` still validates the source Elim.  SI-D27's deviation
+  from extra recursive-result binders remains disclosed: recursive calls
+  now compute through guarded unfolding in the evaluator.
+- `test/main.ml` adds the mandatory `REC values` row: direct, mutual and
+  indexed computation, constant helpers including a nullary member,
+  a nonzero guarded position, returned functions, partial applications,
+  neutral arguments and explicit opacity.
+- Validation on a scratch copy: build with zero errors and warnings;
+  full `dev/gates.sh` battery `GATES-OK`; kernel and Wasm suites passed;
+  M0-TIME median 89.349 ms against 150 ms; M0-RATIO 0.250.
+  `TRUSTED-LINES kernel=3993/4000 encoder=216/600 OK` after shortening
+  duplicate order comments.  No bound, denominator or gate was changed.

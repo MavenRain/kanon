@@ -50,8 +50,10 @@ let kind_starts_atom (k : Token.kind) : bool =
   | Token.RParen | Token.Colon | Token.ColonEq | Token.Arrow | Token.DArrow | Token.Star
   | Token.Comma | Token.Dot | Token.Dot1 | Token.Dot2 | Token.Pipe | Token.KDef
   | Token.KAxiom | Token.KFun | Token.KInj | Token.KOf | Token.KCase | Token.KAs
+  (* M1 Stage I, SI-D8:  'rec' stands inside a declaration header and
+     never inside a term, so it starts no atom either. *)
   | Token.KReturn | Token.KWith | Token.KAbsurd | Token.KLet | Token.KIn | Token.KMu
-  | Token.KAnd | Token.Eof ->
+  | Token.KAnd | Token.KRec | Token.Eof ->
       false
 
 let starts_atom (ts : Token.t list) : bool =
@@ -414,6 +416,13 @@ let rec parse_decls (ts : Token.t list) (acc : Syntax.decl list) :
 
 and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) result =
   match ts with
+  (* M1 Stage I, SI-D8:  "def rec" opens a recursive group and the
+     plain "def" row below keeps its M0 reading, because the two arms
+     differ at the token after "def". *)
+  | { Token.kind = Token.KDef; loc = _ } :: { Token.kind = Token.KRec; loc = _ } :: rest
+    ->
+      let* ms, rest2 = parse_rec_group rest [] in
+      Ok (Syntax.DRec ms, rest2)
   | { Token.kind = Token.KDef; loc = _ }
     :: { Token.kind = Token.Ident name; loc = _ }
     :: { Token.kind = Token.Colon; loc = _ }
@@ -434,7 +443,39 @@ and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) resul
       let* fams, rest2 = parse_fam_group rest [] in
       Ok (Syntax.DMu fams, rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) ->
-      expected "'def NAME :', 'axiom NAME :' or 'mu NAME'" ts
+      expected "'def NAME :', 'def rec NAME :', 'axiom NAME :' or 'mu NAME'" ts
+
+(** M1 Stage I, SI-D8:  the minimal recursive definition production.
+
+    group   ::= 'def' 'rec' member ('and' member)*
+    member  ::= NAME ':' term ':=' term
+
+    The member row is the M0 definition row word for word, so a group of
+    one is a definition that may call itself and nothing else of the
+    surface moves.  'and' does not start an atom, so the term parser
+    stops at the end of every member without a terminator word, exactly
+    as it does at a mu group (correction C7).  The sugar rows and the
+    spine additions stay at Stage L (M1-PLAN.md:230). *)
+and parse_rec_group (ts : Token.t list) (acc : Syntax.rec_def list) :
+    (Syntax.rec_def list * Token.t list, Error.t) result =
+  let* m, rest = parse_rec_member ts in
+  match rest with
+  | { Token.kind = Token.KAnd; loc = _ } :: rest2 -> parse_rec_group rest2 (m :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev (m :: acc), rest)
+
+and parse_rec_member (ts : Token.t list) :
+    (Syntax.rec_def * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Ident name; loc = _ }
+    :: { Token.kind = Token.Colon; loc = _ }
+    :: rest -> (
+      let* ty, rest2 = parse_term rest in
+      match rest2 with
+      | { Token.kind = Token.ColonEq; loc = _ } :: rest3 ->
+          let* body, rest4 = parse_term rest3 in
+          Ok ({ Syntax.rd_name = name; rd_ty = ty; rd_body = body }, rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':='" rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a definition name and ':'" ts
 
 (** M1 Stage G, correction C7:  the minimal mu production.
 

@@ -512,5 +512,5 @@ closes it.
 | arbitrary precision Nat | M1 | M0 uses the host integer.  `natAdd` and `natMul` give `Error (Overflow ..)` at the boundary and `natSub` truncates at zero (SB-D4).  A bignum library is a dependency the user pins |
 | the agreement lemma of the literal fast path | M1 | the fast path must agree with the unary recursive Nat of the M1 shape.  Section 5 records the same obligation |
 | subsingleton large elimination | M1 | it arrives with the Prop valued recursive shape.  Section 5 records its criterion and its origin in tot |
-| structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller |
+| structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller.  discharged at M1 Stage I: surface/elab.ml:1004 calls `Totality.guard_group` and only a certificate reaches `Order.translate` at surface/elab.ml:1029 (SI-D9, SI-D13) |
 | the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  resolved at Stage D: link.ml maps any to eqref (SD-D6) |

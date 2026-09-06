@@ -925,6 +925,136 @@ let elab_decl (c : Check.ctx) (d : Syntax.decl) : (Check.decl, Error.t) result =
      [elab_program] installs it and this row is never asked for one. *)
   | Syntax.DMu (_fams : Syntax.fam list) ->
       Error (Error.Mismatch "a mu group declares no entry of its own")
+  (* M1 Stage I, SI-D9:  a recursive group is guarded and translated as
+     a group, so [elab_rec_group] below owns the row and this one is
+     never asked for a member. *)
+  | Syntax.DRec (_ms : Syntax.rec_def list) ->
+      Error (Error.Mismatch "a recursive group is elaborated as a group")
+
+(** M1 Stage I, brief 3.7 and SI-D9:  one recursive definition group,
+    in the shape of the pin install site at
+    kan-lang-tot-pin/lib/check.ml:1558.  The order is one order and not
+    two:  every member type is checked, every member enters the
+    environment at that type so that a self reference and a sibling
+    reference resolve, every body is elaborated at its type, then
+    [Totality.guard_group] (lib/totality.ml:127) runs over the whole
+    group, and only a certificate reaches [Order.translate]
+    (lib/order.ml:538).  An unguarded definition therefore never
+    reaches the kernel:  the guard answers the termination error of
+    SI-D6 and no elimination is built, which gate SI-G6 reads and
+    mutation SI-M1 kills.
+
+    The provisional entry of a member is a postulate at its declared
+    type, which is what makes the recursive occurrence checkable
+    without a new kernel form (D-M0-2, and lib/global.ml:51 takes no
+    third constructor).  The entry the group answers is a definition,
+    so the file discloses no axiom (R-Q3) and the checked row of a
+    member is the row an M0 definition writes.  A recursive definition
+    unfolds only on a constructor at [rec_arg], the guarded position
+    of the certificate.  A helper with no group calls is reducible normally
+    (lib/global.ml:17-26).
+
+    A group that calls no member of itself answers [Ok None] at the
+    guard, which is the pin test at
+    kan-lang-tot-pin/lib/totality.ml:57.  That group is a list of
+    ordinary definitions and it takes the M0 row of
+    [Check.check_decls] unchanged. *)
+let elab_rec_group ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (ms : Syntax.rec_def list) :
+    (Global.t * (string * Global.entry) list, Error.t) result =
+  let* typed =
+    List.fold_left
+      (fun (acc : ((Syntax.rec_def * Term.t) list, Error.t) result)
+           (m : Syntax.rec_def) ->
+        let* rows = acc in
+        let* ty = elab (Check.make globals budget) ~expected:None m.Syntax.rd_ty in
+        Ok (rows @ [ (m, ty) ]))
+      (Ok []) ms
+  in
+  let* declared =
+    Check.check_decls ~budget globals
+      (List.map
+         (fun (((m : Syntax.rec_def), (ty : Term.t)) : Syntax.rec_def * Term.t) ->
+           {
+             Check.d_name = m.Syntax.rd_name;
+             d_kind = Check.Postulate;
+             d_ty = ty;
+             d_body = None;
+           })
+         typed)
+  in
+  let provisional : Global.t =
+    List.fold_left
+      (fun (g : Global.t) (((n : string), (e : Global.entry)) : string * Global.entry) ->
+        Global.add n e g)
+      globals declared
+  in
+  let* bodies =
+    List.fold_left
+      (fun (acc : ((string * Term.t * Value.t * Term.t) list, Error.t) result)
+           (((m : Syntax.rec_def), (ty : Term.t)) : Syntax.rec_def * Term.t) ->
+        let* rows = acc in
+        let c = Check.make provisional budget in
+        let* tyv = eval_in c ty in
+        let* body = elab c ~expected:(Some tyv) m.Syntax.rd_body in
+        Ok (rows @ [ (m.Syntax.rd_name, ty, tyv, body) ]))
+      (Ok []) typed
+  in
+  let* cert =
+    Totality.guard_group ~budget provisional
+      (List.map
+         (fun (((n : string), (_ty : Term.t), (_tyv : Value.t), (body : Term.t)) :
+                string * Term.t * Value.t * Term.t) -> (n, body))
+         bodies)
+  in
+  let plain (_u : unit) : ((string * Global.entry) list, Error.t) result =
+    Check.check_decls ~budget globals
+      (List.map
+         (fun (((n : string), (ty : Term.t), (_tyv : Value.t), (body : Term.t)) :
+                string * Term.t * Value.t * Term.t) ->
+           {
+             Check.d_name = n;
+             d_kind = Check.Definition;
+             d_ty = ty;
+             d_body = Some body;
+           })
+         bodies)
+  in
+  let guarded (c : Order.t) (_u : unit) : ((string * Global.entry) list, Error.t) result =
+    List.fold_left
+      (fun (acc : ((string * Global.entry) list, Error.t) result)
+           (((n : string), (ty : Term.t), (tyv : Value.t), (body : Term.t)) :
+             string * Term.t * Value.t * Term.t) ->
+        let* rows = acc in
+        let* tm = Order.translate c body in
+        let* () = Check.check_term ~budget provisional tm tyv in
+        Ok
+          (rows
+          @ [
+              ( n,
+                Global.Def
+                  {
+                    Global.ty;
+                    def = tm;
+                    reducible = true;
+                    rec_arg =
+                      (if Order.mentions c.Order.o_group body then Some c.Order.o_arg
+                       else None);
+                    partial = false;
+                  } );
+            ]))
+      (Ok []) bodies
+  in
+  let* out =
+    cert |> Option.fold ~none:plain ~some:guarded
+    |> fun (k : unit -> ((string * Global.entry) list, Error.t) result) -> k ()
+  in
+  Ok
+    ( List.fold_left
+        (fun (g : Global.t) (((n : string), (e : Global.entry)) : string * Global.entry) ->
+          Global.add n e g)
+        globals out,
+      out )
 
 (** The whole file, with the globals the last declaration was checked
     in.  Each declaration is elaborated against the entries checked
@@ -950,6 +1080,15 @@ let elab_program_in ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
           Result.map
             (fun (g' : Global.t) -> (g', rows))
             (elab_mu_group ~budget g fams)
+      (* M1 Stage I, SI-D9:  the group is guarded before it is
+         translated, and its members join the rows in declaration
+         order. *)
+      | Syntax.DRec ms ->
+          Result.map
+            (fun (((g' : Global.t), (out : (string * Global.entry) list)) :
+                   Global.t * (string * Global.entry) list) ->
+              (g', List.rev_append out rows))
+            (elab_rec_group ~budget g ms)
       | Syntax.DDef (_, _, _) | Syntax.DAxiom (_, _) ->
           let* row = elab_decl (Check.make g budget) d in
           let* checked = Check.check_decls ~budget g [ row ] in

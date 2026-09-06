@@ -54,6 +54,9 @@ let keywords : (string * Token.kind) list =
     ("nu", Token.KNu);
     (* M1 Stage G, correction C7:  the mutual group word. *)
     ("and", Token.KAnd);
+    (* M1 Stage I, SI-D8:  the one word the minimal recursive
+       definition production adds, which stands after "def". *)
+    ("rec", Token.KRec);
   ]
 
 let ident_kind (s : string) : Token.kind =
