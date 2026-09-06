@@ -439,6 +439,15 @@ let refused (s : Term.t Shape.t) : (Eterm.ktm * acc, Error.t) result =
   let* (_pack : Check.ctx Rules.rule_pack) = Rules.rules s in
   Error (Error.Not_yet "an erasure at a shape past M0")
 
+(** M1 Stage G, brief 3.8 and SG-D7.  The mu shape HAS a pack from this
+    stage, so [refused] above would answer the generic past-M0 word for a
+    checked mu term (SA-D5, erase.ml:435-437).  The interim word names the
+    stage that brings the real arm, M1 Stage J (A6, M1-PLAN.md:101 and
+    :214), and the SG-M5 mutation returns this site to [refused]. *)
+let mu_erase_word : string = "an erasure at a mu shape arrives at M1 Stage J"
+
+let mu_refused (() : unit) : ('a, Error.t) result = Error (Error.Not_yet mu_erase_word)
+
 (** The application view.  [Out] at a point shape with a point address is
     one argument of a spine;  every other node ends the spine. *)
 let as_app (t : Term.t) : (Quantity.t * Term.t * Term.t * Term.t) option =
@@ -573,7 +582,7 @@ and sec_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
   | Shape.SPi (_, _, _) -> lift_arm ec ac ~ty t
   | Shape.SColl n -> tuple_arm ec ac ~ty n legs
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> refused s
+  | Shape.SMu (_, _) -> mu_refused ()
   | Shape.SNu (_, _) -> refused s
 
 (** A tuple keeps its runtime legs alone, and a tuple with no runtime leg
@@ -732,7 +741,7 @@ and in_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (s : Term.t Shape.t)
     (a : Term.addr) (args : Term.t list) : (Eterm.ktm * acc, Error.t) result =
   match s with
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> refused s
+  | Shape.SMu (_, _) -> mu_refused ()
   | Shape.SNu (_, _) -> refused s
   | Shape.SPi (_, _, _) -> in_typed ec ac ~ty a args
   | Shape.SColl _ -> in_typed ec ac ~ty a args
@@ -806,7 +815,7 @@ and out_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t)
   | Shape.SPi (_, _, _) -> app_arm ec ac ~tail ~ty t
   | Shape.SColl n -> proj_arm ec ac n a head
   | Shape.SPar (_, _) -> refused s
-  | Shape.SMu (_, _) -> refused s
+  | Shape.SMu (_, _) -> mu_refused ()
   | Shape.SNu (_, _) -> refused s
 
 (** An empty erased application preserves its head when source
@@ -878,7 +887,7 @@ and elim_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (e : Term.eli
     (Eterm.ktm * acc, Error.t) result =
   match e.Term.e_shape with
   | Shape.SPar (_, _) -> refused e.Term.e_shape
-  | Shape.SMu (_, _) -> refused e.Term.e_shape
+  | Shape.SMu (_, _) -> mu_refused ()
   | Shape.SNu (_, _) -> refused e.Term.e_shape
   | Shape.SPi (_, _, _) -> elim_typed ec ac ~tail ~ty e
   | Shape.SColl _ -> elim_typed ec ac ~tail ~ty e

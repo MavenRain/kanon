@@ -27,12 +27,22 @@ then a loud edit to an exhaustive match, not a new constructor.
 | --- | --- | --- |
 | `SPi of Quantity.t * string * 'a` | M0 | admitted |
 | `SColl of int` | M0 | admitted |
-| `SPar of 'a * 'a` | M1 | rules.ml |
-| `SMu of string * 'a list` | M1 | rules.ml |
+| `SPar of 'a * 'a` | M2 | rules.ml |
+| `SMu of string * 'a list` | M1 | admitted |
 | `SNu of string * 'a list` | M2 | rules.ml |
 
 The type parameter is the kernel term.  lib/term.ml therefore spells no
 shape name (SA-D5).
+
+Strict positivity, M1 Stage G, lib/positivity.ml.  A constructor field
+admits the family it declares only strictly positively.  An occurrence
+to the right of an arrow is admitted.  An occurrence to the left of an
+arrow, an occurrence in an argument of a former, and an occurrence under
+any other former, are refused with the word `a family that is not
+strictly positive arrives at M2`.  A nested inductive is therefore M2
+and is never reduced to a positive form (D-M1-2, R-Q5).  The check runs
+once, when the constructors are installed, and formation reads the
+stored verdict (A4).
 
 ### 2.2 Terms, lib/term.ml
 
@@ -140,11 +150,11 @@ count that grows fails the R0-COUNT gate leg.
 formers 2: Lan Ran
 schema constructors 4: In Elim Sec Out
 shapes declared 5: SPi SColl SPar SMu SNu
-shapes admitted 2: SPi SColl
+shapes admitted 3: SPi SColl SMu
 named rules declared 3: proof-irrelevance subsingleton-large-elimination literal-fast-path
 named rules present 2: proof-irrelevance literal-fast-path
 eta rows 3: Ran-SPi Lan-SPi Ran-SColl
-no eta 1: Lan-SColl
+no eta 3: Lan-SColl Ran-SMu Lan-SMu
 ```
 
 Every number in the block is the length of the list printed after it.

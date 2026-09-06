@@ -1,0 +1,11 @@
+-- mu-indexed: a family with an index telescope (A2, A14).  Every index
+-- binder carries the mark 0, so the index erases before run time, and
+-- every constructor gives the result index the declaration asks for.
+
+mu N : Type 0 with
+| zero : N
+| succ : N -> N
+
+mu V : (0 i : N) -> Type 0 with
+| vz : V zero
+| vs : (0 i : N) -> V i -> V (succ i)

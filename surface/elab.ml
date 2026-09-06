@@ -95,6 +95,88 @@ let leg_expectations (c : Check.ctx) (expected : Value.t option) (n : int)
                                   (Rules.coll_leg_ty Check.ops c dlegs k)))
                        else Ok none_list)))
 
+(** M1 Stage G, correction C7:  the three views of a surface tree the mu
+    rows read.  Each match is exhaustive and holds no wildcard arm, so a
+    new production is a compile error here. *)
+let app_split (s : Syntax.t) : (Syntax.t * Syntax.t) option =
+  match s with
+  | Syntax.SApp (f, a) -> Some (f, a)
+  | Syntax.SVar _ | Syntax.SNat _ | Syntax.SProp | Syntax.SType _ | Syntax.SPrim _
+  | Syntax.SUnit | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
+  | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
+  | Syntax.SFun (_, _) | Syntax.SArrow (_, _) | Syntax.SStar (_, _)
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+      None
+
+let arrow_split (s : Syntax.t) : (Syntax.binder * Syntax.t) option =
+  match s with
+  | Syntax.SArrow (b, cod) -> Some (b, cod)
+  | Syntax.SVar _ | Syntax.SNat _ | Syntax.SProp | Syntax.SType _ | Syntax.SPrim _
+  | Syntax.SUnit | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
+  | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
+  | Syntax.SFun (_, _) | Syntax.SApp (_, _) | Syntax.SStar (_, _)
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+      None
+
+let var_name (s : Syntax.t) : string option =
+  match s with
+  | Syntax.SVar x -> Some x
+  | Syntax.SNat _ | Syntax.SProp | Syntax.SType _ | Syntax.SPrim _ | Syntax.SUnit
+  | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
+  | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
+  | Syntax.SFun (_, _) | Syntax.SApp (_, _) | Syntax.SArrow (_, _) | Syntax.SStar (_, _)
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+      None
+
+(** The head of an application spine and its arguments, in the order
+    they are written. *)
+let rec spine_of (s : Syntax.t) (acc : Syntax.t list) : Syntax.t * Syntax.t list =
+  app_split s
+  |> Option.fold ~none:(s, acc) ~some:(fun ((f : Syntax.t), (a : Syntax.t)) ->
+         spine_of f (a :: acc))
+
+(** The first [n] items of a list and the rest, read by index, so the
+    split needs no partial indexing. *)
+let split_at (n : int) (xs : 'a list) : 'a list * 'a list =
+  ( List.filteri (fun (i : int) (_x : 'a) -> i < n) xs,
+    List.filteri (fun (i : int) (_x : 'a) -> i >= n) xs )
+
+(** M1 Stage G:  what a name resolves to when the family table holds it.
+    A type at a family is a left former at the mu shape and never a
+    global name (shape.ml:42-49), and a constructor of a family is an
+    introduction at that shape, so neither reaches [Term.Global]. *)
+type mu_ref =
+  | RFam of Positivity.family
+  | RCtor of Positivity.family * Positivity.ctor
+
+(** The family that declares a constructor name.  This file reads the
+    table itself:  the one accessor of brief 3.3 is a rule about
+    rules.ml and about the checking path (SG-D2, dev/r0-audit.sh:6-11),
+    and the elaborator is neither. *)
+let find_ctor (x : string) (g : Global.t) : (Positivity.family * Positivity.ctor) option =
+  Global.StringMap.fold
+    (fun (_n : string) (f : Positivity.family)
+         (acc : (Positivity.family * Positivity.ctor) option) ->
+      Option.fold
+        ~none:(Option.map (fun (ct : Positivity.ctor) -> (f, ct)) (Positivity.ctor_of x f))
+        ~some:Option.some acc)
+    g.Global.families None
+
+(** A local name wins over the family table, so a binder named after a
+    family shadows it as every other binder does. *)
+let mu_ref_of (c : Check.ctx) (x : string) : mu_ref option =
+  match () with
+  | () when Option.is_some (index_of x (Check.names_of c)) -> None
+  | () ->
+      Global.find_family x (globals_of c)
+      |> Option.map (fun (f : Positivity.family) -> RFam f)
+      |> Option.fold
+           ~none:
+             (Option.map
+                (fun ((f : Positivity.family), (ct : Positivity.ctor)) -> RCtor (f, ct))
+                (find_ctor x (globals_of c)))
+           ~some:Option.some
+
 (** The whole walk.  One arm per constructor of [Syntax.t], in the order
     syntax.ml declares them, and every arm names the sugar row of
     SPEC.md section 7 that it writes. *)
@@ -102,9 +184,13 @@ let rec elab (c : Check.ctx) ~(expected : Value.t option) (s : Syntax.t) :
     (Term.t, Error.t) result =
   match s with
   | Syntax.SVar x ->
-      Ok
-        (index_of x (Check.names_of c)
-        |> Option.fold ~none:(Term.Global x) ~some:(fun (i : int) -> Term.Var i))
+      mu_ref_of c x
+      |> Option.fold
+           ~none:
+             (Ok
+                (index_of x (Check.names_of c)
+                |> Option.fold ~none:(Term.Global x) ~some:(fun (i : int) -> Term.Var i)))
+           ~some:(fun (r : mu_ref) -> elab_mu_ref c r [])
   | Syntax.SNat n -> Ok (Term.Lit (Literal.LInt n))
   | Syntax.SProp -> Ok (Term.Univ Level.zero)
   | Syntax.SType n -> univ_of_int (n + 1)
@@ -291,6 +377,81 @@ and elab_leg_proj (c : Check.ctx) (scrut : Term.t) (vs : Value.t Shape.t) (k : i
     at the domain the head's type names and the address carries the mark
     that type declares. *)
 and elab_app (c : Check.ctx) (f : Syntax.t) (a : Syntax.t) : (Term.t, Error.t) result =
+  let head, args = spine_of (Syntax.SApp (f, a)) [] in
+  Option.bind (var_name head) (mu_ref_of c)
+  |> Option.fold
+       ~none:(fun () -> elab_app_point c f a)
+       ~some:(fun (r : mu_ref) -> fun () -> elab_mu_ref c r args)
+  |> fun (k : unit -> (Term.t, Error.t) result) -> k ()
+
+(** M1 Stage G, correction C7:  a family at its parameters and indices,
+    or a constructor at its arguments.  The family reference is the left
+    former at the mu shape over the parameter section, which is binder
+    free (SG-D16);  the constructor is the introduction at the shape its
+    own result indices name, read under the arguments given here. *)
+and elab_mu_ref (c : Check.ctx) (r : mu_ref) (args : Syntax.t list) :
+    (Term.t, Error.t) result =
+  match r with
+  | RFam f -> elab_fam_ref c f args
+  | RCtor (f, ct) -> elab_ctor_ref c f ct args
+
+and arity_is (what : string) (want : int) (got : int) : (unit, Error.t) result =
+  if Int.equal want got then Ok ()
+  else
+    Error
+      (Error.Mismatch
+         (Printf.sprintf "%s takes %d arguments and the term gives %d" what want got))
+
+and elab_fam_ref (c : Check.ctx) (f : Positivity.family) (args : Syntax.t list) :
+    (Term.t, Error.t) result =
+  let np = List.length f.Positivity.f_params in
+  let* () =
+    arity_is f.Positivity.f_name (np + List.length f.Positivity.f_indices)
+      (List.length args)
+  in
+  let* ts = Rules.all_ok (List.map (elab c ~expected:None) args) in
+  let params, indices = split_at np ts in
+  Ok
+    (Term.Lan
+       ( Shape.SMu (f.Positivity.f_name, indices),
+         Term.Sec (Shape.SColl np, List.map Rules.leg_of params) ))
+
+(** The indices the introduction carries are the constructor's declared
+    result indices, opened at the argument values (rules.ml
+    [mu_indices]).  A family with parameters reads them off the expected
+    type, which the introduction rule does and this row does not, so the
+    row asks the writer for the type. *)
+and elab_ctor_ref (c : Check.ctx) (f : Positivity.family) (ct : Positivity.ctor)
+    (args : Syntax.t list) : (Term.t, Error.t) result =
+  let* () =
+    arity_is ct.Positivity.c_name (List.length ct.Positivity.c_args) (List.length args)
+  in
+  let* () =
+    match f.Positivity.f_params with
+    | [] -> Ok ()
+    | (_e : Quantity.t * string * Term.t) :: (_rest : Positivity.telescope) ->
+        Error (no_expect ("the constructor " ^ ct.Positivity.c_name))
+  in
+  let* ts = Rules.all_ok (List.map (elab c ~expected:None) args) in
+  let* vs = Rules.all_ok (List.map (eval_in c) ts) in
+  let* ixv =
+    Rules.all_ok
+      (List.map
+         (fun (ri : Term.t) -> Eval.eval (globals_of c) (List.rev vs) ri)
+         ct.Positivity.c_res_idx)
+  in
+  let* ix =
+    Rules.all_ok
+      (List.map (fun (v : Value.t) -> Eval.quote (globals_of c) (size_of c) v) ixv)
+  in
+  Ok
+    (Term.In
+       ( Shape.SMu (f.Positivity.f_name, ix),
+         Term.ACtor ct.Positivity.c_name,
+         ts ))
+
+and elab_app_point (c : Check.ctx) (f : Syntax.t) (a : Syntax.t) :
+    (Term.t, Error.t) result =
   let* head = elab c ~expected:None f in
   let* w = type_of c head in
   let* vs, _dclo, _u =
@@ -443,6 +604,112 @@ and branch_target (c : Check.ctx) (motive : Term.motive option)
   |> Option.fold ~none:(Ok expected) ~some:(fun (_m : Term.motive) ->
          Result.map Option.some (Rules.elim_result Check.ops c motive expected self))
 
+(** M1 Stage G, correction C7:  a binder list as a telescope, each type
+    read under the binders before it (pin check.ml:1804-1810). *)
+and elab_telescope (c : Check.ctx) (bs : Syntax.binder list) :
+    (Positivity.telescope * Check.ctx, Error.t) result =
+  List.fold_left
+    (fun (acc : (Positivity.telescope * Check.ctx, Error.t) result) (b : Syntax.binder) ->
+      let* tele, c' = acc in
+      let* q, x, ty, c'' = elab_binder c' b in
+      Ok (tele @ [ (q, x, ty) ], c''))
+    (Ok ([], c)) bs
+
+(** The arrow chain of a family header or of a constructor type:  its
+    binders are a telescope and its result goes back to the caller with
+    the context that result stands in. *)
+and elab_chain (c : Check.ctx) (acc : Positivity.telescope) (s : Syntax.t) :
+    (Positivity.telescope * Syntax.t * Check.ctx, Error.t) result =
+  arrow_split s
+  |> Option.fold
+       ~none:(Ok (acc, s, c))
+       ~some:(fun ((b : Syntax.binder), (cod : Syntax.t)) ->
+         let* q, x, ty, c' = elab_binder c b in
+         elab_chain c' (acc @ [ (q, x, ty) ]) cod)
+
+(** The declared universe of a family header.  Formation answers this
+    level and never computes a max (A5, SG-D8). *)
+and elab_univ (c : Check.ctx) (s : Syntax.t) : (Level.t, Error.t) result =
+  let* t = elab c ~expected:None s in
+  match t with
+  | Term.Univ l -> Ok l
+  | Term.Var _ | Term.Global _ | Term.Lan (_, _) | Term.Ran (_, _) | Term.In (_, _, _)
+  | Term.Sec (_, _) | Term.Out (_, _, _) | Term.Elim _ | Term.Let (_, _, _, _)
+  | Term.Ann (_, _) | Term.Lit _ | Term.Auto ->
+      Error (Error.Universe "the header of a family ends in a universe")
+
+(** M1 Stage G, brief 3.9:  the header of one member.  The binders after
+    the name are the parameter telescope and the arrow chain after the
+    colon is the index telescope, which check.ml holds to quantity zero
+    and to the declared level (A2, A5). *)
+and elab_fam_decl (c : Check.ctx) (fm : Syntax.fam) : (Check.family_decl, Error.t) result =
+  let* params, cp = elab_telescope c fm.Syntax.fm_params in
+  let* indices, res, ci = elab_chain cp [] fm.Syntax.fm_ty in
+  let* level = elab_univ ci res in
+  Ok
+    {
+      Check.fam_name = fm.Syntax.fm_name;
+      fam_params = params;
+      fam_indices = indices;
+      fam_level = level;
+    }
+
+(** One constructor:  the binders of its type are the argument telescope,
+    one quantity per field, and its result names the member at the result
+    index expressions (A14). *)
+and elab_ctor_decl (c : Check.ctx) (name : string) (fc : Syntax.fam_ctor) :
+    (Check.ctor_decl, Error.t) result =
+  let* args, res, cr = elab_chain c [] fc.Syntax.fc_ty in
+  let* res_t = elab cr ~expected:None res in
+  let* params, ix = mu_result name res_t in
+  Ok
+    { Check.ct_name = fc.Syntax.fc_name; ct_args = args;
+      ct_res_params = params; ct_res_idx = ix }
+
+(** The result of a constructor type is the member itself at its result
+    indices.  Any other result names a type the family record cannot
+    hold, so the row refuses it here and not at the introduction. *)
+and mu_result (name : string) (t : Term.t) : (Term.t list * Term.t list, Error.t) result =
+  let wrong : (Term.t list * Term.t list, Error.t) result =
+    Error (Error.Mismatch ("a constructor of " ^ name ^ " ends at another type"))
+  in
+  match t with
+  | Term.Lan (Shape.SMu (n, ix), d) ->
+      if String.equal n name then
+        Result.map (fun params -> (params, ix)) (Rules.mu_params_of d)
+      else wrong
+  | Term.Lan
+      ((Shape.SPi (_, _, _) | Shape.SColl _ | Shape.SPar (_, _) | Shape.SNu (_, _)), _)
+  | Term.Var _ | Term.Global _ | Term.Univ _ | Term.Ran (_, _) | Term.In (_, _, _)
+  | Term.Sec (_, _) | Term.Out (_, _, _) | Term.Elim _ | Term.Let (_, _, _, _)
+  | Term.Ann (_, _) | Term.Lit _ | Term.Auto ->
+      wrong
+
+(** M1 Stage G, brief 3.9:  one mu group.  Every member is declared
+    before the first constructor of the group is installed, so a field
+    type of the first member names the last (A4, M1-PLAN.md:95, SG-D17),
+    and the group of the positivity walk is every member name. *)
+let elab_mu_group ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (fams : Syntax.fam list) : (Global.t, Error.t) result =
+  let group = List.map (fun (fm : Syntax.fam) -> fm.Syntax.fm_name) fams in
+  let* declared =
+    List.fold_left
+      (fun (acc : (Global.t, Error.t) result) (fm : Syntax.fam) ->
+        let* g = acc in
+        let* d = elab_fam_decl (Check.make g budget) fm in
+        Check.declare_family ~budget g d)
+      (Ok globals) fams
+  in
+  List.fold_left
+    (fun (acc : (Global.t, Error.t) result) (fm : Syntax.fam) ->
+      let* g = acc in
+      let* _params, cp = elab_telescope (Check.make g budget) fm.Syntax.fm_params in
+      let* cds =
+        Rules.all_ok (List.map (elab_ctor_decl cp fm.Syntax.fm_name) fm.Syntax.fm_ctors)
+      in
+      Check.define_ctors ~budget g ~group ~name:fm.Syntax.fm_name cds)
+    (Ok declared) fams
+
 (** One declaration, elaborated into the row [Check.check_decls] reads.
     A definition's body is elaborated at its declared type, which is what
     gives every checking position form its expectation. *)
@@ -462,30 +729,55 @@ let elab_decl (c : Check.ctx) (d : Syntax.decl) : (Check.decl, Error.t) result =
   | Syntax.DAxiom (name, ty) ->
       let* ty' = elab c ~expected:None ty in
       Ok { Check.d_name = name; d_kind = Check.Postulate; d_ty = ty'; d_body = None }
+  (* M1 Stage G:  a mu group is a table of families and no entry, so
+     [elab_program] installs it and this row is never asked for one. *)
+  | Syntax.DMu (_fams : Syntax.fam list) ->
+      Error (Error.Mismatch "a mu group declares no entry of its own")
 
-(** The whole file.  Each declaration is elaborated against the entries
-    checked before it and then checked, so a self reference finds no
-    entry and the checker answers [Unbound] (plan section 6). *)
-let elab_program ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
-    (ds : Syntax.decl list) : ((string * Global.entry) list, Error.t) result =
+(** The whole file, with the globals the last declaration was checked
+    in.  Each declaration is elaborated against the entries checked
+    before it and then checked, so a self reference finds no entry and
+    the checker answers [Unbound] (plan section 6).  M1 Stage G: a mu
+    group moves the family table and adds no entry row, so a caller
+    that erases the file reads these globals and not the rows alone,
+    which carry no family (brief 3.8). *)
+let elab_program_in ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (ds : Syntax.decl list) :
+    (Global.t * (string * Global.entry) list, Error.t) result =
   List.fold_left
     (fun
       (acc : (Global.t * (string * Global.entry) list, Error.t) result)
       (d : Syntax.decl)
     ->
       let* g, rows = acc in
-      let* row = elab_decl (Check.make g budget) d in
-      let* checked = Check.check_decls ~budget g [ row ] in
-      let* name, entry =
-        Rules.one_of checked
-        |> Option.to_result
-             ~none:(Error.Cannot_infer "the checker answered no entry for a declaration")
-      in
-      Ok (Global.add name entry g, (name, entry) :: rows))
+      match d with
+      (* M1 Stage G:  a mu group moves the family table and adds no
+         entry row, so the checked form and the erased form of a file
+         that only declares families are both empty. *)
+      | Syntax.DMu fams ->
+          Result.map
+            (fun (g' : Global.t) -> (g', rows))
+            (elab_mu_group ~budget g fams)
+      | Syntax.DDef (_, _, _) | Syntax.DAxiom (_, _) ->
+          let* row = elab_decl (Check.make g budget) d in
+          let* checked = Check.check_decls ~budget g [ row ] in
+          let* name, entry =
+            Rules.one_of checked
+            |> Option.to_result
+                 ~none:
+                   (Error.Cannot_infer "the checker answered no entry for a declaration")
+          in
+          Ok (Global.add name entry g, (name, entry) :: rows))
     (Ok (globals, []))
     ds
   |> Result.map
-       (fun ((_g : Global.t), (rows : (string * Global.entry) list)) -> List.rev rows)
+       (fun ((g : Global.t), (rows : (string * Global.entry) list)) ->
+         (g, List.rev rows))
+
+(** The entry rows alone, for a caller that reads no family. *)
+let elab_program ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (ds : Syntax.decl list) : ((string * Global.entry) list, Error.t) result =
+  Result.map snd (elab_program_in ~budget globals ds)
 
 (** The checked form of one entry, the text "kanon check --print" writes
     and the suite compares against a golden file.  It is the kernel term,
@@ -510,8 +802,15 @@ let axiom_names (rows : (string * Global.entry) list) : string list =
       Global.axiom_of e |> Option.map (fun (_a : Global.axiom_entry) -> name))
     rows
 
-(** The whole surface pass over a file:  parse, elaborate and check. *)
+(** The whole surface pass over a file:  parse, elaborate and check,
+    and answer the globals the file was checked in beside its entry
+    rows (M1 Stage G, brief 3.8). *)
+let check_in ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (src : string) : (Global.t * (string * Global.entry) list, Error.t) result =
+  let* ds = Parser.parse src in
+  elab_program_in ~budget globals ds
+
+(** The same pass, for a caller that reads the entry rows alone. *)
 let check_text ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
     (src : string) : ((string * Global.entry) list, Error.t) result =
-  let* ds = Parser.parse src in
-  elab_program ~budget globals ds
+  Result.map snd (check_in ~budget globals src)

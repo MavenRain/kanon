@@ -83,6 +83,10 @@ let rec ops : ctx Rules.ops =
     o_pp = (fun (c : ctx) (v : Value.t) -> pp_value c v);
     o_quote = (fun (c : ctx) (v : Value.t) -> Eval.quote c.globals c.size v);
     o_head_ty = (fun (c : ctx) (h : Value.head) -> head_ty c h);
+    (* M1 Stage G, brief 3.3:  the one accessor the mu pack reads a
+       family record through (SG-D2).  This file holds no other family
+       lookup on a checking path. *)
+    o_family = (fun (c : ctx) (n : string) -> Global.find_family n c.globals);
   }
 
 and pp_value (c : ctx) (v : Value.t) : string =
@@ -297,6 +301,196 @@ let check_decls ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
     ds
   |> Result.map
        (fun ((_g : Global.t), (rows : (string * Global.entry) list)) -> List.rev rows)
+
+(** M1 Stage G, brief 3.4:  the family declaration, mirroring pin
+    check.ml:1800-1830.  A mutual group declares every member before the
+    first constructor is installed (A4). *)
+type family_decl = {
+  fam_name : string;
+  fam_params : Positivity.telescope;
+  fam_indices : Positivity.telescope;
+  fam_level : Level.t;
+}
+
+(** One constructor as the surface gives it, under the parameters. *)
+type ctor_decl = {
+  ct_name : string;
+  ct_args : Positivity.telescope;
+  ct_res_params : Term.t list;
+  ct_res_idx : Term.t list;
+}
+
+(** Every type of a telescope is a type and each entry binds for the
+    entries after it (pin check.ml:1804-1810). *)
+let check_telescope (c : ctx) (tele : Positivity.telescope) : (ctx, Error.t) result =
+  List.fold_left
+    (fun (acc : (ctx, Error.t) result) ((q : Quantity.t), (x : string), (ty : Term.t)) ->
+      let* c' = acc in
+      let* _l = infer_univ c' ty in
+      let* tyv = Eval.eval c'.globals c'.env ty in
+      Ok (bind x q tyv c'))
+    (Ok c) tele
+
+(** The two index rules of brief 3.4.  An index binder is at
+    [Quantity.Zero], refused as [Index_not_zero] (pin check.ml:1819, A2),
+    which makes the Stage J erasure sound;  an index type is at or below
+    the declared level by [Level.le], refused as [Index_above_universe]
+    (pin check.ml:1820-1823, A5).  SG-M4 removes the first refusal. *)
+let index_rules (c : ctx) (name : string) (level : Level.t)
+    ((q, x, ty) : Quantity.t * string * Term.t) : (unit, Error.t) result =
+  let* () =
+    if Quantity.equal q Quantity.Zero then Ok ()
+    else
+      Error
+        (Error.Index_not_zero
+           (Printf.sprintf
+              "the index %s of %s is at quantity %s and every index binder is at 0" x name
+              (Quantity.to_string q)))
+  in
+  let* l = infer_univ c ty in
+  if Level.le l level then Ok ()
+  else
+    Error
+      (Error.Index_above_universe
+         (Printf.sprintf "the index %s of %s lives at %s and %s is declared at %s" x name
+            (Level.to_string l) name (Level.to_string level)))
+
+(** The index telescope:  the two rules, then the binder of
+    [check_telescope], so the two walks never drift. *)
+let check_index_telescope (c : ctx) (name : string) (level : Level.t)
+    (tele : Positivity.telescope) : (ctx, Error.t) result =
+  List.fold_left
+    (fun (acc : (ctx, Error.t) result) (e : Quantity.t * string * Term.t) ->
+      let* c' = acc in
+      let* () = index_rules c' name level e in
+      check_telescope c' [ e ])
+    (Ok c) tele
+
+(** Declare one family.  The record enters the table at [Provisional]
+    with no verdict, because no constructor is installed yet (A4). *)
+let declare_family ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    (d : family_decl) : (Global.t, Error.t) result =
+  let* () =
+    if Option.is_some (Global.find_family d.fam_name globals) then
+      Error (Error.Mismatch ("the family " ^ d.fam_name ^ " is already declared"))
+    else Ok ()
+  in
+  let c : ctx = make globals budget in
+  let* pctx = check_telescope c d.fam_params in
+  let* _ictx = check_index_telescope pctx d.fam_name d.fam_level d.fam_indices in
+  Ok
+    (Global.add_family d.fam_name
+       {
+         Positivity.f_name = d.fam_name;
+         f_params = d.fam_params;
+         f_indices = d.fam_indices;
+         f_level = d.fam_level;
+         f_status = Positivity.Provisional;
+         f_ctors = [];
+         f_positive = false;
+       }
+       globals)
+
+(** A result parameter is the corresponding parameter variable under
+    the constructor fields.  An annotation preserves that variable;
+    its type is checked by the result telescope below. *)
+let rec parameter_at (index : int) (tm : Term.t) : bool =
+  match tm with
+  | Term.Var i -> Int.equal i index
+  | Term.Ann (body, _ty) -> parameter_at index body
+  | Term.Univ _ | Term.Lan (_, _) | Term.Ran (_, _) | Term.In (_, _, _)
+  | Term.Elim _ | Term.Sec (_, _) | Term.Out (_, _, _) | Term.Let (_, _, _, _)
+  | Term.Global _ | Term.Lit _ | Term.Auto -> false
+
+(** Constructor fields obey the declared predicative bound.  The result
+    preserves the parameter variables and its indices check against the
+    family telescope under all fields. *)
+let check_ctor (c : ctx) (fam : Positivity.family) (group : string list)
+    (cd : ctor_decl) : (Positivity.ctor, Error.t) result =
+  let* actx =
+    List.fold_left
+      (fun (acc : (ctx, Error.t) result) ((q, x, ty) : Quantity.t * string * Term.t) ->
+        let* c' = acc in
+        let* l = infer_univ c' ty in
+        let* () =
+          if Level.le l fam.Positivity.f_level then Ok ()
+          else Error (Error.Universe ("a field of " ^ cd.ct_name ^ " exceeds its family universe"))
+        in
+        check_telescope c' [ (q, x, ty) ])
+      (Ok c) cd.ct_args
+  in
+  let* () = Positivity.ctor_fields group cd.ct_args in
+  let np = List.length fam.Positivity.f_params in
+  let depth = List.length cd.ct_args in
+  let* () =
+    if Int.equal (List.length cd.ct_res_params) np
+       && List.for_all Fun.id
+            (List.mapi (fun j tm -> parameter_at (depth + np - j - 1) tm) cd.ct_res_params)
+    then Ok ()
+    else Error (Error.Mismatch ("the constructor " ^ cd.ct_name ^ " must preserve its family parameters"))
+  in
+  let* penv =
+    Rules.mu_telescope ops actx Quantity.Zero ("the parameters of " ^ cd.ct_name)
+      fam.Positivity.f_params cd.ct_res_params []
+  in
+  let ni = List.length fam.Positivity.f_indices in
+  let* () =
+    if Int.equal (List.length cd.ct_res_idx) ni then Ok ()
+    else
+      Error
+        (Error.Mismatch
+           (Printf.sprintf "%s gives %d result indices and %s takes %d" cd.ct_name
+              (List.length cd.ct_res_idx) fam.Positivity.f_name ni))
+  in
+  let* _ienv =
+    Rules.mu_telescope ops actx Quantity.Zero ("the result indices of " ^ cd.ct_name)
+      fam.Positivity.f_indices cd.ct_res_idx penv
+  in
+  Ok
+    {
+      Positivity.c_name = cd.ct_name;
+      c_args = cd.ct_args;
+      c_res_idx = cd.ct_res_idx;
+      c_full_arity = List.length fam.Positivity.f_params + List.length cd.ct_args;
+      c_self_rec = Positivity.self_rec group cd.ct_args;
+    }
+
+(** Install the constructors of one declared family (A4):  the verdict is
+    computed once here and stored, formation reads it (rules.ml
+    [mu_family], D-M1-2).  [group] is the mutual group.  SG-M1 mutates it. *)
+let define_ctors ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
+    ~(group : string list) ~(name : string) (cds : ctor_decl list) :
+    (Global.t, Error.t) result =
+  let* fam =
+    Global.find_family name globals
+    |> Option.to_result ~none:(Error.Unbound ("the family " ^ name ^ " is not declared"))
+  in
+  let* () =
+    match fam.Positivity.f_status with
+    | Positivity.Provisional -> Ok ()
+    | Positivity.Builtin | Positivity.Complete _ ->
+        Error (Error.Mismatch ("the constructors of " ^ name ^ " are already installed"))
+  in
+  let c : ctx = make globals budget in
+  let* pctx = check_telescope c fam.Positivity.f_params in
+  let* ctors =
+    List.fold_left
+      (fun (acc : (Positivity.ctor list, Error.t) result) (cd : ctor_decl) ->
+        let* rows = acc in
+        let* ct = check_ctor pctx fam group cd in
+        Ok (rows @ [ ct ]))
+      (Ok []) cds
+  in
+  Ok
+    (Global.add_family name
+       {
+         fam with
+         Positivity.f_status =
+           Positivity.Complete (List.map (fun (cd : ctor_decl) -> cd.ct_name) cds);
+         f_ctors = ctors;
+         f_positive = true;
+       }
+       globals)
 
 (** Entry points for one term, for a driver and for the suite. *)
 let infer_term ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)

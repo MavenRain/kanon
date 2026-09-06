@@ -32,13 +32,25 @@ let read_file (path : string) : string =
     prerr_endline (Printf.sprintf "kanon: cannot read %s" path);
     exit 64)
 
-let checked (path : string) : (string * Kanon_kernel.Global.entry) list =
-  Kanon_surface.Elab.check_text Kanon_kernel.Global.initial (read_file path)
+(** The file, checked, with the globals it was checked in.  M1 Stage G:
+    a mu group leaves its family in those globals and adds no entry row,
+    so erasure and emission read this pair and not the rows alone
+    (brief 3.8). *)
+let checked_in (path : string) :
+    Kanon_kernel.Global.t * (string * Kanon_kernel.Global.entry) list =
+  Kanon_surface.Elab.check_in Kanon_kernel.Global.initial (read_file path)
   |> Result.fold
-       ~ok:(fun (rows : (string * Kanon_kernel.Global.entry) list) -> rows)
+       ~ok:
+         (fun
+           (((g : Kanon_kernel.Global.t),
+             (rows : (string * Kanon_kernel.Global.entry) list)))
+         -> (g, rows))
        ~error:(fun (e : Kanon_kernel.Error.t) ->
          prerr_endline (Kanon_kernel.Error.to_string e);
          exit 1)
+
+let checked (path : string) : (string * Kanon_kernel.Global.entry) list =
+  snd (checked_in path)
 
 (** Parse, elaborate and check one file against [Global.initial].  With
     the flag, print the checked form of every entry in order. *)
@@ -52,8 +64,8 @@ let run_check (print_form : bool) (path : string) : unit =
     declaration prints one error line and exits 1, exactly as a checker
     error does. *)
 let run_erased (path : string) : unit =
-  let rows = checked path in
-  Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+  let globals, rows = checked_in path in
+  Kanon_kernel.Erase.program globals rows
   |> Result.fold
        ~ok:(fun (out : (string * Kanon_kernel.Erase.entry) list) ->
          print_string (Kanon_kernel.Erase.print out))
@@ -119,9 +131,9 @@ let globals_of (rows : (string * Kanon_kernel.Global.entry) list) :
     exits 1 and an emission refusal exits 2. *)
 let module_bytes (path : string) (export : string) :
     Kanon_kernel.Global.t * string =
-  let rows = checked path in
+  let globals, rows = checked_in path in
   let bytes =
-    Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+    Kanon_kernel.Erase.program globals rows
     |> Result.fold
          ~ok:(fun (erased : (string * Kanon_kernel.Erase.entry) list) ->
            Kanon_wasm.Emit.program Kanon_kernel.Global.initial erased ~export

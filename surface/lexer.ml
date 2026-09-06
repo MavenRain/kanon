@@ -52,6 +52,8 @@ let keywords : (string * Token.kind) list =
     ("auto", Token.KAuto);
     ("mu", Token.KMu);
     ("nu", Token.KNu);
+    (* M1 Stage G, correction C7:  the mutual group word. *)
+    ("and", Token.KAnd);
   ]
 
 let ident_kind (s : string) : Token.kind =

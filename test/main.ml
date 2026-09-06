@@ -1,9 +1,9 @@
-(** The M0 kernel suite (brief section 3.11).  Five groups run in one
+(** The M0 kernel suite (brief section 3.11).  Six groups run in one
     order and each prints its own count, then one verdict line closes
     the run:
 
     - PARSE, the round trip of Stage A, over every ".kan" file of
-      fixtures/ and of neg/;
+      fixtures/, of neg/ and of erase-neg/;
     - CHECK, one line per positive fixture, where OK means the file
       elaborates, checks, and prints the byte for byte text of
       golden/NAME.checked;
@@ -12,6 +12,9 @@
       golden/NAME.erased (Stage C, brief section 3.6);
     - NEG, one line per negative, where OK means the file fails and
       [Error.message] equals the single line of neg/NAME.err;
+    - ERASE-NEG, one line per erasure negative, where OK means the file
+      checks and its erasure fails with the single line of
+      erase-neg/NAME.err (M1 Stage G, brief 3.8);
     - KNEG, the shapes M0 declares and does not admit, reached from
       OCaml because no surface production spells them.
 
@@ -77,12 +80,12 @@ let check_fixture (root : string) (name : string) : (unit, string) result =
 let erase_fixture (root : string) (name : string) : (unit, string) result =
   let* src = read_file (path_of (Filename.concat root "fixtures") name ".kan") in
   let* golden = read_file (path_of (Filename.concat root "golden") name ".erased") in
-  let* rows =
-    Kanon_surface.Elab.check_text Kanon_kernel.Global.initial src
+  let* globals, rows =
+    Kanon_surface.Elab.check_in Kanon_kernel.Global.initial src
     |> Result.map_error Kanon_kernel.Error.to_string
   in
   let* out =
-    Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+    Kanon_kernel.Erase.program globals rows
     |> Result.map_error Kanon_kernel.Error.to_string
   in
   let printed = Kanon_kernel.Erase.print out in
@@ -105,9 +108,35 @@ let check_negative (root : string) (name : string) : (unit, string) result =
          if String.equal got (String.trim want) then Ok ()
          else Error (Printf.sprintf "the message is \"%s\"" got))
 
-(** The shapes M0 declares and does not admit.  No surface production
-    spells [SMu], so the term is built here, and the kernel answers
-    with the milestone that brings it. *)
+(** An erasure negative:  the file checks, and erasure refuses it with
+    the message the sidecar names.  The interim word of a mu shape sits
+    here, because a positive fixture that erases nothing cannot pin it
+    and a checker negative never reaches erasure (brief 3.8, SG-D7).
+    Erasure runs in the globals the file was checked in, exactly as the
+    driver does. *)
+let erase_negative (root : string) (name : string) : (unit, string) result =
+  let dir = Filename.concat root "erase-neg" in
+  let* src = read_file (path_of dir name ".kan") in
+  let* want = read_file (path_of dir name ".err") in
+  let* globals, rows =
+    Kanon_surface.Elab.check_in Kanon_kernel.Global.initial src
+    |> Result.map_error Kanon_kernel.Error.to_string
+  in
+  Kanon_kernel.Erase.program globals rows
+  |> Result.fold
+       ~ok:(fun (_out : (string * Kanon_kernel.Erase.entry) list) ->
+         Error "the file erases and the negative expects the erasure to fail")
+       ~error:(fun (e : Kanon_kernel.Error.t) ->
+         let got = Kanon_kernel.Error.message e in
+         if String.equal got (String.trim want) then Ok ()
+         else Error (Printf.sprintf "the message is \"%s\"" got))
+
+(** The formers M1 declares and does not admit.  M1 Stage G admits the
+    left former at a mu shape, so the row moved to the right former,
+    which is the coinductive reading a mu shape does not carry:  the
+    kernel answers with the milestone that brings it (SPEC.md:31).  No
+    surface production spells a right former at a mu shape, so the term
+    is built here. *)
 let kneg_smu () : (unit, string) result =
   let shape : Kanon_kernel.Term.t Kanon_kernel.Shape.t =
     Kanon_kernel.Shape.SMu ("F", [ Kanon_kernel.Term.Univ Kanon_kernel.Level.zero ])
@@ -116,12 +145,13 @@ let kneg_smu () : (unit, string) result =
     Kanon_kernel.Term.Sec (Kanon_kernel.Shape.SColl 0, [])
   in
   Kanon_kernel.Check.infer_term Kanon_kernel.Global.initial
-    (Kanon_kernel.Term.Lan (shape, diagram))
+    (Kanon_kernel.Term.Ran (shape, diagram))
   |> Result.fold
-       ~ok:(fun (_v : Kanon_kernel.Value.t) -> Error "the SMu shape is admitted at M0")
+       ~ok:(fun (_v : Kanon_kernel.Value.t) ->
+         Error "the right former at a mu shape is admitted at M1")
        ~error:(fun (e : Kanon_kernel.Error.t) ->
          let got = Kanon_kernel.Error.message e in
-         if String.equal got "SMu arrives at M1" then Ok ()
+         if String.equal got "a right former at a mu shape arrives at M2" then Ok ()
          else Error (Printf.sprintf "the message is \"%s\"" got))
 
 (** The totality guard of M1, reached from OCaml because no surface
@@ -209,15 +239,27 @@ let verdict (groups : (int * int) list) : unit =
       print_string "SUITE-KERNEL FAIL\n";
       exit 1
 
-let run (root : string) (fixtures : string list) (negatives : string list) : unit =
+let run (root : string) (fixtures : string list) (negatives : string list)
+    (erase_negatives : string list) : unit =
   let fixtures_dir = Filename.concat root "fixtures" in
   let neg_dir = Filename.concat root "neg" in
-  let parsed = parse_group [ (fixtures_dir, fixtures); (neg_dir, negatives) ] in
+  let erase_neg_dir = Filename.concat root "erase-neg" in
+  let parsed =
+    parse_group
+      [
+        (fixtures_dir, fixtures);
+        (neg_dir, negatives);
+        (erase_neg_dir, erase_negatives);
+      ]
+  in
   let checked = group "CHECK" "CHECK-OK" (check_fixture root) fixtures in
   let erased = group "ERASE" "ERASE-OK" (erase_fixture root) fixtures in
   let refused = group "NEG" "NEG-OK" (check_negative root) negatives in
+  let unerased =
+    group "ERASE-NEG" "ERASE-NEG-OK" (erase_negative root) erase_negatives
+  in
   let closed = group "KNEG" "KNEG-OK" kneg [ "smu"; "self" ] in
-  verdict [ parsed; checked; erased; refused; closed ]
+  verdict [ parsed; checked; erased; refused; unerased; closed ]
 
 let fail_out (m : string) : unit =
   print_string (Printf.sprintf "SUITE %s\n" m);
@@ -234,10 +276,14 @@ let () =
   let listed =
     let* fixtures = kan_names (Filename.concat root "fixtures") in
     let* negatives = kan_names (Filename.concat root "neg") in
-    Ok (fixtures, negatives)
+    let* erase_negatives = kan_names (Filename.concat root "erase-neg") in
+    Ok (fixtures, negatives, erase_negatives)
   in
   listed
   |> Result.fold
-       ~ok:(fun (((fixtures : string list), (negatives : string list))) ->
-         run root fixtures negatives)
+       ~ok:
+         (fun
+           (((fixtures : string list), (negatives : string list),
+             (erase_negatives : string list)))
+         -> run root fixtures negatives erase_negatives)
        ~error:fail_out

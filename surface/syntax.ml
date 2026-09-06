@@ -49,6 +49,26 @@ and branch = {
   br_body : t;
 }
 
+(** M1 Stage G, correction C7.  One constructor of a family, "| NAME :
+    TYPE".  The type is an arrow chain:  its binders are the argument
+    telescope, one quantity per field, and its result names the family at
+    the result index expressions (brief 3.9). *)
+and fam_ctor = {
+  fc_name : string;
+  fc_ty : t;
+}
+
+(** M1 Stage G, correction C7.  One member of a mu group:  the header
+    with its parameter binders, then an arrow chain of index binders that
+    ends in the declared universe, then the constructor list.  The sugar
+    and the spine additions stay at Stage L (M1-PLAN.md:230). *)
+and fam = {
+  fm_name : string;
+  fm_params : binder list;
+  fm_ty : t;
+  fm_ctors : fam_ctor list;
+}
+
 and t =
   | SVar of string
   | SNat of int
@@ -82,6 +102,10 @@ and t =
 type decl =
   | DDef of string * t * t
   | DAxiom of string * t
+  | DMu of fam list
+      (** M1 Stage G:  a mutual group, one member per "mu" or "and"
+          header.  Every member is declared before the first constructor
+          of the group is installed (A4). *)
 
 let prim_name (p : prim) : string =
   match p with
@@ -179,11 +203,30 @@ and raw (s : t) : string =
         (mo |> Option.fold ~none:"" ~some:motive_text)
         (String.concat "" (List.map branch_text brs))
 
+(** One constructor row of a mu group.  The row starts at the bar, so the
+    printed text re-parses to the same list. *)
+let fam_ctor_text (fc : fam_ctor) : string =
+  Printf.sprintf "| %s : %s\n" fc.fc_name (at 0 fc.fc_ty)
+
+(** One member of a mu group under the word that opens it, "mu" for the
+    first member and "and" for every later one. *)
+let fam_text (word : string) (fm : fam) : string =
+  Printf.sprintf "%s %s%s : %s with\n%s" word fm.fm_name
+    (String.concat "" (List.map (fun (b : binder) -> " " ^ binder_text b) fm.fm_params))
+    (at 0 fm.fm_ty)
+    (String.concat "" (List.map fam_ctor_text fm.fm_ctors))
+
 let decl_text (d : decl) : string =
   match d with
   | DDef (name, ty, def) ->
       Printf.sprintf "def %s : %s := %s\n" name (at 0 ty) (at 0 def)
   | DAxiom (name, ty) -> Printf.sprintf "axiom %s : %s\n" name (at 0 ty)
+  | DMu fams ->
+      String.concat ""
+        (List.mapi
+           (fun (i : int) (fm : fam) ->
+             fam_text (if Int.equal i 0 then "mu" else "and") fm)
+           fams)
 
 (** The printer of SA-D2:  its output re-parses to an equal tree.  An
     empty tree prints as the empty text, which parses back to the empty

@@ -72,9 +72,21 @@ let schema : string list = [ "In"; "Elim"; "Sec"; "Out" ]
 let as_apt (a : addr) : (Quantity.t * t) option =
   match a with
   | APt (q, arg) -> Some (q, arg)
-  | ALeg _ | ACtor _ -> None
+  | ALeg _ -> None
+  (* M1 Stage G, brief 3.5:  a constructor address carries no point. *)
+  | ACtor _ -> None
 
 let as_aleg (a : addr) : int option =
   match a with
   | ALeg k -> Some k
-  | APt (_, _) | ACtor _ -> None
+  | APt (_, _) -> None
+  (* M1 Stage G, brief 3.5:  the constructor address is not a leg. *)
+  | ACtor _ -> None
+
+(** M1 Stage G:  the third view, which the mu pack asks for the
+    constructor name of an introduction (rules.ml [mu_intro_in]). *)
+let as_actor (a : addr) : string option =
+  match a with
+  | ACtor c -> Some c
+  | APt (_, _) -> None
+  | ALeg _ -> None

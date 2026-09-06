@@ -56,6 +56,11 @@ type 'c ops = {
   o_head_ty : 'c -> Value.head -> (Value.t, Error.t) result;
       (** the type the context or the global environment gives a neutral
           head, so conversion can walk a spine at a type (SB-D25) *)
+  o_family : 'c -> string -> Positivity.family option;
+      (** M1 Stage G, brief 3.3:  the ONE accessor the mu pack reads a
+          family record through (SG-D2).  A second reader would put a
+          family lookup in check.ml and the R0-AUDIT leg forbids it
+          (dev/r0-audit.sh:6-11). *)
 }
 
 (** The derived eta table of SPEC.md section 4:  a former gets a row
@@ -124,8 +129,14 @@ type 'c rule_pack = {
     'c ops -> 'c -> Value.t Shape.t -> Value.closure -> Value.closure ->
     (bool, Error.t) result;
   ann_lvl_eq : Value.t Shape.t -> Level.t option -> Level.t option -> bool;
-  lan_lvl : Level.t list -> Level.t;
-  ran_lvl : Level.t list -> Level.t;
+  lan_lvl : 'c ops -> 'c -> Value.t Shape.t -> Level.t list -> (Level.t, Error.t) result;
+  ran_lvl : 'c ops -> 'c -> Value.t Shape.t -> Level.t list -> (Level.t, Error.t) result;
+      (** SG-D15:  the two level fields take the shape and the checker
+          ops, and they answer a result.  The mu shape needs both:  its
+          left former lives at the level the family record declares,
+          which is not a function of the payload levels (brief 3.5), and
+          its right former answers the M2 word, which no [Level.t]
+          can carry (SG-D4). *)
 }
 
 (** The framework axiom of R-Q6, SPEC.md section 6:  [imax l zero] is
@@ -174,9 +185,22 @@ let all_ok (xs : ('a, Error.t) result list) : ('a list, Error.t) result =
       Ok (got @ [ v ]))
     (Ok []) xs
 
+(** Pairwise comparison of two shape payloads, [Ok false] when the
+    lengths differ.  M1 Stage G:  two mu shapes are equal when the
+    family name is the same and every index converts. *)
+let rec payload_eq (eq : Value.t -> Value.t -> (bool, Error.t) result)
+    (xs : Value.t list) (ys : Value.t list) : (bool, Error.t) result =
+  match (xs, ys) with
+  | [], [] -> Ok true
+  | x :: xs', y :: ys' ->
+      let* got = eq x y in
+      if got then payload_eq eq xs' ys' else Ok false
+  | [], _ :: _ -> Ok false
+  | _ :: _, [] -> Ok false
+
 (** Structural equality of two shapes over values, with the payload
-    compared by the caller's conversion.  The three refused shapes carry
-    their milestone word here too, so a shape that M0 does not admit can
+    compared by the caller's conversion.  The two refused shapes carry
+    their milestone word here too, so a shape that M1 does not admit can
     never be silently equal to itself. *)
 let shape_eq (eq : Value.t -> Value.t -> (bool, Error.t) result) (a : Value.t Shape.t)
     (b : Value.t Shape.t) : (bool, Error.t) result =
@@ -185,7 +209,10 @@ let shape_eq (eq : Value.t -> Value.t -> (bool, Error.t) result) (a : Value.t Sh
       if Quantity.equal q1 q2 then eq d1 d2 else Ok false
   | Shape.SColl n1, Shape.SColl n2 -> Ok (Int.equal n1 n2)
   | Shape.SPar (_, _), Shape.SPar (_, _) -> Error (Error.Not_yet spar_word)
-  | Shape.SMu (_, _), Shape.SMu (_, _) -> Error (Error.Not_yet smu_word)
+  (* M1 Stage G, brief 3.1:  the refusal this line carried is replaced
+     by the structural row the pack needs. *)
+  | Shape.SMu (n1, ix1), Shape.SMu (n2, ix2) ->
+      if String.equal n1 n2 then payload_eq eq ix1 ix2 else Ok false
   | Shape.SNu (_, _), Shape.SNu (_, _) -> Error (Error.Not_yet snu_word)
   | Shape.SPi (_, _, _), (Shape.SColl _ | Shape.SPar (_, _) | Shape.SMu (_, _) | Shape.SNu (_, _))
     ->
@@ -211,7 +238,10 @@ let map_shape (f : 'a -> ('b, Error.t) result) (s : 'a Shape.t) :
   | Shape.SPi (q, x, dom) -> Result.map (fun v -> Shape.SPi (q, x, v)) (f dom)
   | Shape.SColl n -> Ok (Shape.SColl n)
   | Shape.SPar (_, _) -> Error (Error.Not_yet spar_word)
-  | Shape.SMu (_, _) -> Error (Error.Not_yet smu_word)
+  (* M1 Stage G:  the index payload evaluates, so eval.ml turns a mu
+     term shape into a mu value shape and still names no shape. *)
+  | Shape.SMu (n, ix) ->
+      Result.map (fun (vs : 'b list) -> Shape.SMu (n, vs)) (all_ok (List.map f ix))
   | Shape.SNu (_, _) -> Error (Error.Not_yet snu_word)
 
 (** Term builders.  prim.ml and the driver need a closed type at the two
@@ -373,6 +403,13 @@ let spi_lan_lvl (ls : Level.t list) : Level.t = max_of ls
 let spi_ran_lvl (ls : Level.t list) : Level.t =
   level_pair ls
   |> Option.fold ~none:(max_of ls) ~some:(fun ((l : Level.t), (l' : Level.t)) -> imax l l')
+
+(** A level field on the interface SG-D15 gives it.  A shape that reads
+    its levels off the payload alone lifts a plain function through
+    this, so the ops, the context and the shape are never read. *)
+let payload_lvl (f : Level.t list -> Level.t) (_ops : 'c ops) (_ctx : 'c)
+    (_s : Value.t Shape.t) (ls : Level.t list) : (Level.t, Error.t) result =
+  Ok (f ls)
 
 let spi_form_lan (ops : 'c ops) (ctx : 'c) (s : Term.t Shape.t) (diagram : Term.t)
     ~(expected : Level.t option) : (Level.t, Error.t) result =
@@ -657,8 +694,8 @@ let spi_pack (() : unit) : 'c rule_pack =
     expand_lan = Some spi_eta_lan;
     conv_diagram = spi_conv_diagram;
     ann_lvl_eq = spi_ann_lvl_eq;
-    lan_lvl = spi_lan_lvl;
-    ran_lvl = spi_ran_lvl;
+    lan_lvl = payload_lvl spi_lan_lvl;
+    ran_lvl = payload_lvl spi_ran_lvl;
   }
 
 (* ---------------------------------------------------------------- *)
@@ -905,21 +942,208 @@ let coll_pack (() : unit) : 'c rule_pack =
     expand_lan = None;
     conv_diagram = coll_conv_diagram;
     ann_lvl_eq = coll_ann_lvl_eq;
-    lan_lvl = coll_lvl;
-    ran_lvl = coll_lvl;
+    lan_lvl = payload_lvl coll_lvl;
+    ran_lvl = payload_lvl coll_lvl;
   }
 
-(** The dispatch of plan section 5.  Two shapes have a pack;  the other
-    three carry their milestone word, so a term that reaches the checker
-    at one of them fails with the name of the milestone that admits it
-    (D-M0-2). *)
+(* ------- The pack of the mu shape, plan section 5, brief 3.1 ------- *)
+
+(** SG-D4:  one pack answers both formers (M1-PLAN.md:8), so the right
+    former is refused INSIDE it;  a section is SNu's (SPEC.md:32). *)
+let mu_ran_word : string = "a right former at a mu shape arrives at M2"
+
+(** SG-D9:  the elimination fields hold the Stage H work, the motive,
+    branch and subsingleton rules (M1-PLAN.md:198). *)
+let mu_elim_word : string = "an elimination at a mu shape arrives at M1 Stage H"
+
+let as_vmu (s : 'a Shape.t) : (string * 'a list) option =
+  match s with
+  | Shape.SMu (n, ix) -> Some (n, ix)
+  | Shape.SPi (_, _, _) | Shape.SColl _ | Shape.SPar (_, _) | Shape.SNu (_, _) -> None
+
+(** The one accessor of brief 3.3 (SG-D2) reads the stored A4 verdict and
+    never recomputes it (D-M1-2).  SG-D17:  a [Provisional] family forms,
+    a field type names it as the constructors install (pin check.ml:2050). *)
+let mu_family (ops : 'c ops) (ctx : 'c) (n : string) : (Positivity.family, Error.t) result =
+  let* f =
+    ops.o_family ctx n
+    |> Option.to_result ~none:(Error.Unbound ("the family " ^ n ^ " is not declared"))
+  in
+  match f.Positivity.f_status with
+  | Positivity.Complete (_ : string list) ->
+      if f.Positivity.f_positive then Ok f
+      else Error (Error.Not_yet Positivity.nonpositive_word)
+  | Positivity.Builtin | Positivity.Provisional -> Ok f
+
+(** SG-D16:  the diagram at the mu shape is the parameter section, one
+    binder free leg per parameter, so [diagram_arity] is zero. *)
+let mu_params_of (diagram : Term.t) : (Term.t list, Error.t) result =
+  as_tsec diagram
+  |> Option.to_result ~none:(Error.Mismatch diagram_msg)
+  |> Result.map (fun ((_s : Term.t Shape.t), (legs : Term.leg list)) ->
+         List.map (fun (lg : Term.leg) -> lg.Term.l_body) legs)
+
+(** Check an expression list against a telescope (pin check.ml:1804-1827):
+    each type opens in the values before it, innermost value first. *)
+let mu_telescope (ops : 'c ops) (ctx : 'c) (mode : Quantity.t) (what : string)
+    (tele : Positivity.telescope) (args : Term.t list) (env : Value.t list) :
+    (Value.t list, Error.t) result =
+  let* pairs =
+    zip tele args
+    |> Option.to_result
+         ~none:
+           (Error.Mismatch
+              (Printf.sprintf "%s takes %d arguments and the term gives %d" what
+                 (List.length tele) (List.length args)))
+  in
+  let ev = ops.o_ev ctx in
+  List.fold_left
+    (fun (acc : (Value.t list, Error.t) result)
+         (((q, _x, ty), arg) : (Quantity.t * string * Term.t) * Term.t) ->
+      let* got = acc in
+      let* tyv = ev.ev_eval got ty in
+      let* () = ops.o_check ctx (Quantity.mul mode q) arg tyv in
+      let* v = ops.o_eval ctx arg in
+      Ok (v :: got))
+    (Ok env) pairs
+
+(** Formation (M1-PLAN.md:78, brief 3.1):  a declared, positive family,
+    parameters and indices erased;  SG-D8 takes its level (brief 3.4, A5). *)
+let mu_form_lan (ops : 'c ops) (ctx : 'c) (s : Term.t Shape.t) (diagram : Term.t)
+    ~(expected : Level.t option) : (Level.t, Error.t) result =
+  let _ = expected in
+  let z = Quantity.Zero in
+  let* n, ix = as_vmu s |> Option.to_result ~none:(Error.Mismatch wrong_pack) in
+  let* fam = mu_family ops ctx n in
+  let* params = mu_params_of diagram in
+  let* penv = mu_telescope ops ctx z n fam.Positivity.f_params params [] in
+  let* _ienv =
+    mu_telescope ops ctx z ("the indices of " ^ n) fam.Positivity.f_indices ix penv
+  in
+  Ok fam.Positivity.f_level
+
+let mu_form_ran (_ops : 'c ops) (_ctx : 'c) (_s : Term.t Shape.t) (_diagram : Term.t)
+    ~(expected : Level.t option) : (Level.t, Error.t) result =
+  let _ = expected in
+  Error (Error.Not_yet mu_ran_word)
+
+(** The parameter values of the expected type, innermost first, so a
+    field type and a result index open under them (SG-D16). *)
+let mu_param_env (ops : 'c ops) (ctx : 'c) (dclo : Value.closure) :
+    (Value.t list, Error.t) result =
+  let* legs = coll_legs_of ops ctx dclo in
+  let ev = ops.o_ev ctx in
+  let* vs =
+    all_ok (List.map (fun (lg : Value.vleg) -> open_closure ev lg.Value.vl_clo []) legs)
+  in
+  Ok (List.rev vs)
+
+(** The index rule of the introduction (A14, M1-PLAN.md:79):  the result
+    indices convert with those of the expected type.  SG-M3 drops it. *)
+let mu_indices (ops : 'c ops) (ctx : 'c) (n : string) (ct : Positivity.ctor)
+    (ixv : Value.t list) (env : Value.t list) : (unit, Error.t) result =
+  let arity = List.length ct.Positivity.c_res_idx in
+  let* pairs =
+    zip ct.Positivity.c_res_idx ixv
+    |> Option.to_result
+         ~none:
+           (Error.Mismatch
+              (Printf.sprintf "%s gives %d result indices and %s takes %d"
+                 ct.Positivity.c_name arity n (List.length ixv)))
+  in
+  let ev = ops.o_ev ctx in
+  List.fold_left
+    (fun (acc : (unit, Error.t) result) ((r, want) : Term.t * Value.t) ->
+      let* () = acc in
+      let* got = ev.ev_eval env r in
+      let* eq = ops.o_conv_type ctx got want in
+      if eq then Ok ()
+      else
+        Error
+          (Error.Mismatch
+             (Printf.sprintf
+                "the constructor %s of %s gives the index %s and the type asks for %s"
+                ct.Positivity.c_name n (ops.o_pp ctx got) (ops.o_pp ctx want))))
+    (Ok ()) pairs
+
+(** Introduction, M1-PLAN.md:79 and brief 3.1:  the address names the
+    constructor, every argument checks and the result indices unify. *)
+let mu_intro_in (ops : 'c ops) (ctx : 'c) (mode : Quantity.t) (_s : Term.t Shape.t)
+    (addr : Term.addr) (args : Term.t list) ~(expected : Value.t) :
+    (unit, Error.t) result =
+  let* w = ops.o_whnf ctx expected in
+  let* vs, dclo, _u =
+    Value.as_lan w
+    |> Option.to_result ~none:(Error.Mismatch "a constructor needs a left former")
+  in
+  let* n, ixv = as_vmu vs |> Option.to_result ~none:(Error.Mismatch wrong_pack) in
+  let* c =
+    Term.as_actor addr
+    |> Option.to_result ~none:(Error.Wrong_leg "a constructor takes a constructor address")
+  in
+  let* fam = mu_family ops ctx n in
+  let* ct =
+    Positivity.ctor_of c fam
+    |> Option.to_result ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+  in
+  let* penv = mu_param_env ops ctx dclo in
+  let* env = mu_telescope ops ctx mode c ct.Positivity.c_args args penv in
+  mu_indices ops ctx n ct ixv env
+
+(** Reduction.  A checked mu term holds neither redex at this stage. *)
+let mu_beta (_ev : evaluator) (r : beta_redex) : (Value.t option, Error.t) result =
+  match r with
+  | BOut (_, _, _) -> Error (Error.Not_yet mu_ran_word)
+  | BElim (_, _, _, _) -> Error (Error.Not_yet mu_elim_word)
+
+(** Brief 3.5:  [lan_lvl] is the level the record carries (SG-D8, SG-D15). *)
+let mu_lan_lvl (ops : 'c ops) (ctx : 'c) (s : Value.t Shape.t) (_ls : Level.t list) :
+    (Level.t, Error.t) result =
+  let* n, _ix = as_vmu s |> Option.to_result ~none:(Error.Mismatch wrong_pack) in
+  let* fam = mu_family ops ctx n in
+  Ok fam.Positivity.f_level
+
+(** The pack.  Each refusal sits at the field that answers for it
+    (SG-D4, SG-D9). *)
+let mu_pack (() : unit) : 'c rule_pack =
+  {
+    form_lan = mu_form_lan;
+    form_ran = (fun _ops _ctx _s _d ~expected:_ -> Error (Error.Not_yet mu_ran_word));
+    intro_in = mu_intro_in;
+    elim_elim = (fun _ops _ctx _mode _e ~expected:_ -> Error (Error.Not_yet mu_elim_word));
+    intro_sec =
+      (fun _ops _ctx _mode _s _legs ~expected:_ -> Error (Error.Not_yet mu_ran_word));
+    elim_out = (fun _ops _ctx _mode _s _addr _head -> Error (Error.Not_yet mu_ran_word));
+    beta = mu_beta;
+    (* SG-D5:  one introduction address per constructor, so neither former
+       gets an eta row and [no eta] grows from 1 to 3 (M1-PLAN.md:82). *)
+    eta = { eta_ran = false; eta_lan = false };
+    (* SG-D16:  the parameter section is binder free, so these two fields
+       are the collection's own. *)
+    diagram_arity = coll_diagram_arity;
+    (* [Ok None] falls conversion back to a structural compare (SB-D25). *)
+    spine_ty = (fun _ops _ctx _s _d _addr -> Ok None);
+    expand_ran = None;
+    expand_lan = None;
+    conv_diagram = coll_conv_diagram;
+    (* The record carries the level, so SB-D7's slot is not the carrier. *)
+    ann_lvl_eq = spi_ann_lvl_eq;
+    lan_lvl = mu_lan_lvl;
+    (* A coinductive section is SNu's job (SPEC.md:32, SG-D4). *)
+    ran_lvl = (fun _ops _ctx _s _ls -> Error (Error.Not_yet mu_ran_word));
+  }
+
+(** The dispatch of plan section 5.  Three shapes have a pack;  the
+    other two carry their milestone word, so a term that reaches the
+    checker at one of them fails with the name of the milestone that
+    admits it (D-M0-2). *)
 let rules (s : 'a Shape.t) : ('c rule_pack, Error.t) result =
   match s with
   | Shape.SPi (_, _, _) -> Ok (spi_pack ())
   | Shape.SColl _ -> Ok (coll_pack ())
   | Shape.SPar (_, _) -> Error (Error.Not_yet spar_word)
-  (* SB-M4 site *)
-  | Shape.SMu (_, _) -> Error (Error.Not_yet smu_word)
+  (* SB-M4 site;  M1 Stage G installs the pack the refusal stood for. *)
+  | Shape.SMu (_, _) -> Ok (mu_pack ())
   | Shape.SNu (_, _) -> Error (Error.Not_yet snu_word)
 
 (** The two eliminations, with the pack found from the shape.  eval.ml

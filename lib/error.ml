@@ -27,6 +27,12 @@ type t =
   | Overflow of string  (** a check-time literal leaves the host int range *)
   | Cannot_infer of string  (** the term has no type without an expectation *)
   | Budget_exhausted of string  (** the driver's cutoff fired (SB-D19) *)
+  | Index_not_zero of string
+      (** M1 Stage G:  an index binder of a family is not at quantity
+          [Zero] (A2, kan-lang-tot-pin/lib/check.ml:1819) *)
+  | Index_above_universe of string
+      (** M1 Stage G:  an index type is above the declared level (A5,
+          kan-lang-tot-pin/lib/check.ml:1820-1823) *)
 
 let message (e : t) : string =
   match e with
@@ -42,6 +48,8 @@ let message (e : t) : string =
   | Overflow m -> m
   | Cannot_infer m -> m
   | Budget_exhausted m -> m
+  | Index_not_zero m -> m
+  | Index_above_universe m -> m
 
 let to_string (e : t) : string =
   match e with
@@ -57,3 +65,5 @@ let to_string (e : t) : string =
   | Overflow m -> "overflow: " ^ m
   | Cannot_infer m -> "cannot infer: " ^ m
   | Budget_exhausted m -> "budget: " ^ m
+  | Index_not_zero m -> "index not zero: " ^ m
+  | Index_above_universe m -> "index above universe: " ^ m

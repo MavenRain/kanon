@@ -53,11 +53,30 @@ type entry =
   | Axiom of axiom_entry  (** M4 Stage B *)
   | Prim of prim_entry  (** M0 Stage B *)
 
-type t = entry StringMap.t
+(** M1 Stage G, brief 3.3 and SG-D1:  the family table lives beside the
+    Global table, in the same record, and [entry] above gains no
+    constructor, which keeps R-Q3 as ruled (M1-PLAN.md:9).  The record is
+    [Positivity.family] (SG-D14):  this file reads Prim.catalog below and
+    prim.ml:61 reads [Rules.arrow]. *)
+type t = {
+  entries : entry StringMap.t;
+  families : Positivity.family StringMap.t;
+}
 
-let empty : t = StringMap.empty
-let find (name : string) (globals : t) : entry option = StringMap.find_opt name globals
-let add (name : string) (entry : entry) (globals : t) : t = StringMap.add name entry globals
+let empty : t = { entries = StringMap.empty; families = StringMap.empty }
+let find (name : string) (globals : t) : entry option = StringMap.find_opt name globals.entries
+
+let add (name : string) (entry : entry) (globals : t) : t =
+  { globals with entries = StringMap.add name entry globals.entries }
+
+(** The one accessor of brief 3.3:  rules.ml reads a family through this
+    and nothing else (SG-D2, dev/r0-audit.sh:6-11). *)
+let find_family (name : string) (globals : t) : Positivity.family option =
+  StringMap.find_opt name globals.families
+
+(** The writer of check.ml [declare_family] and [define_ctors]. *)
+let add_family (name : string) (fam : Positivity.family) (globals : t) : t =
+  { globals with families = StringMap.add name fam globals.families }
 
 (** The closed type every entry kind stores. *)
 let entry_ty (e : entry) : Term.t =

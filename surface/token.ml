@@ -64,6 +64,9 @@ type kind =
   | KAuto
   | KMu
   | KNu
+  | KAnd
+      (** M1 Stage G, correction C7:  the one word the minimal mu
+          production adds, which joins the members of a mutual group. *)
   | KNatAdd
   | KNatSub
   | KNatMul
@@ -114,6 +117,7 @@ let describe (k : kind) : string =
   | KAuto -> "'auto'"
   | KMu -> "'mu'"
   | KNu -> "'nu'"
+  | KAnd -> "'and'"
   | KNatAdd -> "'natAdd'"
   | KNatSub -> "'natSub'"
   | KNatMul -> "'natMul'"

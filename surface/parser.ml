@@ -42,13 +42,16 @@ let kind_starts_atom (k : Token.kind) : bool =
   match k with
   | Token.Ident _ | Token.Nat _ | Token.LParen | Token.Unit | Token.KProp | Token.KType
   | Token.KAuto | Token.KTuple | Token.KSum | Token.KProd | Token.KNatAdd
-  | Token.KNatSub | Token.KNatMul | Token.KNatEq | Token.KNatLt | Token.KMu
-  | Token.KNu ->
+  | Token.KNatSub | Token.KNatMul | Token.KNatEq | Token.KNatLt | Token.KNu ->
       true
+  (* M1 Stage G, correction C7:  'mu' opens a declaration and 'and' joins
+     two of them, so neither starts an atom.  Were 'mu' to start one, the
+     body of a 'def' would swallow the mu group written after it. *)
   | Token.RParen | Token.Colon | Token.ColonEq | Token.Arrow | Token.DArrow | Token.Star
   | Token.Comma | Token.Dot | Token.Dot1 | Token.Dot2 | Token.Pipe | Token.KDef
   | Token.KAxiom | Token.KFun | Token.KInj | Token.KOf | Token.KCase | Token.KAs
-  | Token.KReturn | Token.KWith | Token.KAbsurd | Token.KLet | Token.KIn | Token.Eof ->
+  | Token.KReturn | Token.KWith | Token.KAbsurd | Token.KLet | Token.KIn | Token.KMu
+  | Token.KAnd | Token.Eof ->
       false
 
 let starts_atom (ts : Token.t list) : bool =
@@ -294,9 +297,13 @@ and parse_atom_head (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) res
       parse_items "sum" (fun (xs : Syntax.t list) -> Syntax.SSum xs) rest
   | { Token.kind = Token.KProd; loc = _ } :: rest ->
       parse_items "prod" (fun (xs : Syntax.t list) -> Syntax.SProd xs) rest
-  (* SA-D3:  the two reserved words are refused at the first pass over
-     the text, with the milestone that admits them. *)
-  | { Token.kind = Token.KMu; loc } :: _rest -> parse_err loc "mu arrives at M1"
+  (* M1 Stage G, correction C7:  'mu' is a declaration word from this
+     stage, so in a term position it names its own production instead of
+     a milestone.  'nu' keeps the SA-D3 refusal with its milestone. *)
+  | { Token.kind = Token.KMu; loc } :: _rest ->
+      parse_err loc "a mu group is a declaration and not a term"
+  | { Token.kind = Token.KAnd; loc } :: _rest ->
+      parse_err loc "'and' joins two members of a mu group and is not a term"
   | { Token.kind = Token.KNu; loc } :: _rest -> parse_err loc "nu arrives at M2"
   | { Token.kind = Token.LParen; loc = _ } :: rest -> parse_paren rest
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a term" ts
@@ -378,8 +385,72 @@ and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) resul
     :: rest ->
       let* ty, rest2 = parse_term rest in
       Ok (Syntax.DAxiom (name, ty), rest2)
+  | { Token.kind = Token.KMu; loc = _ } :: rest ->
+      let* fams, rest2 = parse_fam_group rest [] in
+      Ok (Syntax.DMu fams, rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) ->
-      expected "'def NAME :' or 'axiom NAME :'" ts
+      expected "'def NAME :', 'axiom NAME :' or 'mu NAME'" ts
+
+(** M1 Stage G, correction C7:  the minimal mu production.
+
+    group   ::= 'mu' member ('and' member)*
+    member  ::= NAME binder* ':' term 'with' ctor*
+    ctor    ::= '|' NAME ':' term
+
+    The binders after the name are the parameter telescope.  The term
+    after the colon is an arrow chain whose binders are the index
+    telescope and whose result is the declared universe;  the elaborator
+    splits it (brief 3.9).  A constructor type is an arrow chain whose
+    binders are the argument telescope, one quantity per field, and
+    whose result names the family at its result index expressions.  The
+    sugar and the spine additions stay at Stage L (M1-PLAN.md:230).
+
+    Neither 'and' nor '|' starts an atom, so the term parser stops at
+    the end of every header and of every constructor without a
+    terminator word. *)
+and parse_fam_group (ts : Token.t list) (acc : Syntax.fam list) :
+    (Syntax.fam list * Token.t list, Error.t) result =
+  let* fm, rest = parse_fam ts in
+  match rest with
+  | { Token.kind = Token.KAnd; loc = _ } :: rest2 -> parse_fam_group rest2 (fm :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev (fm :: acc), rest)
+
+and parse_fam (ts : Token.t list) : (Syntax.fam * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Ident name; loc = _ } :: rest -> (
+      let* params, rest2 = parse_binders rest [] in
+      match rest2 with
+      | { Token.kind = Token.Colon; loc = _ } :: rest3 -> (
+          let* ty, rest4 = parse_term rest3 in
+          match rest4 with
+          | { Token.kind = Token.KWith; loc = _ } :: rest5 ->
+              let* ctors, rest6 = parse_fam_ctors rest5 [] in
+              Ok
+                ( {
+                    Syntax.fm_name = name;
+                    fm_params = params;
+                    fm_ty = ty;
+                    fm_ctors = ctors;
+                  },
+                  rest6 )
+          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest4)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':'" rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a family name" ts
+
+(** Zero or more "| NAME : TYPE" rows.  The list ends at the first token
+    that is not a bar, so 'and' and the next declaration read on. *)
+and parse_fam_ctors (ts : Token.t list) (acc : Syntax.fam_ctor list) :
+    (Syntax.fam_ctor list * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.Pipe; loc = _ }
+    :: { Token.kind = Token.Ident name; loc = _ }
+    :: { Token.kind = Token.Colon; loc = _ }
+    :: rest ->
+      let* ty, rest2 = parse_term rest in
+      parse_fam_ctors rest2 ({ Syntax.fc_name = name; fc_ty = ty } :: acc)
+  | { Token.kind = Token.Pipe; loc } :: _rest ->
+      parse_err loc "expected a constructor name and ':' after '|'"
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)
 
 (** The whole surface pass:  text to items, on the result track. *)
 let parse (src : string) : (Syntax.decl list, Error.t) result =
