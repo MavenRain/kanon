@@ -503,3 +503,195 @@ and zero warnings; PARSE-OK 43/43, CHECK-OK 32/32, ERASE-OK 32/32,
 NEG-OK 11/11, KNEG-OK 2/2, SUITE-KERNEL OK and R0-COUNT OK.  The four
 standalone review regression assertions also pass.  No prior test or
 mutation record was removed.
+
+## Stage D (2026-09-05)
+
+Stage D is WasmGC emission.  Two builders delivered the tree, a fixer
+closed finding SD-F1, and the judge wrote this section after a rerun of
+SD-G1 to SD-G13 on the repository and of SD-M1 to SD-M3 on three fresh
+copies.  Every line quoted below is a line the judge printed.
+
+### Deliverables
+
+- `wasm/dune`, 3 lines:  the library kanon_wasm over kanon_kernel.
+- `wasm/gc_encode.ml`, 216 lines:  the byte encoder.  LEB128 unsigned
+  and signed, value types, the three composite forms, the type,
+  function, export, element and code sections, a locals vector, and one
+  instruction sum with one arm for each mnemonic of SPEC section 8.  It
+  holds no IR knowledge and it is under the 600 line budget.
+- `wasm/link.ml`, 830 lines:  one pass from the erased rows to indices.
+  It parses the tid grammar, dedups by text, assigns every type index
+  and every function index, and holds the repr inference of SD-D20 and
+  the total list reader nth_at of SD-D22.
+- `wasm/emit.ml`, 739 lines:  `Emit.program`, the emission of plan
+  section 7 under the ABI of SD-D2 to SD-D8, and the five refusals.
+- `bin/kanon.ml`, 155 lines:  `kanon emit FILE -o OUT.wasm --export NAME`,
+  the exit codes 0, 1, 2 and 64, and the new usage line.
+- `bin/dune`, 3 lines:  kanon_wasm joins the driver.
+- `dev/run-node.mjs`, 53 lines:  the node runner of SD-D10.
+- `dev/encoder-subset.sh`, 86 lines:  the ENCODER-SUBSET gate.
+- `dev/house.sh`, 82 lines:  the HOUSE gate as a command (SD-D30).
+- `test/wasm.ml`, 283 lines:  the emission suite.
+- `test/sys_io.ml`, 32 lines:  the one catch site (SD-D26).
+- `test/main.ml`, 243 lines:  the kernel suite, now over 42 fixtures.
+- `test/dune`, 3 lines:  one tests stanza over main and wasm (SD-D28).
+- `SPEC.md`, 445 lines:  section 8, the new 8.1 emission table and the
+  resolved any row of section 10.
+- `README.md`, 148 lines:  emit, the runner, the suite and the closure
+  ABI paragraph.
+- Ten fixtures, d01 to d10, and thirty goldens, one `.checked`, one
+  `.erased` and one `.wat` for each.
+
+### Gates
+
+| gate | verdict | the lines printed |
+| --- | --- | --- |
+| SD-G1 BUILD | pass | `zsh dev/dune.sh clean` exit 0, then `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`, exit 0. |
+| SD-G2 CARRY | pass | `zsh dev/carry-check.sh` printed `CARRY lib/level.ml diff=2 expected=2 OK`, `lib/level.mli 2`, `lib/quantity.ml 34`, `lib/literal.ml 2`, `lib/global.ml 164`, `lib/budget.ml 2`, `lib/budget.mli 2`, then `CARRY-OK`, exit 0.  The seven rows are the Stage C rows, unchanged. |
+| SD-G3 R0-COUNT | pass | `zsh dev/r0-count.sh` printed `R0-COUNT OK`, exit 0. |
+| SD-G4 SUITE-KERNEL | pass | `_build/default/test/main.exe test` printed `PARSE-OK 53/53`, `CHECK-OK 42/42`, `ERASE-OK 42/42`, `NEG-OK 11/11`, `KNEG-OK 2/2`, `SUITE-KERNEL OK`, exit 0. |
+| SD-G5 SUITE-WASM | pass | `_build/default/test/wasm.exe test OUTDIR` printed `EMIT d01-lit-prims OK` through `EMIT d10-i31-boundary OK`, ten lines, then `WASM-OK 10/10`, `SUITE-WASM OK`, exit 0.  The d10 line is OK because the expected outcome is the trap. |
+| SD-G6 ENCODER-SUBSET | pass | `zsh dev/encoder-subset.sh ROOT` printed `ENCODER-SUBSET OK`, exit 0.  On an rsync copy with one `  (i64.add` line added to `test/golden/d01-lit-prims.wat` the same script printed `i64.add` then `ENCODER-SUBSET FAIL`, exit 1. |
+| SD-G7 R0-AUDIT | pass | the shape name sweep over lib/ without shape.ml, rules.ml, pp.ml and erase.ml printed nothing, exit 1, and the sweep over wasm/ without emit.ml printed nothing, exit 1.  The globs must stand before the pattern and the pattern needs `-e`:  with `--` first, ripgrep reads `--glob` as a path, prints `rg: --glob: No such file or directory (os error 2)` and searches the file the glob names. |
+| SD-G8 PIN | pass | `cat PIN`, `git -C vendor/tot rev-parse --short HEAD` and `git -C PIN rev-parse --short HEAD` each printed `8cf0b8b`;  the pin porcelain count printed `0`. |
+| SD-G9 REPO | pass | `rev-list --count HEAD` printed `4`, `log -1 --format=%s` printed `M0 Stage C: erasure`, `diff --cached --stat` printed nothing, and the porcelain holds no path under `_build` or `.gatework`. |
+| SD-G10 TRUSTED-LINES | pass | shape.ml 27, term.ml 80, rules.ml 969, check.ml 308, value.ml 137, eval.ml 255, conv.ml 390 and totality.ml 139 sum to `2305`, under 3000;  `wc -l wasm/gc_encode.ml` printed `216`, under 600.  The budget and the file list are stated in kanon-m0/M0-PLAN.md section 11 and not in SPEC section 9, which is the surface grammar (finding SD-F2). |
+| SD-G11 HOUSE | pass | five legs, all through `zsh dev/house.sh` (SD-D30).  Legs 1, 4 and 5 printed nothing;  leg 2 printed only the SD-D18 buffer site, `wasm/gc_encode.ml:84` to `:86`;  leg 3 printed exactly one line, `test/sys_io.ml:19:  try Ok (thunk ()) with Sys_error m -> Error m`.  The last leg runs `rg -n --glob '!vendor' --glob '!**/vendor/**' --glob '!_build' --glob '!**/_build/**' -e PATTERN ROOT`, because ripgrep 15.1.0 does not honor the `!vendor/**` form of the brief and read the vendor tree with it, 69 hits, all under vendor/tot (SD-D29, finding SD-F1).  Final lines `HOUSE no-em-dash OK`, `HOUSE OK`, exit 0. |
+| SD-G12 DRIVER | pass | nine legs.  emit d01 with `--export main` exit 0 and wasm-opt read the file, exit 0;  `--export nosuch` printed `kanon: emit: unbound: no definition named nosuch`, exit 2;  a10 with `--export start` printed `kanon: emit: unbound: axiom zero has no body`, exit 2;  a01 with `--export twice` printed `kanon: emit: mismatch: twice is not a Nat definition of arity 0`, exit 2;  `emit` alone printed the usage line, exit 64;  n01 printed `mismatch: the term has type Type 2 and the expected type is Type 1`, exit 1;  `run` printed `kanon: run arrives at Stage E`, exit 64;  `check --erased test/fixtures/c02-zero-binder.kan` diffed empty against its golden;  `axioms test/fixtures/b08-axiom-disclosure.kan` printed one line, `Bit`. |
+| SD-G13 HOSTS | pass | ten pairs, node first and wasmtime second:  d01 17 and 17, d02 10 and 10, d03 26 and 26, d04 10 and 10, d05 78 and 78, d06 31 and 31, d07 25 and 25, d08 7 and 7, d09 232 and 232, and d10 a trap on both hosts, node exit 1 with `trap: unreachable` and wasmtime exit 134 with `wasm trap: wasm 'unreachable' instruction executed`.  wasmtime prints one experimental warning on stderr for each of the nine numeric modules (SD-D16). |
+
+Thirteen gates of thirteen pass.
+
+### Decisions carried from the brief
+
+- SD-D1 Function references.  Closures are called through call_ref, so the references row of SPEC section 8 gains `ref.func`, the sections used gain the declarative element segment with flag 3, and the refused list drops element.  Defunctionalization through one dispatch function per arity is noted for the user and is not built.
+- SD-D2 Closures.  One struct type `clos` holds an i32 arity, a `(ref func)` code field and a `(ref eq)` env field.  `func fn<n>` maps to `(ref $clos)`.  The code ABI is env first, then n eq parameters, and one eq result.  A prim used as a value gets the same wrapper.
+- SD-D3 Two calling conventions.  A KGlobal head at exactly its KFun arity uses the typed signature, with return_call in a tail position and inline i32 code for a prim of two arguments.  A variable head or an arity mismatch uses the closure ABI.
+- SD-D4 Generic apply.  `apply<k>` exists for each call site argument count k.  It reads the arity m, calls when m equals k, builds a PAP clos when m is greater, and applies the rest through `apply<k-m>` when m is smaller.
+- SD-D5 Sums.  A sum value is `(ref eq)`.  A payload free leg is `ref.i31 k`.  A payload leg of width n is a struct with an i32 tag in field 0.  Dispatch is br_on_cast to i31 and an i32.eq chain, then one br_on_cast for each distinct field shape, then `unreachable`.
+- SD-D6 Pairs and tuples.  One struct for each tid with typed fields, KProj is struct.get, `any` and every `union T` map to `(ref eq)`, and `unit` and `tuple<>` have no runtime value.
+- SD-D7 Nat boundary.  Nat is i31.  A KLit outside 0 to 1073741823 is an emission error.  natAdd and natMul trap on an answer above the bound, natSub answers 0 below zero, and every comparison is unsigned.
+- SD-D8 Export.  `--export NAME` needs a Def NAME at the prim Nat with no parameter.  The export is a separate function that calls NAME and applies i31.get_s.
+- SD-D9 A positive fixture joins SUITE-WASM when it defines `main`, and the expected value comes from the kernel, never from a sidecar.  The `.wat` goldens are the print of wasm-opt version 130.
+- SD-D10 The node runner is dev/run-node.mjs.  The wasmtime runner is Stage E's.
+- SD-D11 ENCODER-SUBSET is dev/encoder-subset.sh, and the numeric row of SPEC section 8 becomes explicit at Stage D.
+- SD-D12 Locals.  Every local has its exact repr type and is non nullable.  A let value is set before its body opens a block and a branch payload local is set at the head of its branch, so the non nullable rule holds by construction.
+- SD-D13 lib/ is not edited at Stage D unless emission exposes an erasure bug.  No such bug was found, so no kernel file changed and no `.erased` golden moved for that reason.
+- SD-D14 One catch site in the repository.
+- SD-D15 The emitted module has no import and no table, memory, global, start or data section.  The exports are the one entry.
+- SD-D16 wasmtime spelling:  `wasmtime run -C cache=n --invoke NAME FILE.wasm`.  The options stand after `run`, because the sandbox refuses the default cache directory.
+- SD-D17 Every composite type is its own rec group, and link.ml dedups by tid text.
+
+### Decisions taken during the build
+
+The two builders and the fixer took these decisions.  The texts are
+their own.  The fixer numbered its three decisions SD-D21, SD-D22 and
+SD-D23, which the builders had already used, so the judge renumbers the
+fixer's three as SD-D29, SD-D30 and SD-D31.  No other text moved.
+
+- SD-D18 gc_encode.ml `byte` is the one Buffer.t site.  The buffer is local, it holds one byte and it is read once, because `Char.chr` is a partial accessor the house rules refuse.
+- SD-D19 The array composite form is not encoded at M0, because a constructor no caller builds is an error under `-warn-error +a`.
+- SD-D20 Repr inference lives in link.ml, because the type table needs the repr of every capture and every let, so inference and index assignment are one walk.
+- SD-D21 An M0 sum leg carries one field or none, so a leg is a bare i31 tag or a struct of the tag and one payload.
+- SD-D22 link.ml owns `nth_at`, a total list reader, because the SD-G11 sweep refuses the text `List.nth` and `List.nth_opt` matches it.
+- SD-D23 natAdd and natMul trap at the i31 boundary.  The primitive bodies hold a range test, i32.gt_u against 1073741823 then unreachable, and natMul also holds an overflow test, an i32.div_u back check and i32.ne then unreachable, so an answer outside 0 to 1073741823 is a trap and never a wrapped or negative number.  The SPEC section 8 numeric row lists i32.div_u, i32.ne and i32.gt_u, which gc_encode.ml already encoded.
+- SD-D24 `drop` in a `.wat` golden is the text printer's rendering of the dead stack value ahead of `unreachable` in the SD-D5 dispatch, not an opcode the encoder emits.  gc_encode.ml has no Drop arm, so `drop` is listed among the non opcode words of dev/encoder-subset.sh and SPEC section 8 says why.
+- SD-D25 Every d fixture states the value of main in its first comment line, and the emission suite reads that value from the kernel and not from the comment.  d10 states a value that traps, so the suite expectation for it is a trap and not a number.
+- SD-D26 test/sys_io.ml holds the one catch site, `attempt_sys`, with `read_file` and `kan_names`.  test/main.ml aliases both, so two runners under test/ share a single boundary and gate SD-G11 leg 3 still prints exactly one line.
+- SD-D27 The emission suite OUTDIR defaults to `_build/wasm-suite` under the root and takes an optional second argument.  Every external tool call runs through `Sys.command` with absolute paths and shell redirection into `NAME.out` and `NAME.err`, so a failure is read from the file and never from an exception.
+- SD-D28 test/dune declares one `(tests (names main wasm))` stanza over kanon_kernel, kanon_surface and kanon_wasm, so main.exe and wasm.exe build from one directory and share sys_io.ml.
+- SD-D29 Exclusion globs.  ripgrep 15.1.0 on this machine does not honor the `!vendor/**` form, so the em-dash leg of SD-G11 is written with `--glob '!vendor'`, `--glob '!**/vendor/**'`, `--glob '!_build'` and `--glob '!**/_build/**'`, both forms verified.  The basename globs of SD-G7 are honored, so SD-G7 is unaffected.
+- SD-D30 HOUSE becomes an executable gate.  dev/house.sh, 82 lines, runs the five legs and prints one verdict line for each, then `HOUSE OK` exit 0 or `HOUSE FAIL` exit 1.  Leg 2 accepts a hit only inside the twelve lines after the `SD-D18.` marker comment, so the disclosed buffer site stays allowed and any other hit fails.  Leg 5 holds the character as an escape, so the file that checks for it does not hold one.  The raw commands stay valid.
+- SD-D31 The fixer does not write the logs.  The corrected SD-G11 row text was handed to the judge, who wrote it above.
+
+The builders also returned nine ABI decisions without a number.  The
+judge numbers them here, in the order they were returned.
+
+- SD-D32 A KTail becomes return_call or return_call_ref only when the callee result coerces to the caller result with no instruction.  Every other tail call is a plain call and then the coercion.
+- SD-D33 KErased emits `ref.i31` of zero, so an erased argument has the eq repr `any` without a null.
+- SD-D34 A KApp or a KTail with no argument is the identity on its head.
+- SD-D35 A leg struct carries the tag in field 0, so two legs of one payload repr share one struct type and the tag tells them apart.
+- SD-D36 The export check runs before link, so `--export` on a name that is not a Nat definition of arity 0 refuses with that message and never reaches the encoder.
+- SD-D37 Every KFun of the module is emitted, so a use of an axiom anywhere refuses.  Reachability pruning arrives at Stage E.
+- SD-D38 The runtime does not re-check the Nat bound on a literal:  the kernel checks literals and the emitter refuses a KLit outside 0 to 1073741823.
+- SD-D39 The SPEC section 8 numeric row names the i32 ops emit.ml emits, while gc_encode.ml keeps three further arms that no emission uses yet.  SD-D23 moved i32.div_u, i32.ne and i32.gt_u from that set into the emitted set.
+- SD-D40 The generic helper `apply<k>` answers an eq reference, so an under applied call appends one coercion to the repr link.ml promises the caller.
+
+### Findings
+
+- SD-F1, high, resolved.  SD-G11 HOUSE, run exactly as the brief writes it, did not pass:  the em-dash leg exclusion glob `!vendor/**` is not honored by ripgrep 15.1.0, so the leg read the vendor tree and printed 69 lines, all under vendor/tot, while the builders reported no gate failure.  Stage D's own files hold no such character.  The fixer wrote dev/house.sh with the two honored forms and added the script to the README gate block.  The judge reran it:  the broken form still prints 69 lines, the corrected form prints nothing and exits 1, `zsh dev/house.sh` prints `HOUSE OK` and exits 0, and on a copy with one such character appended to README.md the same script prints `HOUSE no-em-dash FAIL`, the offending line, `HOUSE FAIL` and exits 1.  The leg is not vacuous.
+- SD-F2, low, resolved in this log.  The brief attributes the eight kernel file line budget to SPEC section 9.  SPEC section 9 is the surface grammar and holds no file list.  The budget is in kanon-m0/M0-PLAN.md, the gate leg at line 238 and the trusted base of section 11 at line 260.  The SD-G10 row above cites M0-PLAN.md.  The gate itself is unaffected:  2305 lines and 216 lines, both under budget.
+
+### Hand-off notes for Stage E
+
+- The run command.  `kanon run FILE --export NAME` is not built.  Today
+  `kanon run` prints `kanon: run arrives at Stage E` and exits 64.  The
+  emit path is the model:  the argument order is fixed, a front end
+  error exits 1, an emission error prints one `kanon: emit: MESSAGE`
+  line and exits 2, and 64 is the usage code.
+- The wasmtime spelling is `wasmtime run -C cache=n --invoke NAME
+  FILE.wasm` (SD-D16).  The options stand after `run`.  It prints the
+  value on stdout and one experimental warning on stderr.  A trap exits
+  134 with `wasm trap: wasm 'unreachable' instruction executed`.
+- The suite OUTDIR.  `test/wasm.exe ROOT/test [OUTDIR]` defaults OUTDIR
+  to `_build/wasm-suite` under the root and creates it when it is
+  missing (SD-D27).  Every fixture leaves `NAME.wasm`, `NAME.wat`,
+  `NAME.out` and `NAME.err` there, so a Stage E gate can read them.
+- examples/m0-spine.kan must exercise every row of the emission table of
+  SPEC 8.1:  the five prims with the i31 boundary, a chain of tail
+  calls, a pair and a tuple built and projected, a sum with a payload
+  free leg and a payload leg cased on every leg, a closure with a
+  capture, a partial application over and under the arity, an erased
+  polymorphic identity used at Nat, and a nested let with a case inside
+  it.  d01 to d10 hold each row once, so the spine is their union with
+  one `main`.
+- The dev/gates.sh legs of Stage E are the thirteen legs above.  Nine of
+  them are already commands:  `dev/dune.sh clean`, `dev/dunecho.sh
+  build`, `dev/carry-check.sh`, `dev/r0-count.sh`, `test/main.exe`,
+  `test/wasm.exe`, `dev/encoder-subset.sh`, `dev/house.sh` and the git
+  reads of SD-G8 and SD-G9.  SD-G7, SD-G10, SD-G12 and SD-G13 are still
+  loose commands and want a script each.
+- `--host both` exit 3.  Stage E must run each module on node and on
+  wasmtime and exit 3 when the two hosts disagree.  The ten pairs of
+  SD-G13 are the baseline:  nine equal numbers and one trap on both.
+- Two traps to carry.  ripgrep needs its globs before the pattern and
+  the pattern behind `-e`;  with `--` first it reads `--glob` as a path
+  (SD-G7, SD-D29).  wasm-opt writes `warning: no passes specified, not
+  doing any work` on stderr;  it is noise, not an error.
+
+## Stage D review fixes (2026-09-05)
+
+The staged-change review exposed three failures in checked programs:
+polymorphic pair projection trapped, generic-call sums lost their case
+types, and generic captures disagreed with the wrapper environment type.
+
+- Aggregate fields now store non-null eq references.  Pairs, tuples and
+  environments of the same width have equivalent final Wasm types;
+  sum payload fields also store eq references.  Every field read casts
+  to its checked repr.  Function signatures and locals remain typed.
+- KCase now retains the checked scrutinee tid.  Erasure preserves it
+  through shifting and tid collection; linking and emission use it for
+  dispatch and branch binders.  The erased constructor set is unchanged.
+- Link.capture_reprs supplies the lifted capture signature to type
+  registration, construction and wrappers.  Capture reads and writes
+  use that signature.  This replaces the expression-inferred environment
+  layout described in SD-D20.
+- Equivalent aggregate types need no cast between them.  Empty cases
+  end at unreachable without a dead result cast.  No opcode or gate
+  allowlist changed.
+- Fixtures d11 to d14 reproduce the review findings.  d15 covers nested
+  aggregates, generic input and output layouts, sum payloads, closures
+  stored in tuples, and an empty case.  Existing affected erased and WAT
+  goldens were regenerated; checked goldens for existing fixtures did
+  not change.  SPEC.md and README.md describe the corrected ABI.
+
+Validation on an isolated copy of the index plus these fixes:
+
+| check | result |
+| --- | --- |
+| dunecho build | 0 errors, 0 warnings |
+| kernel suite | PARSE 58/58, CHECK 47/47, ERASE 47/47, NEG 11/11, KNEG 2/2 |
+| wasm suite | WASM-OK 15/15; wasm-opt validation, WAT goldens and Node results agree with the kernel |
+| Wasmtime regression results | d11 5, d12 1, d13 1, d14 11, d15 36; all exit 0 |
+| HOUSE, R0-COUNT, ENCODER-SUBSET | all pass; gate scripts unchanged |
+| regression sensitivity | all five added fixtures fail on the original staged backend; see MUTATION-LOG.md |

@@ -87,7 +87,7 @@ column gives the name the row writes, either a `tid` or a `fid`.
 | `In` at `Lan SPi` | `KStruct (tid, the runtime fields)`, `KErased` when no field is runtime | `tid` is `pair<R,R>` |
 | `Elim` at `Lan SPi` | one `KLet` of the scrutinee, then one `KLet` over a `KProj` for each runtime binder | `tid` is `pair<R,R>` |
 | `In` at `Lan (SColl n)` | `KTag (tid, k, the runtime payload)` | `tid` is `sum<R\|R>` |
-| `Elim` at `Lan (SColl n)` | `KCase (scrutinee, one branch for each leg in leg order)` | `tid` is `sum<R\|R>` |
+| `Elim` at `Lan (SColl n)` | `KCase (tid, scrutinee, one branch for each leg in leg order)` | the checked scrutinee `tid` is `sum<R\|R>`, or `any` for an empty sum |
 | `Sec` at `Ran (SColl n)` | `KStruct (tid, the runtime legs)` | `tid` is `tuple<R,R>` |
 | `Out` at `ALeg k` | `KProj (tid, k renumbered over the runtime legs, the term)` | `tid` is `tuple<R,R>` |
 | `Let` | `KLet (x, value, body)` for a runtime value, and the binder is dropped for a value that is not | none |
@@ -292,18 +292,118 @@ growth is visible in a diff of this table.
 | group | members |
 | --- | --- |
 | numbers | LEB128 unsigned, LEB128 signed |
-| sections used | type, function, export, code |
-| sections refused | table, memory, global, start, element, data |
+| sections used | type, function, export, element (declarative segments only), code |
+| sections refused | table, memory, global, start, data |
 | composite types | struct, array, func, in rec groups, final subtypes only |
 | control | `block`, `loop`, `if`, `br`, `br_if`, `br_on_cast`, `return`, `unreachable` |
 | calls | `call`, `return_call`, `call_ref`, `return_call_ref` |
 | locals | `local.get`, `local.set`, `local.tee` |
-| numeric | `i32.const`, and the i32 arithmetic and comparison ops that the five prims need |
-| references | `ref.i31`, `i31.get_s`, `ref.cast`, `ref.null`, `ref.is_null` |
+| numeric | `i32.const`, `i32.add`, `i32.sub`, `i32.mul`, `i32.div_u`, `i32.eq`, `i32.ne`, `i32.lt_u`, `i32.gt_u` |
+| references | `ref.i31`, `i31.get_s`, `i31.get_u`, `ref.cast`, `ref.func`, `ref.null`, `ref.is_null` |
 | structs | `struct.new`, `struct.get` |
 
 M0 emits WasmGC core modules only (R-Q4).  There is no linear memory, no
 tag, and no import beyond the gate's export.
+
+The text form of a module is the print of the binary, so it can hold one
+word this table does not list.  The printer writes `drop` around a value
+that stays on the stack in front of an `unreachable`, which the case
+dispatch of SD-D5 leaves there when no leg casts.  dev/encoder-subset.sh
+reads that word as the printer's and not as an opcode of
+wasm/gc_encode.ml (SD-D24).
+
+### 8.1 The emission table
+
+wasm/emit.ml writes one wasm form for every row.  A shape that is not in
+this table is a refusal, not a guess.
+
+| shape | erased form | wasm form |
+| --- | --- | --- |
+| a call of a known function | `KTail (KGlobal f) [a; ..]` | `call` of the typed signature, and `return_call` in tail position |
+| a primitive | `KApp (KGlobal natAdd) [a; b]` | `i31.get_u` on each argument, the i32 op, the trap of the range, then `ref.i31` |
+| a closure | `KClos f n [c; ..]` | `struct.new` of the closure type with the arity, `ref.func` of the wrapper and the environment |
+| a call of a closure | `KTail (KVar 0) [a; ..]` | `struct.get` of the environment and of the code, `ref.cast` to `fn<n>`, then `call_ref` or `return_call_ref` |
+| an application of an unknown arity | `KApp (KVar 0) [a]` | `call` of the helper `apply<k>` |
+| a partial application | the same, with a larger arity | `struct.new` of `pap<m,k>` and a closure of the wrapper `papw:m:k` |
+| a let | `KLet x v b` | a typed local, `local.set`, then the body |
+| a pair or a tuple | `KStruct t [f; ..]` | one `struct.new` of the type of the tid |
+| a projection | `KProj t k x` | `ref.cast` to the type of the tid, then `struct.get` and a cast from eq to the field repr |
+| a tag with no payload | `KTag t k []` | `ref.i31` of the tag |
+| a tag with a payload | `KTag t k [p]` | `struct.new` of the leg type, the tag first |
+| a case | `KCase t s [{..}]` | the retained tid supplies the leg types; one `block` per leg shape, `br_on_cast` to i31 and to each leg type, then an `i32.eq` chain on the tag |
+| an erased argument | `KErased` | `ref.i31` of zero |
+| a literal | `KLit n` | `i32.const`, then `ref.i31` |
+| the export | the definition the caller names | a function with no parameter that calls the definition and reads the answer with `i31.get_s` |
+
+The closure (SD-D2).  A closure is a struct of three fields.  The first
+field is the arity as an i32.  The second field is the code as a function
+reference.  The third field is the environment as an eq reference.  A
+closure with no capture holds a tagged zero in the third field.  Every
+field is immutable.
+
+Two conventions (SD-D3).  A function with a known name and a known arity
+has a typed signature.  Its parameters and its answer keep their repr.
+Every other call goes through the generic signature `fn<n>`, where the
+environment, each argument and the answer are eq references.  A wrapper
+joins the two conventions.  It reads the captures out of the
+environment, it casts each capture and argument to its repr, and it tail
+calls the typed code.  Registration, construction and the wrapper use
+the capture prefix of the lifted function's signature as the environment
+tid.  A value goes from the typed form to the generic form at no
+cost, because each typed form is a subtype of eq.  A value comes back
+with one `ref.cast`.
+
+Generic application (SD-D4).  The helper `apply<k>` applies k arguments
+to a closure whose arity the caller does not know.  It reads the arity
+out of the closure and compares it with k.  An equal arity gives a
+`return_call_ref` of the code.  A smaller arity calls the code and gives
+the arguments that are left to `apply<k-m>`.  A larger arity builds a
+partial application:  a struct `pap<m,k>` holds the closure and the k
+arguments, and a new closure of arity m-k names the wrapper `papw:m:k`.
+That wrapper reads the saved arguments, adds the new ones and calls the
+target.  The set of helpers is closed:  each helper adds the helpers it
+needs, until nothing is new.
+
+Sums (SD-D5).  A leg with no payload is its tag in an i31.  A leg with a
+payload is a struct.  The first field of that struct is the tag in an
+i31 and the second field is the payload as an eq reference.  Payload
+legs have equivalent runtime struct types, and the tag tells them apart.
+A payload read casts the eq reference to its checked repr.  A case reads
+the tag first.  It uses `br_on_cast` to i31 and one `br_on_cast` for each
+leg type.  It then compares the tag with the tag of each branch.
+
+The value types (SD-D6, corrected after review).  A pair and a tuple are
+one struct each, with one immutable eq reference field for each runtime
+component.  Environments use the same storage convention.  Instantiating
+an erased type parameter changes the field's checked repr but leaves its
+storage type unchanged; nested aggregates retain this property.  The
+emitter casts each field read from eq to its checked repr.  The symbolic
+tids stay distinct, but same-width aggregates have equivalent final
+Wasm struct types.  link.ml maps each repr to a value type for locals and
+function signatures.  The
+repr `i31` gives a reference to i31.  A pair or a tuple gives a
+reference to its struct type.  A function gives a reference to the
+closure type.  A sum and the tid `any` give an eq reference.
+
+A case carries its checked scrutinee tid through erasure.  The emitter
+uses that tid for dispatch and payload binders even when a generic call
+returns the scrutinee as `any`.  An empty case needs no leg type and emits
+`unreachable`.
+
+Naturals (SD-D7).  A natural rides in an i31, so it holds the range 0 to
+1073741823.  A primitive reads each argument with `i31.get_u`, works on
+i32, and tags the answer with `ref.i31`.  `natSub` truncates at zero, as
+lib/prim.ml does.  `natEq` and `natLt` answer the tag of the two leg
+sum, where one is the true leg.  A literal outside the range is a
+refusal.  An answer outside the range is a trap (SD-D23):  `natAdd`
+reads its sum with `i32.gt_u` against the bound, and `natMul` reads its
+product with `i32.div_u` and `i32.ne` for a wrap, then with `i32.gt_u`
+against the bound.  Both traps are `unreachable`.
+
+The export (SD-D8).  The caller names one definition.  That definition
+must be a `Nat` of arity zero.  The module exports a function with no
+parameter and an i32 answer.  That function calls the definition and
+reads the answer with `i31.get_s`.
 
 ## 9 The surface grammar
 
@@ -357,4 +457,4 @@ closes it.
 | the agreement lemma of the literal fast path | M1 | the fast path must agree with the unary recursive Nat of the M1 shape.  Section 5 records the same obligation |
 | subsingleton large elimination | M1 | it arrives with the Prop valued recursive shape.  Section 5 records its criterion and its origin in tot |
 | structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller |
-| the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  lib/link.ml resolves it to `eqref` at Stage D |
+| the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  resolved at Stage D: link.ml maps any to eqref (SD-D6) |

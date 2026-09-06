@@ -22,8 +22,8 @@
 
 let usage () : unit =
   prerr_endline
-    "usage: kanon check [--print|--erased] FILE | axioms FILE | emit | run | \
-     spec-count"
+    "usage: kanon check [--print|--erased] FILE | axioms FILE | emit FILE -o \
+     OUT.wasm --export NAME | run | spec-count"
 
 let later (name : string) (stage : string) : unit =
   prerr_endline (Printf.sprintf "kanon: %s arrives at Stage %s" name stage)
@@ -68,6 +68,40 @@ let run_erased (path : string) : unit =
 let run_axioms (path : string) : unit =
   List.iter print_endline (Kanon_surface.Elab.axiom_names (checked path))
 
+(** "emit FILE -o OUT.wasm --export NAME" (3.4).  The file is checked and
+    erased first, so the emitter never reads a declaration the kernel did
+    not accept.  A front end error exits 1.  An emission refusal writes
+    one line and exits 2.  A directory that does not exist is a usage
+    error, on the [Sys.file_exists] guard of [read_file]. *)
+let run_emit (path : string) (out : string) (export : string) : unit =
+  if Sys.file_exists (Filename.dirname out) then ()
+  else (
+    prerr_endline (Printf.sprintf "kanon: cannot write %s" out);
+    exit 64);
+  let rows = checked path in
+  Kanon_kernel.Erase.program Kanon_kernel.Global.initial rows
+  |> Result.fold
+       ~ok:(fun (erased : (string * Kanon_kernel.Erase.entry) list) ->
+         Kanon_wasm.Emit.program Kanon_kernel.Global.initial erased ~export
+         |> Result.fold
+              ~ok:(fun (bytes : string) ->
+                Out_channel.with_open_bin out (fun (oc : Out_channel.t) ->
+                    Out_channel.output_string oc bytes))
+              ~error:(fun (e : Kanon_kernel.Error.t) ->
+                prerr_endline ("kanon: emit: " ^ Kanon_kernel.Error.to_string e);
+                exit 2))
+       ~error:(fun (e : Kanon_kernel.Error.t) ->
+         prerr_endline (Kanon_kernel.Error.to_string e);
+         exit 1)
+
+(** The argument order is fixed, so any other shape is a usage error. *)
+let dispatch_emit (args : string list) : unit =
+  match args with
+  | [ path; "-o"; out; "--export"; name ] -> run_emit path out name
+  | [] | _ :: _ ->
+      usage ();
+      exit 64
+
 (** "check [--print|--erased] FILE".  A flag is read before the path, so
     "check --print F", "check --erased F" and "check F" are the only
     three forms (SC-D1). *)
@@ -100,9 +134,7 @@ let dispatch (cmd : string) (args : string list) : unit =
   | "spec-count" -> print_string (Kanon_kernel.Spec_count.print ())
   | "check" -> dispatch_check args
   | "axioms" -> dispatch_axioms args
-  | "emit" ->
-      later cmd "D";
-      exit 64
+  | "emit" -> dispatch_emit args
   | "run" ->
       later cmd "E";
       exit 64

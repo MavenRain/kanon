@@ -33,7 +33,7 @@ type ktm =
   | KStruct of tid * ktm list
   | KProj of tid * int * ktm
   | KTag of tid * int * ktm list
-  | KCase of ktm * kbranch list
+  | KCase of tid * ktm * kbranch list
   | KDelay of fid * ktm list
   | KForce of ktm
 
@@ -56,8 +56,8 @@ type kdecl =
     brackets with a semicolon between its members.
 
     No shape name appears in this file (SA-D5, gate leg R0-AUDIT).  The
-    type declarations above are unchanged (D-M0-2;  SPEC.md section 2.3
-    pins them). *)
+    constructor set stays fixed.  A case retains the checked scrutinee
+    tid so generic calls do not erase its branch payload types. *)
 
 let tid_text (t : tid) : string =
   match t with
@@ -96,8 +96,8 @@ let rec print_ktm (t : ktm) : string =
   | KStruct (t', fs) -> Printf.sprintf "KStruct %s %s" (tid_text t') (ktm_list fs)
   | KProj (t', k, x) -> Printf.sprintf "KProj %s %d (%s)" (tid_text t') k (print_ktm x)
   | KTag (t', k, ps) -> Printf.sprintf "KTag %s %d %s" (tid_text t') k (ktm_list ps)
-  | KCase (s, bs) ->
-      Printf.sprintf "KCase (%s) [%s]" (print_ktm s)
+  | KCase (t', s, bs) ->
+      Printf.sprintf "KCase %s (%s) [%s]" (tid_text t') (print_ktm s)
         (String.concat "; " (List.map print_branch bs))
   | KDelay (f, cs) -> Printf.sprintf "KDelay %s %s" (fid_text f) (ktm_list cs)
   | KForce x -> Printf.sprintf "KForce (%s)" (print_ktm x)

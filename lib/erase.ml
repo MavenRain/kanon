@@ -422,9 +422,9 @@ let rec shift_runtime (by : int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
   | Eterm.KStruct (tid, fs) -> Eterm.KStruct (tid, List.map shift fs)
   | Eterm.KProj (tid, k, s) -> Eterm.KProj (tid, k, shift s)
   | Eterm.KTag (tid, k, ps) -> Eterm.KTag (tid, k, List.map shift ps)
-  | Eterm.KCase (s, bs) ->
+  | Eterm.KCase (tid, s, bs) ->
       Eterm.KCase
-        ( shift s,
+        ( tid, shift s,
           List.map
             (fun (b : Eterm.kbranch) ->
               { b with body = shift_runtime by (depth + b.arity) b.body })
@@ -969,7 +969,8 @@ and case_elim (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) ~(sty : Valu
         Ok (bs @ [ b ], a'))
       (Ok ([], ac1)) (List.init n Fun.id)
   in
-  Ok (Eterm.KCase (scrut, brs), ac2)
+  let* tid = tid_of ec sty in
+  Ok (Eterm.KCase (tid, scrut, brs), ac2)
 
 and branch_of (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (tys : Value.t list)
     (e : Term.elim) (k : int) : (Eterm.kbranch * acc, Error.t) result =
@@ -1042,8 +1043,8 @@ let rec tids_ktm (t : Eterm.ktm) : Eterm.tid list =
   | Eterm.KStruct (t0, xs) -> t0 :: List.concat_map tids_ktm xs
   | Eterm.KProj (t0, _k, x) -> t0 :: tids_ktm x
   | Eterm.KTag (t0, _k, xs) -> t0 :: List.concat_map tids_ktm xs
-  | Eterm.KCase (x, brs) ->
-      tids_ktm x
+  | Eterm.KCase (tid, x, brs) ->
+      tid :: tids_ktm x
       @ List.concat_map (fun (b : Eterm.kbranch) -> tids_ktm b.Eterm.body) brs
   | Eterm.KDelay (_f, xs) -> List.concat_map tids_ktm xs
   | Eterm.KForce x -> tids_ktm x

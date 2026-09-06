@@ -1,0 +1,7 @@
+rec [any]
+fun id (union any) : union any := KVar 0
+rec [pair<func fn<1>,i31>]
+fun mk$0 (i31, i31) : i31 := KTail (KGlobal natAdd) [KVar 1; KVar 0]
+fun mk (i31) : struct pair<func fn<1>,i31> := KLet z (KApp (KGlobal id) [KVar 0]) (KStruct pair<func fn<1>,i31> [KClos mk$0 1 [KVar 0]; KVar 0])
+rec [pair<func fn<1>,i31>]
+fun main () : i31 := KTail (KLet scrut (KApp (KGlobal mk) [KLit 5]) (KLet f (KProj pair<func fn<1>,i31> 0 (KVar 0)) (KLet y (KProj pair<func fn<1>,i31> 1 (KVar 1)) (KVar 1)))) [KLit 6]

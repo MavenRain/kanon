@@ -1,0 +1,4 @@
+rec [any; pair<union any,union any>]
+fun box (union any) : struct pair<union any,union any> := KStruct pair<union any,union any> [KVar 0; KVar 0]
+rec [pair<i31,i31>]
+fun main () : i31 := KLet scrut (KApp (KGlobal box) [KLit 5]) (KLet a (KProj pair<i31,i31> 0 (KVar 0)) (KLet y (KProj pair<i31,i31> 1 (KVar 1)) (KVar 1)))

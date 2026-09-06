@@ -29,34 +29,14 @@
 
 let root_default : string = "test"
 
-(** The one catch site of the whole repository, the single catch site that
-    turns an OCaml failure into a result (SA-D19, narrowed in fix round
-    1).  [In_channel.with_open_bin] and [Sys.readdir] are the only two
-    stdlib calls this suite makes that can fail, and both report the
-    failure as [Sys_error];  the OCaml 5.2 standard library offers no
-    total form of either call, and the brief orders the suite to turn a
-    file read error into a FAIL line rather than to abort.  So the
-    conversion happens here, once, and every other line of kanon stays
-    on the result track.  [Sys_error] is the only caught constructor:
-    a failure of any other kind still leaves the process, because
-    hiding it would make a broken suite look green.
-
-    Search guard:  this is the only catch site in lib/, surface/, bin/ and
-    test/, which gate SB-G9 of the brief reads. *)
-let attempt_sys (thunk : unit -> 'a) : ('a, string) result =
-  try Ok (thunk ()) with Sys_error m -> Error m
-
-let read_file (path : string) : (string, string) result =
-  attempt_sys (fun () -> In_channel.with_open_bin path In_channel.input_all)
+(** The file boundary moved to test/sys_io.ml at Stage D (SD-D14).  Two
+    runners live under test/ from Stage D on, main.exe and wasm.exe, and
+    both read files;  one catch site serves both, so the repository still
+    holds exactly one of them, which gate SD-G11 of the brief reads. *)
+let read_file : string -> (string, string) result = Sys_io.read_file
 
 (** The ".kan" files of a directory, sorted, without the extension. *)
-let kan_names (dir : string) : (string list, string) result =
-  attempt_sys (fun () -> Sys.readdir dir)
-  |> Result.map (fun (entries : string array) ->
-         Array.to_list entries
-         |> List.filter (fun (n : string) -> Filename.check_suffix n ".kan")
-         |> List.map Filename.remove_extension
-         |> List.sort String.compare)
+let kan_names : string -> (string list, string) result = Sys_io.kan_names
 
 let path_of (dir : string) (name : string) (ext : string) : string =
   Filename.concat dir (name ^ ext)

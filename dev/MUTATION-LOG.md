@@ -170,3 +170,102 @@ The copy built clean, `fm3-BUILD-EXIT=0`.  Its suite printed `CHECK-OK 27/27`, `
 Result: killed.  Caught by the KNEG leg on self, the line brief section 5 names.
 
 Three mutants of three are killed, each by the leg brief section 5 names.
+
+## Stage D
+
+Three mutations, brief section 5.  A fresh copy for each mutation under
+SCRATCH/stageD, made with `rsync -a --exclude _build --exclude .gatework
+/Users/oobi/Documents/kanon/ SCRATCH/stageD/judge-mN/`, built with the
+copy's own `dev/dunecho.sh build` and run with the copy's `test/wasm.exe`
+over the copy's test directory and an OUTDIR under the copy.  The
+repository was never mutated.  `rg -n SD-M ROOT/wasm` lists four marked
+lines, one for SD-M1, one for SD-M3 and two for SD-M2, the encoder arm
+and the emission site.
+
+### SD-M1 LEB
+
+Mutation: at the SD-M1 site of wasm/gc_encode.ml line 92,
+`else byte (128 lor (n land 127)) ^ uleb (n lsr 7)` becomes
+`else byte (n land 127) ^ uleb (n lsr 7)`, so the unsigned LEB128
+encoder clears the continuation bit on every byte but the last.
+
+The copy built clean, `OK build: 0 errors, 0 warnings`, so the mutant is
+a live program.  Its suite printed `EMIT d01-lit-prims FAIL: validate:
+[parse exception: invalid function section size, must equal types (at
+0:48)]`, six more `FAIL: validate:` lines with `Section extends beyond
+end of input`, one `FAIL: validate: [parse exception: invalid UTF-8
+string (at 0:235)]` on d06, then `WASM-OK 2/10` and `SUITE-WASM FAIL`,
+exit 1.  Only d08 and d10 stayed OK, because their indices are all
+under 128.
+
+Result: killed.  Caught by the validate leg brief section 5 names.
+
+### SD-M2 return_call
+
+Mutation: at the SD-M2 site of wasm/emit.ml line 387, the two lines
+`if tail_ok c tail result then [ G.Return_call fi ]` and
+`else [ G.Call fi ]` become `[ G.Call fi ]`, so a KTail at a direct call
+is a plain call and the value falls through to the return.
+
+The copy built clean, `OK build: 0 errors, 0 warnings`.  Its suite
+printed `EMIT d02-tail-call FAIL: golden differs` and
+`EMIT d03-pair FAIL: golden differs`, then `WASM-OK 8/10` and
+`SUITE-WASM FAIL`, exit 1.
+
+The mutant module still runs.  `node dev/run-node.mjs
+COPY/wasmout/d02-tail-call.wasm main` printed `10` and exited 0, which
+is the value the kernel gives for d02 and the value the unmutated
+module prints.  `rg -c return_call` over the mutant `.wat` found no
+line and exited 1, while the same sweep over
+`test/golden/d02-tail-call.wat` printed `3`.
+
+Result: killed.  Caught by the golden leg alone.  This is the proof
+plan section 10 asks for:  behaviour did not change, the value is still
+10 on node, and only the byte for byte golden saw the missing
+return_call.
+
+### SD-M3 tuple
+
+Mutation: at the SD-M3 site of wasm/emit.ml line 308, a KStruct of three
+fields builds a nested struct of the last two fields and then the outer
+struct, so a 3 tuple becomes a pair whose second field is a pair.
+
+The copy built clean, `OK build: 0 errors, 0 warnings`.  Its suite
+printed `EMIT d04-tuple FAIL: emit: unbound: no type index for
+tuple<i31,i31>`, then `WASM-OK 9/10` and `SUITE-WASM FAIL`, exit 1.  The
+nested pair has no type index, because link.ml assigns an index only to
+a tid the erased program names, and d04 names `tuple<i31,i31,i31>`
+alone.
+
+Brief section 5 asks for `golden differs` or `validate` at this site, so
+the judge ran a second form on a fourth copy:  the same three field case
+emits two `Struct_new` of the outer type instead of one, which is the
+plan's own wording, "emit a tuple as two structs".  That copy also built
+clean and its suite printed `EMIT d04-tuple FAIL: validate: [parse
+exception: popping from empty stack (at 0:76)]`, `WASM-OK 9/10`,
+`SUITE-WASM FAIL`, exit 1.
+
+Result: killed, under both forms, and both times by d04 alone.
+
+Three mutants of three are killed, each by the leg brief section 5
+names.
+
+## Stage D review regression sensitivity (2026-09-05)
+
+The five new fixtures were run against the original staged backend in
+the review scratch copy.  Its emitter, linker, encoder, erased form and
+kernel/surface sources were verified against the current pre-fix index.
+These are baseline comparisons, not new edits to the three Stage D
+mutation sites above.
+
+| fixture | original staged backend | corrected backend, kernel and both hosts |
+| --- | --- | --- |
+| d11-poly-pair | emits, then Node exits 1: illegal cast | 5 |
+| d12-poly-case | emit exits 2: a case scrutinee is not a sum: any | 1 |
+| d13-function-case | emit exits 2: a case scrutinee is not a sum: any | 1 |
+| d14-generic-capture | emit exits 2: no type index for tuple<i31> | 11 |
+| d15-generic-aggregates | emit exits 2: a case scrutinee is not a sum: any | 36 |
+
+The corrected modules pass wasm-opt validation.  Node and Wasmtime exit
+0 with the values above.  The emission suite independently computes
+each expected value using the kernel, and reports WASM-OK 15/15.
