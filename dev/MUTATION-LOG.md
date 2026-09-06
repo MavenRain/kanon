@@ -269,3 +269,50 @@ mutation sites above.
 The corrected modules pass wasm-opt validation.  Node and Wasmtime exit
 0 with the values above.  The emission suite independently computes
 each expected value using the kernel, and reports WASM-OK 15/15.
+
+## Stage E
+
+Three mutations, each on its own fresh copy of the repository made with
+`rsync -a --exclude _build --exclude .gatework`, built through the
+copy's own dev/dunecho.sh, which printed `OK build: 0 errors, 0
+warnings` for all three.  ROOT was never mutated.  The judge reran all
+three at 2026-09-05 22:03.
+
+### SE-M1 module
+
+- Site.  The copy's wasm/emit.ml:717, the export wrapper of SD-D8.
+- Edit.  `body = [ G.Call fi; G.I31_get_s ]` becomes
+  `body = [ G.Call fi; G.I31_get_s; G.I32_const 1; G.I32_add ]`, so both
+  hosts answer one more than the kernel.
+- Killing line.  `zsh dev/gates.sh` printed `FAIL M0-E2E` and
+  `GATES-FAIL`, exit 1.  SUITE-WASM also printed `FAIL SUITE-WASM`,
+  because every emission fixture moved with the wrapper.  Every other
+  leg still passed, among them
+  `PASS M0-TIME median_ms=109.371 bound_ms=150`.
+- The value `--host both` still printed.  `kanon run
+  examples/m0-spine.kan --export main --host both` printed `522` and
+  exit 0, against the spine's promise of 521.  The two hosts agree with
+  each other and disagree with the kernel, which is what M0-E2E reads.
+
+### SE-M2 one host
+
+- Site.  The copy's dev/run-wasmtime.sh:47, the success arm.
+- Edit.  `cat "$out"` becomes `awk '{ print $1 + 1 }' "$out"`, so the
+  wasmtime host alone answers one too many.
+- Killing line.  `kanon run examples/m0-spine.kan --export main --host
+  both` printed `kanon: run: hosts disagree: node 521 wasmtime 522` and
+  exit 3.  `zsh dev/gates.sh` printed `FAIL M0-E2E` and `GATES-FAIL`,
+  exit 1.  M0-TIME failed with it, because the timed command is the same
+  run and bench.sh reported `BENCH-ERROR m0_e2e exit=3`.
+
+### SE-M3 timer
+
+- Site.  The copy's dev/gates.sh:48, the bound of plan section 9 and
+  correction C1.
+- Edit.  `M0_TIME_MS=150` becomes `M0_TIME_MS=1`.
+- Killing line.  `zsh dev/gates.sh` printed
+  `FAIL M0-TIME median_ms=109.429 bound_ms=1` and `GATES-FAIL`, exit 1.
+  The median carries three decimals and is far above 1, so the timer
+  resolves milliseconds, which is what correction C1 asks the mutation
+  to prove.  Every other leg still passed, among them
+  `PASS M0-E2E main=521` and `PASS M0-RATIO ratio=0.288`.

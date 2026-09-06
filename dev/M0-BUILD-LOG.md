@@ -695,3 +695,305 @@ Validation on an isolated copy of the index plus these fixes:
 | Wasmtime regression results | d11 5, d12 1, d13 1, d14 11, d15 36; all exit 0 |
 | HOUSE, R0-COUNT, ENCODER-SUBSET | all pass; gate scripts unchanged |
 | regression sensitivity | all five added fixtures fail on the original staged backend; see MUTATION-LOG.md |
+
+## Stage E (2026-09-05)
+
+The driver, the spine and the gate battery.  Two builders wrote the code
+and the judge reran every gate and every mutation before this entry.
+
+### Deliverables
+
+- bin/host.ml, 137 lines (builder 1).  The three hosts Node, Wasmtime and
+  Kernel behind one call, with the outcome sum Value, Trap and Invalid.
+- bin/kanon.ml, 296 lines (builder 1).  The fifth command, `kanon run
+  FILE --export NAME [--host node|wasmtime|kernel|both]`.
+- dev/run-wasmtime.sh, 59 lines (builder 1).  The wasmtime runner with
+  the contract of dev/run-node.mjs.
+- examples/m0-spine.kan, 348 lines (builder 2).  One `def main : Nat` of
+  value 521, no axiom, every other production of SPEC section 9 that the
+  M0 front end accepts.
+- dev/gates.sh, 350 lines (builder 2).  The fifteen leg battery with
+  gate_timed, the MEASURE block and the GATES-OK line.
+- dev/r0-audit.sh, 57 lines, and dev/trusted-lines.sh, 70 lines
+  (builder 2).  The two new legs of brief 3.5.1.
+- README.md, 285 lines (shared).  Builder 1 owns the run paragraph and
+  the status lines;  builder 2 added The spine, Gates, two Layout rows
+  and three Build and test rows.
+- dev/M0-BUILD-LOG.md and dev/MUTATION-LOG.md gain this entry and the
+  Stage E mutation section (the judge).
+
+### Gates (the judge reran SE-G1 to SE-G11 on the tree at 2026-09-05 22:01)
+
+- SE-G1 BUILD, OK.  `zsh dev/dune.sh clean` exit 0, then
+  `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`,
+  exit 0.
+- SE-G2 GATES, OK.  `zsh dev/gates.sh` printed fifteen PASS lines, the
+  MEASURE block and `GATES-OK`, exit 0.  The final line is `GATES-OK`.
+- SE-G3 LEGS, OK.  BUILD, CARRY, R0-COUNT, R0-AUDIT, SUITE-KERNEL,
+  SUITE-WASM, ENCODER-SUBSET, AXIOMS, M0-E2E, M0-TIME, M0-RATIO,
+  TRUSTED-LINES, DENOMINATORS, HOUSE, PIN, one PASS line each in the
+  order of brief 3.5, and no FAIL line in the run.
+- SE-G4 DRIVER, OK.  d06 both `31` exit 0;  node `31`, wasmtime `31`,
+  kernel `31`, each exit 0;  d10 both `kanon: run: trap on both hosts`
+  exit 4;  d10 kernel `kanon: run: kernel trap: 1073741824 is outside
+  the i31 range` exit 4;  a10 with `--export start`
+  `kanon: emit: unbound: axiom zero has no body` exit 2;  n01
+  `mismatch: the term has type Type 2 and the expected type is Type 1`
+  exit 1;  `run`, `run FILE`, `run FILE --export main --host jvm` each
+  printed the usage line and exit 64;  `run ROOT/nosuch.kan --export
+  main` printed `kanon: run: cannot read /Users/oobi/Documents/kanon/
+  nosuch.kan` and the usage line, exit 64;  `emit` of d06 exit 0 and
+  `check --erased` of c02 diffed empty against
+  test/golden/c02-zero-binder.erased, so SD-G12 is unchanged.
+- SE-G5 SPINE, OK.  `wc -l` is 348, `rg -c 'axiom'` prints nothing with
+  rg exit 1, each of the twenty four patterns of brief 4 has at least
+  one hit, and `--host kernel` printed `521`, the N of the promise line
+  `-- main is 521`.
+- SE-G6 HOSTS, OK.  The fourteen value fixtures printed 17, 10, 26, 10,
+  78, 31, 25, 7, 232, 5, 1, 1, 11, 36 under `--host both`, `--host
+  node` and `--host wasmtime`, every exit 0.  d10 exits 4 on all three
+  shapes.  d11 states its answer in a sentence, not a `main is` line,
+  and printed 5.
+- SE-G7 PIN, OK.  The PIN file, `git -C vendor/tot rev-parse --short
+  HEAD` and `git -C /Users/oobi/Documents/kan-lang-tot-pin rev-parse
+  --short HEAD` all print `8cf0b8b`;  the pin porcelain is 0 lines.
+- SE-G8 REPO, OK.  `rev-list --count HEAD` is 5, `log -1 --format=%s`
+  is `M0 Stage D: WasmGC emission`, `diff --cached --stat` is empty and
+  the porcelain holds only Stage E paths: ` M README.md`,
+  ` M bin/kanon.ml`, `?? bin/host.ml`, `?? dev/gates.sh`,
+  `?? dev/r0-audit.sh`, `?? dev/run-wasmtime.sh`,
+  `?? dev/trusted-lines.sh`, `?? examples/`, and the two logs once this
+  entry lands.  Nothing under _build or .gatework.
+- SE-G9 TRUSTED-LINES, OK.  `zsh dev/trusted-lines.sh` printed
+  `TRUSTED-LINES kernel=2305/3000 encoder=216/600 OK`, exit 0.
+- SE-G10 HOUSE, OK.  `zsh dev/house.sh` printed `HOUSE no-exception OK`,
+  `HOUSE no-mutable-state OK`, `HOUSE one-catch-site OK` with the one
+  line `/Users/oobi/Documents/kanon/test/sys_io.ml:19:  try Ok (thunk
+  ()) with Sys_error m -> Error m`, `HOUSE no-bool-match OK`,
+  `HOUSE no-em-dash OK` and `HOUSE OK`, exit 0.  bin/host.ml holds no
+  try, raise, bare wildcard arm, bool match, `.( )`, List.nth, ref or
+  mutable (rg exit 1 on the union pattern).
+- SE-G11 TIME, OK.  The SE-G2 run printed
+  `PASS M0-TIME median_ms=122.859 bound_ms=150`, three decimals and at
+  most 150, and `MEASURE M0-RATIO kanon_ms=29.916 tot_ms=103.662
+  ratio=0.289` with a three decimal ratio.
+- SE-G12 LOGS, OK.  This file holds `## Stage E (2026-09-05)` once,
+  dev/MUTATION-LOG.md holds `## Stage E` once with SE-M1 to SE-M3, and
+  `git -C ROOT diff -- dev/M0-BUILD-LOG.md dev/MUTATION-LOG.md` shows
+  additions only.
+
+### MEASURE table (the closing entry of plan section 12)
+
+Verbatim from the judge's SE-G2 run of `zsh dev/gates.sh` on
+2026-09-05 at 22:01, load average 14.21 (the machine carries the user's
+desktop load).
+
+```
+MEASURE BUILD tier=SLOW elapsed_ms=91.768 exit=0
+MEASURE CARRY tier=MED elapsed_ms=448.235 exit=0
+MEASURE R0-COUNT tier=FAST elapsed_ms=445.257 exit=0
+MEASURE R0-AUDIT tier=FAST elapsed_ms=40.056 exit=0
+MEASURE SUITE-KERNEL tier=SUITE elapsed_ms=323.097 exit=0
+MEASURE SUITE-WASM tier=SUITE elapsed_ms=1633.730 exit=0
+MEASURE ENCODER-SUBSET tier=FAST elapsed_ms=70.057 exit=0
+MEASURE AXIOMS tier=MED elapsed_ms=246.304 exit=0
+MEASURE M0-E2E tier=SLOW elapsed_ms=659.813 exit=0
+MEASURE M0-TIME tier=SLOW elapsed_ms=860.745 exit=0
+MEASURE M0-RATIO tier=SLOW elapsed_ms=308.440 exit=0
+MEASURE TRUSTED-LINES tier=FAST elapsed_ms=29.477 exit=0
+MEASURE DENOMINATORS tier=MED elapsed_ms=56.692 exit=0
+MEASURE HOUSE tier=MED elapsed_ms=87.451 exit=0
+MEASURE PIN tier=FAST elapsed_ms=95.637 exit=0
+MEASURE M0-RATIO kanon_ms=29.916 tot_ms=103.662 ratio=0.289
+```
+
+The BUILD row is short because SE-G1 built the tree one minute before
+the battery, so the BUILD leg had nothing to do.  The two timed legs
+carry their own BENCH lines: `BENCH m0_e2e median_ms=122.859
+min_ms=116.932 max_ms=132.079 runs=5` and `BENCH m0_ratio
+median_ms=29.916 min_ms=29.227 max_ms=32.919 runs=5`.  M0-TIME is
+122.859 ms against the ratified bound of 150 ms.  M0-RATIO is 0.289 and
+stays informational at M0 (plan correction C2).
+
+### Decisions
+
+Brief pinned, SE-D1 to SE-D12.
+
+- SE-D1 `--host` gains the word `kernel` beside node, wasmtime and both,
+  and an omitted `--host` means both.  The user rules whether the extra
+  word stays.
+- SE-D2 The driver finds the two runners at the root above
+  `Sys.executable_name`;  a moved binary exits 64 naming the runner.
+  SE-D14 corrects the number of steps.
+- SE-D3 The run path writes its module to `Filename.temp_file`, so an
+  unwritable temp directory is loud and never a wrong answer.
+- SE-D4 Exit 4 is a trap on one host, a trap on both hosts, or a kernel
+  value outside the i31 range.  The user rules.
+- SE-D5 The plan's first Stage E mutation splits in two: SE-M1 moves the
+  module and SE-M2 makes one host lie.  Both must fail M0-E2E.
+- SE-D6 gate_timed measures with zsh EPOCHREALTIME in milliseconds and
+  the two timed legs use bench.sh's median, because bench.sh discards
+  the output that carries a leg's verdict.  The user rules.
+- SE-D7 gates.sh runs every leg after BUILD even when one fails, and
+  prints every FAIL before GATES-FAIL.
+- SE-D8 HOUSE and PIN join the battery as legs fourteen and fifteen;
+  REPO does not, because the battery runs on a dirty tree.
+- SE-D9 The M0-TIME command is `kanon run examples/m0-spine.kan --export
+  main --host both`;  wasm-opt validation stays outside the timing.
+- SE-D10 The M0-RATIO corpus is `test/main.exe ROOT/test`, the same
+  command as tot's denominator.  The ratio is informational at M0.
+- SE-D11 The spine has no axiom, so the AXIOMS leg's second half prints
+  nothing;  b08 witnesses the axiom row in the first half.
+- SE-D12 lib/, surface/ and wasm/ are frozen at Stage E except a bug the
+  spine exposes.  SE-D33 records that no such bug appeared.
+
+Builder decisions, SE-D13 to SE-D33.
+
+- SE-D13 `Host.run_module` carries `~globals`, which the brief's
+  signature leaves out, because the kernel host reduces a term instead
+  of reading a file;  the two module hosts ignore it.
+- SE-D14 The root is four `Filename.dirname` steps above
+  `Sys.executable_name`, not the three the brief names:  kanon.exe, bin,
+  default, _build.  Measured on the rsync copy, whose own
+  dev/run-wasmtime.sh answered.
+- SE-D15 The host drops the runner's own `trap: ` or `invalid: ` word
+  from the first stderr line, so the driver prints
+  `kanon: run: node trap: TEXT` once.
+- SE-D16 The host word is read in the argument shape itself, one
+  dispatch pattern per word, so no exit sits behind an eager
+  `Option.fold ~none`;  an unknown word falls to the usage arm.
+- SE-D17 A missing FILE under run prints `kanon: run: cannot read PATH`
+  and then the usage line, exit 64.
+- SE-D18 The kernel host reduces the exported name, not the literal
+  `main`, so `--export NAME` means the same on all three hosts.
+- SE-D19 The two capture files are the module path plus `.out` and
+  `.err`, and they leave with the module.
+- SE-D20 dev/run-wasmtime.sh names the exit code `code`, because
+  `status` is read only in zsh.
+- SE-D21 README lines 24 to 27 lost "the command that a later stage
+  brings, run", and the status line now reads Stage E, because the run
+  command made both sentences false.
+- SE-D22 The spine omits auto, mu and nu, which SPEC section 9 lists,
+  because check.ml:170 answers auto with `Not_yet` (rules.ml:24
+  "instances arrive at M2") and parser.ml:299-300 refuses mu and nu.
+  The header comment of the spine records the omission.
+- SE-D23 gate_timed takes the tier by name, reads the seconds through
+  `${(P)tier}` and prints tier=FAST, MED, SLOW or SUITE, which keeps
+  every watchdog literal on the four tier lines.
+- SE-D24 A leg whose body is more than one command lives in a shell
+  function and the battery reaches it as `zsh dev/gates.sh --leg NAME`,
+  because the watchdog is an external program.  The six such legs are
+  axioms, e2e, time, ratio, denominators and pin.
+- SE-D25 The leg wrapper takes an oracle or the word SELF.  SELF means
+  the leg prints its own verdict line, because that line carries a
+  value, and a SELF leg that the watchdog kills still gets a FAIL line.
+- SE-D26 The PIN leg reads the pin worktree at
+  /Users/oobi/Documents/kan-lang-tot-pin, which KANON_PIN_WORKTREE
+  overrides, and every git call carries `--no-optional-locks`, so a read
+  never writes an index into a read only worktree.
+- SE-D27 BUILD runs at tier SLOW, because a battery on a fresh copy
+  builds the whole tree and a tier is a hang ceiling, not a budget.
+- SE-D28 The M0-E2E leg reads the spine's value from the promise line
+  with `rg -N -o -- '-- main is [0-9]+'` and awk field 4, so the gate
+  has no literal to drift from.
+- SE-D29 The M0-E2E work directory .gatework/gates/e2e is removed and
+  remade at the start of the leg, so a stale module can never answer.
+- SE-D30 SE-G6 reads d11-poly-pair.kan's promise from its sentence, "The
+  kernel and wasm must both return 5", because that fixture writes no
+  `main is N` line.  The other fourteen carry the line.
+- SE-D31 README gained The spine after Running a module and Gates after
+  Build and test, two more Layout rows and three more Build and test
+  rows, because those files became commands at Stage E.
+- SE-D32 SE-M1 mutates the copy's wasm/emit.ml entry_func at line 717,
+  the SD-D8 export wrapper, by appending `G.I32_const 1` and `G.I32_add`
+  after `G.I31_get_s`.  The plan allows the source edit or a one byte
+  edit of the module;  the source edit is reproducible and leaves the
+  kernel untouched.
+- SE-D33 No defect in a builder 1 file, in lib/, in surface/ or in wasm/
+  was exposed by the spine or by any gate, so SE-D12 was never invoked
+  and no golden moved.
+
+### Findings
+
+- F1, high at the time it was written, resolved as environmental.  The
+  verifier saw `FAIL M0-TIME median_ms=161.421 bound_ms=150` and
+  `FAIL M0-TIME median_ms=191.155 bound_ms=150` on two honest reruns and
+  raised blockers SE-B5 and SE-B6.  The main loop then benched the same
+  command on the same binary three times at load average 12 and read
+  medians 142.441, 119.594 and 116.089 ms, all under 150;  another
+  build's node driver held 107 percent CPU during the two red runs.  The
+  judge's own run at load average 14.21 read 122.859 ms and the whole
+  battery printed GATES-OK.  No code changed and the bound stays 150.
+  The user's desktop load is the variable, not the run path.
+- F2, low, informational.  dev/house.sh leg 1 refuses a wildcard arm
+  through the pattern `\| _ ->`, a bare underscore between the pipe and
+  the arrow, so a named catch-all does not match it.  bin/host.ml:89
+  (`| _other ->`) and bin/kanon.ml:282 (`| _unknown ->`) hold such arms
+  on open types, int and string, which no literal pattern can exhaust,
+  so both are load bearing and correct today.  The gate offers no cover
+  against a future misuse of the same idiom.  The verifier also cited
+  bin/kanon.ml:89;  that line is an `~error` continuation of emit, not a
+  match arm.  No change is asked at M0.
+- F3, low, for the user.  The spine holds every production of SPEC
+  section 9 except axiom, auto, mu and nu.  Brief 3.4 asks for every
+  production except axiom, so this is a deviation that the front end
+  forces:  check.ml:170 answers auto with `Not_yet`, parser.ml:299
+  refuses mu with "mu arrives at M1" and parser.ml:300 refuses nu with
+  "nu arrives at M2".  A spine that held one of the three could not
+  check.  SE-D22 records it.  The user rules whether SPEC section 9
+  should mark the three as post M0 forms.
+
+### M0-EXIT checklist
+
+Plan section 12's criteria, one line each.
+
+- Stage 0 artifacts present and DENOMINATORS green.  MET.  The
+  DENOMINATORS leg printed `denominators.json: OK` and `PASS
+  DENOMINATORS` in the SE-G2 run.
+- Stages A to E committed by the user with the printed lines.  OPEN.
+  The repository holds 5 commits and HEAD is `M0 Stage D: WasmGC
+  emission`;  Stage E is written and gated but not committed, because no
+  agent commits.  The user runs `git -C ~/Documents/kanon add -A` and
+  `git -C ~/Documents/kanon commit -m 'M0 Stage E: driver and gates'`.
+- Every leg of section 9 green on the committed tree.  OPEN until that
+  commit.  Every leg is green on the working tree:  fifteen PASS lines
+  and `GATES-OK`, exit 0.
+- dev/M0-BUILD-LOG.md holds the MEASURE table with M0-TIME at or under
+  150 ms and the M0-RATIO line.  MET by this entry:  122.859 ms and
+  `MEASURE M0-RATIO kanon_ms=29.916 tot_ms=103.662 ratio=0.289`.
+- dev/MUTATION-LOG.md holds every mutation row of section 10 with its
+  caught leg.  MET.  The Stage E section adds SE-M1, SE-M2 and SE-M3,
+  each with its killing line.
+- D-M0-1 to D-M0-6 ruled.  MET.  The user ruled all six as recommended
+  on 2026-09-05.
+- Open for the user before the stamp:  SE-D1 (the kernel host word),
+  SE-D4 (exit 4 for a trap), SE-D6 (the two timers), and the builder
+  decisions that touch the plan or this brief, SE-D13, SE-D14, SE-D17,
+  SE-D22, SE-D23, SE-D24, SE-D25 and SE-D27.  The Stage D rulings
+  SD-D1 to SD-D40 are still open as well.
+
+M0-EXIT RATIFY: ____________________ (the user writes the date and
+"ratified" here;  nothing else counts).
+
+### Hand-off notes for M1
+
+- SMu.  The shape sum declares SMu and SNu and rules.ml refuses both
+  with `Not_yet`;  parser.ml:299 refuses the surface `mu` with "mu
+  arrives at M1".  M1 opens the mu arm, the spine gains its production
+  and F3 closes.
+- The fibered Elim.  M0 cases a sum by tag with an `as x return T`
+  motive.  M1 needs the fibered eliminator over an inductive family, so
+  the branch key of D-M0-3, ALeg 0 with a two binder leg, becomes the
+  general leg shape.
+- Structural recursion.  M0 has tail calls through a global and no
+  recursion checker beyond totality's 139 lines.  M1 adds the
+  structural order and the guard that mu needs.
+- M0-RATIO becomes binding at M1 (plan correction C2).  The M0 reading
+  is 0.289 against tot's warm `test/main.exe` median of 103.662 ms, so
+  there is headroom of about three times before the 2x bound bites.
+- Open rulings that travel to M1:  SD-D1 to SD-D40 from Stage D, and
+  SE-D1, SE-D4 and SE-D6 from this stage.
+- The timing environment.  M0-TIME reads between 116 and 143 ms on a
+  quiet machine and above 150 ms when another build holds a core, so M1
+  should either bench on an idle machine or make the leg take the
+  median of medians.  No agent may move the bound.
