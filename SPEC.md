@@ -44,6 +44,24 @@ and is never reduced to a positive form (D-M1-2, R-Q5).  The check runs
 once, when the constructors are installed, and formation reads the
 stored verdict (A4).
 
+The fibered elimination, M1 Stage H, lib/rules.ml.  An `Elim` at a mu
+shape takes a motive, and an `Elim` with `e_motive` of `None` is refused
+with the word `an elimination at a mu shape needs a motive`:  the branch
+types of an indexed family are not recoverable from the type of the
+scrutinee alone (A7).  The `m_ind` of the motive names a family, and
+that name is equal to the family of the scrutinee, so a motive built for
+a sibling family is refused.  The `m_idx` of the motive binds one name
+per index of that family, and the scrutinee stands at that many indices.
+A branch is keyed by the constructor address `ACtor c`, and it binds one
+binder per field of that constructor at the mark the field carries.  The
+branch list is read in the declaration order of the family:  a
+constructor with no branch is refused, a constructor with two branches
+is refused, and a branch at a name the family does not declare is
+refused.  The body of a branch is checked at `m_body`, read at that
+constructor's result index expressions and at that constructor's own
+introduction.  An `Elim` at `In (SMu .., ACtor c, args)` reduces to the
+branch at `c` with the arguments substituted.
+
 ### 2.2 Terms, lib/term.ml
 
 Thirteen constructors.  Two of them form types.
@@ -152,7 +170,7 @@ schema constructors 4: In Elim Sec Out
 shapes declared 5: SPi SColl SPar SMu SNu
 shapes admitted 3: SPi SColl SMu
 named rules declared 3: proof-irrelevance subsingleton-large-elimination literal-fast-path
-named rules present 2: proof-irrelevance literal-fast-path
+named rules present 3: proof-irrelevance subsingleton-large-elimination literal-fast-path
 eta rows 3: Ran-SPi Lan-SPi Ran-SColl
 no eta 3: Lan-SColl Ran-SMu Lan-SMu
 ```
@@ -210,13 +228,32 @@ depend on check.ml and no ref cell exists in lib/ (SB-D12).
 ## 5 The named rules ledger
 
 These are the conversion rules that are not schema rules.  Three are
-declared;  two are present at M0.
+declared;  two are present at M0 and the third arrives at M1 Stage H.
 
 | rule | status | where |
 | --- | --- | --- |
 | proof-irrelevance | present at M0 | conv.ml, step one: two terms at a type in `Univ zero` are equal |
-| subsingleton-large-elimination | M1 | arrives with the Prop-valued recursive shape.  The three-part criterion is tot's, at kan-lang-tot-pin/lib/check.ml:219 and :223 |
+| subsingleton-large-elimination | present | conv.ml, step one, through the `subsingleton` field of the rule pack.  The three-part criterion is tot's, at kan-lang-tot-pin/lib/check.ml:219 and :223 |
 | literal-fast-path | present at M0 | conv.ml, step three: `Lit` compares by value and the five prims reduce on literal arguments |
+
+The criterion, M1 Stage H, lib/rules.ml `mu_zero_eliminable`, ported
+part for part from kan-lang-tot-pin/lib/check.ml:223.  Part one: the
+family has no constructor, which is the empty family and gives ex falso
+(pin check.ml:227), or it has exactly one constructor (pin
+check.ml:228).  Part two: every argument binder of that constructor is
+at the mark `Zero` (pin check.ml:231).  Part three: that constructor is
+not self recursive (pin check.ml:232).  A family under declaration and a
+kernel family both answer false (pin check.ml:225-226), and a family
+with two constructors or more answers false (pin check.ml:233).  A self
+recursive family therefore never gets a large elimination, and the words
+"the Prop-valued recursive shape" name the milestone that adds the
+recursive shape and are not a permission for a recursive family (A1).
+An elimination out of a family at the universe `Prop` into a motive
+above that universe is admitted only when the family passes all three
+parts;  it is refused with the word `a large elimination out of a
+proposition needs a subsingleton family`, which carries the name of the
+family that failed.  A family above `Prop`, and a motive at `Prop`, are
+both small and neither asks the criterion.
 
 M1 obligation, recorded here: the literal fast path needs an agreement
 lemma against the unary recursive Nat.
@@ -262,6 +299,7 @@ column to confirm that no surface form is a former.
 | `p.2` | `Elim` at `Lan (SPi ..)`, leg `ALeg 0`, second branch binder, with the projection motive | sugar, not former.  D-M0-3 |
 | `inj k of n t` | `In (SColl n) (ALeg k) [t]` | sugar, not former |
 | `case t as x return M with \| k xs => b` | `Elim` at `Lan (SColl n)` | sugar, not former |
+| `case t as x in F i1 .. im return M with \| c y1 .. yn => b` | `Elim` at `Lan (SMu (F, ..))` | sugar, not former.  M1 Stage H |
 | `tuple (t1, .., tn)` | `Sec (SColl n) [.. => t1; ..]` | sugar, not former |
 | `sum (A1, .., An)` | `Lan (SColl n) (Sec (SColl n) [.. => A1; ..])` | sugar, not former.  SB-D1 |
 | `prod (A1, .., An)` | `Ran (SColl n) (Sec (SColl n) [.. => A1; ..])` | sugar, not former.  SB-D1 |
@@ -426,7 +464,8 @@ term    ::= 'fun' binder+ '=>' term
           | term term                              (* SA-D1 *)
           | '(' term ',' term ')'  |  term '.1'  |  term '.2'
           | 'inj' nat 'of' nat term
-          | 'case' term ['as' name 'return' term] 'with' ('|' nat binder* '=>' term)*
+          | 'case' term ['as' name ['in' name name*] 'return' term] 'with'
+              ('|' nat binder* '=>' term | '|' name field* '=>' term)*
           | 'tuple' '(' (term (',' term)*)? ')'  |  term '.' nat
           | 'sum' '(' (term (',' term)*)? ')'       (* SB-D1 *)
           | 'prod' '(' (term (',' term)*)? ')'      (* SB-D1 *)
@@ -438,6 +477,7 @@ term    ::= 'fun' binder+ '=>' term
           | 'mu'  |  'nu'                          (* SA-D3, reserved *)
           | '(' term ':' term ')'  |  name  |  '(' term ')'
 binder  ::= '(' ('0' | '1')? name ':' term ')'
+field   ::= ('0' | '1')? name                      (* M1 Stage H *)
 ```
 
 Precedence, loosest first: the arrow and the star, then application, then

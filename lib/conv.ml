@@ -61,10 +61,14 @@ let rec conv (ops : 'c Rules.ops) (ctx : 'c) ~(ty : Value.t) (a : Value.t) (b : 
   match () with
   | () when is_prop ops ctx ty -> Ok true
   | () ->
-      let* expanded = eta_step ops ctx ty a b in
-      opt_else expanded
-        (fun () -> structural ops ctx a b)
-        (fun (r : bool) -> Ok r)
+      let* w = ops.Rules.o_whnf ctx ty in
+      let* sub = subsingleton_step ops ctx w in
+      if sub then Ok true
+      else
+        let* expanded = eta_step ops ctx w a b in
+        opt_else expanded
+          (fun () -> structural ops ctx a b)
+          (fun (r : bool) -> Ok r)
 
 (** Rule 1, proof irrelevance.  The probe reads back the type and asks
     the checker for its universe.  A type that does not read back is not
@@ -77,11 +81,27 @@ and is_prop (ops : 'c Rules.ops) (ctx : 'c) (ty : Value.t) : bool =
   |> Result.to_option
   |> Option.fold ~none:false ~some:(fun (l : Level.t) -> Level.equal l Level.zero)
 
+(** M1 Stage H, brief 3.5:  the second half of step one, named rule 2 of
+    SPEC.md section 5.  Any two inhabitants of a family that passes the
+    criterion of brief 3.4 convert, which is what admits an elimination
+    out of a proposition into a motive above it (M1-PLAN.md:86).  The
+    criterion is read through the pack, so this file holds no shape name
+    and no family lookup of its own (SH-D1).  A shape whose pack cannot
+    answer weakens the comparison to the other steps and never
+    strengthens it, exactly as the probe of rule 1 does. *)
+and subsingleton_step (ops : 'c Rules.ops) (ctx : 'c) (w : Value.t) :
+    (bool, Error.t) result =
+  opt_else (Value.as_lan w)
+    (fun () -> Ok false)
+    (fun ((s : Value.t Shape.t), (_d : Value.closure), (_u : Level.t option)) ->
+      let* (pack : 'c Rules.rule_pack) = Rules.rules s in
+      pack.Rules.subsingleton ops ctx s)
+
 (** Rule 2, eta by the type.  [None] means the type carries no eta rule
-    and the comparison goes on to step three. *)
-and eta_step (ops : 'c Rules.ops) (ctx : 'c) (ty : Value.t) (a : Value.t) (b : Value.t) :
+    and the comparison goes on to step three.  The type arrives in weak
+    head normal form, because step one already forced it. *)
+and eta_step (ops : 'c Rules.ops) (ctx : 'c) (w : Value.t) (a : Value.t) (b : Value.t) :
     (bool option, Error.t) result =
-  let* w = ops.Rules.o_whnf ctx ty in
   let former : (side * Value.t Shape.t * Value.closure) option =
     Value.as_ran w
     |> Option.map
@@ -380,6 +400,12 @@ and branch_addr (ops : 'c Rules.ops) (ctx : 'c) (env1 : Value.t list)
       (fun () ->
         Option.bind (Term.as_aleg a1) (fun (k1 : int) ->
             Option.map (fun (k2 : int) -> Ok (Int.equal k1 k2)) (Term.as_aleg a2)));
+      (* M1 Stage H, brief 3.5:  a branch of the recursive shape is keyed
+         by a constructor address, so two frozen eliminations compare
+         their branch bodies under the binders of the same constructor. *)
+      (fun () ->
+        Option.bind (Term.as_actor a1) (fun (c1 : string) ->
+            Option.map (fun (c2 : string) -> Ok (String.equal c1 c2)) (Term.as_actor a2)));
     ]
 
 (** Grow the context by binders a comparison opens (SB-D26). *)

@@ -525,18 +525,33 @@ and elab_group (c : Check.ctx) (b : Syntax.binder) (cod : Syntax.t) ~(left : boo
   let s : Term.t Shape.t = Shape.SPi (q, x, ty) in
   Ok (if left then Term.Lan (s, cod') else Term.Ran (s, cod'))
 
-(** "case t [as x return M] with | k (y : T) => b".  The width comes from
+(** "case t [as x [in F i1 .. im] return M] with | k (y : T) => b" at a
+    collection and "| c x1 .. xn => b" at a family.  The width comes from
     the scrutinee's type, so a case that misses a leg is the checker's
-    [Missing_branch] and never a silent narrowing. *)
+    [Missing_branch] and never a silent narrowing.  M1 Stage H, brief
+    3.8:  a scrutinee at a mu shape takes the fibered row below and every
+    M0 case keeps the collection row. *)
 and elab_case (c : Check.ctx) ~(expected : Value.t option) (scrut : Syntax.t)
     (mo : Syntax.motive option) (brs : Syntax.branch list) : (Term.t, Error.t) result =
   let* scrut' = elab c ~expected:None scrut in
   let* w = type_of c scrut' in
-  let* vs, dclo, _u =
+  let* vs, dclo, u =
     Value.as_lan w
     |> Option.to_result
          ~none:(Error.Mismatch "a case needs a left former as the type of its scrutinee")
   in
+  Rules.as_vmu vs
+  |> Option.fold
+       ~none:(fun () -> elab_coll_case c ~expected scrut' w vs dclo mo brs)
+       ~some:(fun ((n : string), (ixv : Value.t list)) ->
+         fun (_unit : unit) -> elab_mu_case c ~expected scrut' n ixv dclo u mo brs)
+  |> fun (k : unit -> (Term.t, Error.t) result) -> k ()
+
+(** The M0 row, unchanged from Stage B:  the scrutinee stands at a
+    collection and every branch is keyed by its leg number (SB-D32). *)
+and elab_coll_case (c : Check.ctx) ~(expected : Value.t option) (scrut' : Term.t)
+    (w : Value.t) (vs : Value.t Shape.t) (dclo : Value.closure)
+    (mo : Syntax.motive option) (brs : Syntax.branch list) : (Term.t, Error.t) result =
   let* n =
     Rules.as_vcoll vs
     |> Option.to_result ~none:(Error.Mismatch "a case eliminates a collection")
@@ -562,6 +577,7 @@ and elab_motive (c : Check.ctx) (mo : Syntax.motive option) (scrut_ty : Value.t)
     (Term.motive option, Error.t) result =
   mo
   |> Option.fold ~none:(Ok None) ~some:(fun (m : Syntax.motive) ->
+         let* () = coll_motive_plain m in
          let c' = Check.bind m.Syntax.mo_self Quantity.Zero scrut_ty c in
          let* body = elab c' ~expected:None m.Syntax.mo_body in
          Ok
@@ -573,27 +589,203 @@ and elab_motive (c : Check.ctx) (mo : Syntax.motive option) (scrut_ty : Value.t)
                 m_body = body;
               }))
 
+(** M1 Stage H, brief 3.8:  the index clause names a family and binds
+    its index arguments, so a motive at a collection carries none and the
+    M0 motive form is the only one this row reads. *)
+and coll_motive_plain (m : Syntax.motive) : (unit, Error.t) result =
+  m.Syntax.mo_ind
+  |> Option.fold ~none:(Ok ()) ~some:(fun (n : string) ->
+         Error
+           (Error.Mismatch
+              ("a case at a collection takes no index clause and its motive names " ^ n)))
+
 (** One branch.  The payload's type is the diagram's leg, not the
     surface annotation (SB-D32), so the elaborator and the checker read
-    the same type. *)
+    the same type.  M1 Stage H:  a constructor keyed branch at a
+    collection is refused here, because a leg address is not a
+    constructor address (SH-D9). *)
 and elab_branch (c : Check.ctx) (vs : Value.t Shape.t) (dlegs : Value.vleg list)
     (motive : Term.motive option) (expected : Value.t option) (br : Syntax.branch) :
     (Term.addr * Term.leg, Error.t) result =
-  let* b =
-    Rules.one_of br.Syntax.br_binders
-    |> Option.to_result
-         ~none:(Error.Missing_branch "each branch binds its payload once")
+  match br with
+  | Syntax.BrCtor (cname, (_fs : Syntax.field list), (_body : Syntax.t)) ->
+      Error
+        (Error.Wrong_leg
+           ("the branch at " ^ cname ^ " keys a constructor and a case at a collection keys a leg"))
+  | Syntax.BrLeg (k, binders, br_body) ->
+      let* b =
+        Rules.one_of binders
+        |> Option.to_result
+             ~none:(Error.Missing_branch "each branch binds its payload once")
+      in
+      let* ty = Rules.coll_leg_ty Check.ops c dlegs k in
+      let self = Value.VIn (vs, Value.VALeg k, [ Value.var (size_of c) ]) in
+      let* target = branch_target c motive expected self in
+      let c' = Check.bind b.Syntax.b_name b.Syntax.b_q ty c in
+      let* body = elab c' ~expected:target br_body in
+      Ok
+        ( Term.ALeg k,
+          { Term.l_binders = [ (b.Syntax.b_q, b.Syntax.b_name) ]; l_body = body } )
+
+(** M1 Stage H, brief 3.8:  the fibered row.  The scrutinee stands at a
+    family, the motive binds the index arguments beside the scrutinee
+    binder, and every branch is keyed by a constructor name with one
+    binder per field.  A dependent match elaborates to one fibered
+    [Elim] and to no new kernel form (M1-PLAN.md:96). *)
+and elab_mu_case (c : Check.ctx) ~(expected : Value.t option) (scrut' : Term.t)
+    (n : string) (ixv : Value.t list) (dclo : Value.closure) (u : Level.t option)
+    (mo : Syntax.motive option) (brs : Syntax.branch list) : (Term.t, Error.t) result =
+  let* fam =
+    Global.find_family n (globals_of c)
+    |> Option.to_result ~none:(Error.Unbound ("the family " ^ n ^ " is not declared"))
   in
-  let* ty = Rules.coll_leg_ty Check.ops c dlegs br.Syntax.br_leg in
-  let self =
-    Value.VIn (vs, Value.VALeg br.Syntax.br_leg, [ Value.var (size_of c) ])
+  let* penv = Rules.mu_param_env Check.ops c dclo in
+  let* motive = elab_mu_motive c n fam dclo u penv mo in
+  let* branches =
+    Rules.all_ok (List.map (elab_mu_branch c n fam motive penv expected) brs)
   in
-  let* target = branch_target c motive expected self in
-  let c' = Check.bind b.Syntax.b_name b.Syntax.b_q ty c in
-  let* body = elab c' ~expected:target br.Syntax.br_body in
+  let* ix =
+    Rules.all_ok
+      (List.map (fun (v : Value.t) -> Eval.quote (globals_of c) (size_of c) v) ixv)
+  in
   Ok
-    ( Term.ALeg br.Syntax.br_leg,
-      { Term.l_binders = [ (b.Syntax.b_q, b.Syntax.b_name) ]; l_body = body } )
+    (Term.Elim
+       {
+         Term.e_shape = Shape.SMu (n, ix);
+         e_scrut = scrut';
+         e_scrut_q = Quantity.Many;
+         e_motive = motive;
+         e_branches = branches;
+       })
+
+(** The fibered motive.  Each index binder is bound at the erased mark
+    (A2) at the index type of the family, read under the parameters and
+    under the index binders before it, and the scrutinee binder is bound
+    at the family read at those binders.  [m_ind] is the family the
+    surface names, which the kernel checks against the scrutinee
+    (SH-D6), so a motive built for a sibling family reaches the checker
+    and is refused there. *)
+and elab_mu_motive (c : Check.ctx) (n : string) (fam : Positivity.family)
+    (dclo : Value.closure) (u : Level.t option) (penv : Value.t list)
+    (mo : Syntax.motive option) : (Term.motive option, Error.t) result =
+  mo
+  |> Option.fold ~none:(Ok None) ~some:(fun (m : Syntax.motive) ->
+         let* pairs =
+           Rules.zip fam.Positivity.f_indices m.Syntax.mo_idx
+           |> Option.to_result
+                ~none:
+                  (Error.Mismatch
+                     (Printf.sprintf
+                        "the motive of %s binds %d index names and the family has %d" n
+                        (List.length m.Syntax.mo_idx)
+                        (List.length fam.Positivity.f_indices)))
+         in
+         let* ci, _ienv, vals = bind_indices c penv pairs in
+         let self_ty = Value.VLan (Shape.SMu (n, List.rev vals), dclo, u) in
+         let cs = Check.bind m.Syntax.mo_self Quantity.Zero self_ty ci in
+         let* body = elab cs ~expected:None m.Syntax.mo_body in
+         Ok
+           (Some
+              {
+                Term.m_ind = m.Syntax.mo_ind;
+                m_idx = m.Syntax.mo_idx;
+                m_self = m.Syntax.mo_self;
+                m_body = body;
+              }))
+
+(** The index binders of a motive, outermost first, exactly as the
+    checker binds them (rules.ml [mu_motive_lvl]):  each index type is
+    read in the values before it and the binder is erased. *)
+and bind_indices (c : Check.ctx) (penv : Value.t list)
+    (pairs : ((Quantity.t * string * Term.t) * string) list) :
+    (Check.ctx * Value.t list * Value.t list, Error.t) result =
+  List.fold_left
+    (fun (acc : (Check.ctx * Value.t list * Value.t list, Error.t) result)
+         ((((_q : Quantity.t), (_y : string), (ty : Term.t)), (x : string)) :
+           (Quantity.t * string * Term.t) * string) ->
+      let* c_acc, env_acc, vals_acc = acc in
+      let* tyv = Eval.eval (globals_of c_acc) env_acc ty in
+      let v = Value.var (size_of c_acc) in
+      Ok (Check.bind x Quantity.Zero tyv c_acc, v :: env_acc, v :: vals_acc))
+    (Ok (c, penv, []))
+    pairs
+
+(** One constructor keyed branch.  The field binders take their types
+    from the family record, each read under the fields before it, and the
+    body is elaborated at the motive instantiated at that constructor's
+    result indices and at its own introduction (SH-D7, SH-D9).  The
+    branch binder keeps the mark the writer gave it, so the kernel row
+    that compares it with the field mark stays the rule that decides
+    (rules.ml [mu_branch]). *)
+and elab_mu_branch (c : Check.ctx) (n : string) (fam : Positivity.family)
+    (motive : Term.motive option) (penv : Value.t list) (expected : Value.t option)
+    (br : Syntax.branch) : (Term.addr * Term.leg, Error.t) result =
+  match br with
+  | Syntax.BrLeg (k, (_bs : Syntax.binder list), (_body : Syntax.t)) ->
+      Error
+        (Error.Wrong_leg
+           (Printf.sprintf "the branch %d keys a leg and a case at %s keys a constructor"
+              k n))
+  | Syntax.BrCtor (cname, fields, br_body) ->
+      let* ct =
+        Positivity.ctor_of cname fam
+        |> Option.to_result ~none:(Error.Unbound (cname ^ " is not a constructor of " ^ n))
+      in
+      let* pairs =
+        Rules.zip ct.Positivity.c_args fields
+        |> Option.to_result
+             ~none:
+               (Error.Missing_branch
+                  (Printf.sprintf "the branch at %s binds %d fields and %s takes %d" cname
+                     (List.length fields) cname (List.length ct.Positivity.c_args)))
+      in
+      let* cf, env, vals = bind_fields c penv pairs in
+      let* idx =
+        Rules.all_ok
+          (List.map
+             (fun (r : Term.t) -> Eval.eval (globals_of c) env r)
+             ct.Positivity.c_res_idx)
+      in
+      let self = Value.VIn (Shape.SMu (n, idx), Value.VACtor cname, List.rev vals) in
+      let* target = mu_branch_target c motive expected idx self in
+      let* body = elab cf ~expected:target br_body in
+      Ok
+        ( Term.ACtor cname,
+          {
+            Term.l_binders =
+              List.map (fun (f : Syntax.field) -> (f.Syntax.fd_q, f.Syntax.fd_name)) fields;
+            l_body = body;
+          } )
+
+(** The field binders of one branch, in declaration order, each type
+    read in the values before it (rules.ml [mu_branch]). *)
+and bind_fields (c : Check.ctx) (penv : Value.t list)
+    (pairs : ((Quantity.t * string * Term.t) * Syntax.field) list) :
+    (Check.ctx * Value.t list * Value.t list, Error.t) result =
+  List.fold_left
+    (fun (acc : (Check.ctx * Value.t list * Value.t list, Error.t) result)
+         ((((_q : Quantity.t), (_y : string), (ty : Term.t)), (f : Syntax.field)) :
+           (Quantity.t * string * Term.t) * Syntax.field) ->
+      let* c_acc, env_acc, vals_acc = acc in
+      let* tyv = Eval.eval (globals_of c_acc) env_acc ty in
+      let v = Value.var (size_of c_acc) in
+      Ok
+        ( Check.bind f.Syntax.fd_name f.Syntax.fd_q tyv c_acc,
+          v :: env_acc,
+          v :: vals_acc ))
+    (Ok (c, penv, []))
+    pairs
+
+(** The type a fibered branch body is elaborated at:  the motive read at
+    the branch's own indices and introduction, or the caller's
+    expectation when the surface gave no motive, which the kernel then
+    refuses (SH-D5). *)
+and mu_branch_target (c : Check.ctx) (motive : Term.motive option)
+    (expected : Value.t option) (idx : Value.t list) (self : Value.t) :
+    (Value.t option, Error.t) result =
+  motive
+  |> Option.fold ~none:(Ok expected) ~some:(fun (m : Term.motive) ->
+         Result.map Option.some (Rules.mu_result Check.ops c m idx self))
 
 (** The type a branch body is elaborated at:  the motive read at the
     branch's own value, or the caller's expectation as the constant

@@ -130,33 +130,60 @@ and parse_let (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':='" rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a name and ':' after 'let'" ts
 
-(** "case t ['as' x 'return' M] 'with' ('|' k binder* '=>' b)*".
-    mirrors kan-lang-tot-pin/surface/parser.ml:220-281, without the
-    index clause, which has no M0 production. *)
+(** "case t ['as' x ['in' FAMILY idx*] 'return' M] 'with'
+    ('|' k binder* '=>' b | '|' c field* '=>' b)*".  M1 Stage H, brief
+    3.8:  the index clause and the constructor keyed branch are the
+    minimum a fibered elimination needs, and both mirror
+    kan-lang-tot-pin/surface/parser.ml:227-236 and :288-299.  The clause
+    sits after "as x", so it cannot collide with a "let .. in .."
+    scrutinee, which [parse_term] has already read whole. *)
 and parse_case (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   let* scrut, rest = parse_term ts in
   match rest with
-  | { Token.kind = Token.KAs; loc = _ }
-    :: { Token.kind = Token.Ident x; loc = _ }
-    :: { Token.kind = Token.KReturn; loc = _ }
-    :: rest2 -> (
-      let* body, rest3 = parse_term rest2 in
+  | { Token.kind = Token.KAs; loc = _ } :: { Token.kind = Token.Ident x; loc = _ } :: rest2
+    -> (
+      let ind, idx, rest3 = parse_index_clause rest2 in
       match rest3 with
-      | { Token.kind = Token.KWith; loc = _ } :: rest4 ->
-          let* branches, rest5 = parse_branches rest4 [] in
-          let mo : Syntax.motive = { Syntax.mo_self = x; mo_body = body } in
-          Ok (Syntax.SCase (scrut, Some mo, branches), rest5)
-      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest3)
+      | { Token.kind = Token.KReturn; loc = _ } :: rest4 -> (
+          let* body, rest5 = parse_term rest4 in
+          match rest5 with
+          | { Token.kind = Token.KWith; loc = _ } :: rest6 ->
+              let* branches, rest7 = parse_branches rest6 [] in
+              let mo : Syntax.motive =
+                { Syntax.mo_self = x; mo_ind = ind; mo_idx = idx; mo_body = body }
+              in
+              Ok (Syntax.SCase (scrut, Some mo, branches), rest7)
+          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest5)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'return'" rest3)
   | { Token.kind = Token.KAs; loc } :: _rest ->
-      parse_err loc "expected 'NAME return TYPE' after 'as'"
+      parse_err loc "expected 'NAME [in FAMILY IDX..] return TYPE' after 'as'"
   | { Token.kind = Token.KWith; loc = _ } :: rest2 ->
       let* branches, rest3 = parse_branches rest2 [] in
       Ok (Syntax.SCase (scrut, None, branches), rest3)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'as' or 'with'" rest
 
-(** Zero or more "| k binder* => body" branches.  The list ends at the
-    first token that is not a bar, so the enclosing form reads on.
-    mirrors kan-lang-tot-pin/surface/parser.ml:283-314. *)
+(** M1 Stage H, brief 3.8:  the optional "'in' FAMILY idx*" clause of a
+    motive.  A token list that does not open with "in" is given back
+    unread, so the M0 motive form parses as it did at M0. *)
+and parse_index_clause (ts : Token.t list) : string option * string list * Token.t list =
+  match ts with
+  | { Token.kind = Token.KIn; loc = _ } :: { Token.kind = Token.Ident n; loc = _ } :: rest
+    ->
+      let names, rest2 = parse_names rest [] in
+      (Some n, names, rest2)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> (None, [], ts)
+
+(** Zero or more names, oldest first.  Total:  the list ends at the
+    first token that is not a name. *)
+and parse_names (ts : Token.t list) (acc : string list) : string list * Token.t list =
+  match ts with
+  | { Token.kind = Token.Ident x; loc = _ } :: rest -> parse_names rest (x :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> (List.rev acc, ts)
+
+(** Zero or more branches.  The list ends at the first token that is not
+    a bar, so the enclosing form reads on.  mirrors
+    kan-lang-tot-pin/surface/parser.ml:283-314 for the leg keyed row and
+    :288-299 for the constructor keyed row of M1 Stage H. *)
 and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
     (Syntax.branch list * Token.t list, Error.t) result =
   match ts with
@@ -166,14 +193,32 @@ and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
       match rest2 with
       | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
           let* body, rest4 = parse_term rest3 in
-          let br : Syntax.branch =
-            { Syntax.br_leg = k; br_binders = binders; br_body = body }
-          in
-          parse_branches rest4 (br :: acc)
+          parse_branches rest4 (Syntax.BrLeg (k, binders, body) :: acc)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2)
+  | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Ident c; loc = _ } :: rest
+    -> (
+      let fields, rest2 = parse_fields rest [] in
+      match rest2 with
+      | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
+          let* body, rest4 = parse_term rest3 in
+          parse_branches rest4 (Syntax.BrCtor (c, fields, body) :: acc)
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2)
   | { Token.kind = Token.Pipe; loc } :: _rest ->
-      parse_err loc "expected a leg number after '|'"
+      parse_err loc "expected a leg number or a constructor name after '|'"
   | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)
+
+(** M1 Stage H, brief 3.8:  zero or more field binders of a constructor
+    keyed branch, each a mark and a name.  A field takes its type from
+    the family record, so no field carries an annotation.  Total:  the
+    list ends at the first token that no mark and no name opens, and the
+    mark of that token is never consumed. *)
+and parse_fields (ts : Token.t list) (acc : Syntax.field list) :
+    Syntax.field list * Token.t list =
+  let q, rest = mark_prefix ts in
+  match rest with
+  | { Token.kind = Token.Ident x; loc = _ } :: rest2 ->
+      parse_fields rest2 ({ Syntax.fd_q = q; fd_name = x } :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> (List.rev acc, ts)
 
 (** The arrow and the star.  The speculative binder group runs first and
     commits only when the operator follows it, so "(t : A)" stays an

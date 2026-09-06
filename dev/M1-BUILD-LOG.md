@@ -341,3 +341,309 @@ and `GATES-OK`.  The log is /private/tmp/kanon-stage-g-fixes-gates.log.
 
 The bounds and existing gate implementations are unchanged by these
 fixes.  Source, fixtures and logs are staged for the user to commit.
+
+## Stage H (2026-09-06)
+
+### Deliverables
+
+The line counts are read on ROOT after the build of SH-G1.
+
+| file | lines | note |
+| --- | --- | --- |
+| lib/rules.ml | 1496 | +312 -9;  the fibered Elim, the branch and motive rules, the criterion at mu_zero_eliminable:993 |
+| lib/conv.ml | 416 | +33 -7;  step one gains named rule 2 through the pack field, step three gains the SMu head |
+| SPEC.md | 510 | +44 -4;  the count row :173, the status cell :236, the rule text of section 2.1 and section 5 |
+| surface/syntax.ml | 268 | +47 -13;  mo_ind, mo_idx, BrLeg, BrCtor, the field binder |
+| surface/parser.ml | 503 | +67 -22;  the index clause, the constructor keyed branch row, parse_fields |
+| surface/elab.ml | 1008 | +208 -16;  elab_coll_case and elab_mu_case, the family and constructor reads |
+| test/fixtures/mu-prop-large-elim.kan | 14 | new;  a large elimination out of a one constructor Prop family |
+| test/fixtures/mu-empty-large-elim.kan | 12 | new;  ex falso out of the empty family |
+| test/fixtures/mu-indexed.kan | 33 | +11;  the Stage G positive extended by read_index, the SH-M3 killer |
+| test/neg/mu-large-elim-nonsub.kan | 12 | new;  one argument at quantity Many, refused by part two |
+| test/neg/mu-large-elim-selfrec.kan | 14 | new;  one self recursive argument at Zero, refused by part three |
+| test/neg/mu-missing-branch.kan | 11 | new;  one constructor unanswered |
+| test/neg/mu-no-motive.kan | 11 | new;  an Elim at an SMu scrutinee with no motive |
+| test/neg/mu-motive-wrong-family.kan | 13 | new;  a motive built for a sibling family |
+| test/golden/mu-prop-large-elim.checked | 1 | new;  the checked text, with .erased at 1 line |
+| test/golden/mu-empty-large-elim.checked | 2 | new;  the checked text, with .erased at 2 lines |
+| test/golden/mu-indexed.checked | 1 | +1;  the row read_index, with .erased at +1 |
+| the five .err sidecars | 1 each | new;  the exact expected error line of each negative |
+
+The surface widening of brief 3.8 is 322 insertions and 51 deletions
+over the three surface files.  No kernel file joined the believed list,
+so SH-D15 holds and the two budgets stay at 4000 and 600.
+
+### Gates
+
+The judge reran SH-G1 to SH-G7 on ROOT at 2026-09-06 06:53, after
+`zsh dev/dune.sh clean`, at the load average 10.13 10.10 11.76.  Each
+line below is the exact final line of the command, with its exit code.
+
+- SH-G1 BUILD.  `zsh dev/dune.sh clean` exit 0, then
+  `zsh dev/dunecho.sh build` printed `OK build: 0 errors, 0 warnings`,
+  exit 0.
+- SH-G2 SUITE-KERNEL.  The leg name is not an accepted argument of
+  dev/gates.sh (H-F7), so the whole battery ran once under SH-D16 and
+  printed `PASS SUITE-KERNEL`.  The direct run
+  `_build/default/test/main.exe test` printed `PARSE-OK 80/80`,
+  `CHECK-OK 53/53`, `ERASE-OK 53/53`, `NEG-OK 26/26`,
+  `ERASE-NEG-OK 1/1`, `KNEG-OK 2/2` and `SUITE-KERNEL OK`, exit 0.
+- SH-G3 R0-COUNT.  Same spelling rule.  The battery printed
+  `PASS R0-COUNT`.  `_build/default/bin/kanon.exe spec-count` printed
+  `named rules present 3: proof-irrelevance subsingleton-large-elimination
+  literal-fast-path`, with `named rules declared 3` and
+  `shapes admitted 3: SPi SColl SMu` unchanged, exit 0.
+- SH-G4 R0-AUDIT.  `zsh dev/r0-audit.sh` printed `R0-AUDIT OK`, exit 0.
+- SH-G5 TRUSTED-LINES.  `zsh dev/trusted-lines.sh ROOT` printed
+  `TRUSTED-LINES kernel=3380/4000 encoder=216/600 OK`, exit 0.  The
+  kernel reading is 3380 and the encoder reading is 216.
+- SH-G6 HOUSE.  `zsh dev/house.sh ROOT` printed `HOUSE no-exception OK`,
+  `HOUSE no-mutable-state OK`, `HOUSE one-catch-site OK`,
+  `HOUSE no-bool-match OK`, `HOUSE no-em-dash OK` and `HOUSE OK`,
+  exit 0.
+- The whole battery `zsh dev/gates.sh` printed `GATES-OK`, exit 0, with
+  the 15 PASS lines, `PASS M0-TIME median_ms=88.489 bound_ms=150` and
+  `PASS PIN sha=8cf0b8b`.  The bound of M0-TIME was not moved.
+- SH-G7 ELIM-SUITE, the stage local leg of brief 3.10 over the seven
+  fixtures of 3.9.  The two positives are read against both golden files
+  and the five negatives against their sidecars, with the error kind
+  stripped at the first `: ` (SH-D47, SH-D48).  The seven lines:
+  `ELIM-SUITE POS mu-prop-large-elim exit=0 GOLDEN-MATCH` and its
+  `erased exit=0 ERASED-MATCH`;
+  `ELIM-SUITE POS mu-empty-large-elim exit=0 GOLDEN-MATCH` and its
+  `erased exit=0 ERASED-MATCH`;
+  `ELIM-SUITE NEG mu-large-elim-nonsub exit=1 SIDECAR-MATCH line=a large
+  elimination out of a proposition needs a subsingleton family at Box`;
+  `ELIM-SUITE NEG mu-large-elim-selfrec exit=1 SIDECAR-MATCH line=a large
+  elimination out of a proposition needs a subsingleton family at Acc`;
+  `ELIM-SUITE NEG mu-missing-branch exit=1 SIDECAR-MATCH line=the
+  elimination of Two has no branch at cb`;
+  `ELIM-SUITE NEG mu-no-motive exit=1 SIDECAR-MATCH line=an elimination
+  at a mu shape needs a motive`;
+  `ELIM-SUITE NEG mu-motive-wrong-family exit=1 SIDECAR-MATCH line=the
+  motive is built for Beta and the scrutinee is at Alpha`.  The leg
+  exited 0.
+- SH-G8 LOGS.  dev/M1-BUILD-LOG.md holds `## Stage H (2026-09-06)`
+  exactly once and dev/M1-MUTATION-LOG.md holds `## Stage H` exactly
+  once.  The Stage G sections of both files are unchanged, because both
+  sections are appended after the last line of the file.
+  `git diff --stat -- dev/M0-BUILD-LOG.md dev/MUTATION-LOG.md` is empty
+  and porcelain lists only Stage H paths.
+
+### MEASURE table
+
+The judge ran the whole battery `zsh dev/gates.sh` once on ROOT at
+2026-09-06 06:53, at the load average 11.00 10.29 11.81.  The rows are
+copied from that run.  No timed leg failed, so no leg was rerun.
+
+```
+MEASURE BUILD tier=SLOW elapsed_ms=65.316 exit=0
+MEASURE CARRY tier=MED elapsed_ms=673.347 exit=0
+MEASURE R0-COUNT tier=FAST elapsed_ms=286.397 exit=0
+MEASURE R0-AUDIT tier=FAST elapsed_ms=23.760 exit=0
+MEASURE SUITE-KERNEL tier=SUITE elapsed_ms=195.150 exit=0
+MEASURE SUITE-WASM tier=SUITE elapsed_ms=1604.048 exit=0
+MEASURE ENCODER-SUBSET tier=FAST elapsed_ms=42.962 exit=0
+MEASURE AXIOMS tier=MED elapsed_ms=20.601 exit=0
+MEASURE M0-E2E tier=SLOW elapsed_ms=201.379 exit=0
+MEASURE M0-TIME tier=SLOW elapsed_ms=770.852 exit=0
+MEASURE M0-RATIO tier=SLOW elapsed_ms=259.539 exit=0
+MEASURE TRUSTED-LINES tier=FAST elapsed_ms=20.652 exit=0
+MEASURE DENOMINATORS tier=MED elapsed_ms=36.733 exit=0
+MEASURE HOUSE tier=MED elapsed_ms=73.406 exit=0
+MEASURE PIN tier=FAST elapsed_ms=59.454 exit=0
+```
+
+The two bench rows and the ratio row of the same run:
+
+```
+BENCH m0_e2e median_ms=88.489 min_ms=85.850 max_ms=256.346 runs=5
+PASS M0-TIME median_ms=88.489 bound_ms=150
+BENCH m0_ratio median_ms=28.426 min_ms=28.212 max_ms=28.780 runs=5
+MEASURE M0-RATIO kanon_ms=28.426 tot_ms=103.662 ratio=0.274
+PASS M0-RATIO ratio=0.274
+```
+
+### Decisions
+
+SH-D1 to SH-D16 are pinned by the Stage H brief section 3.11.  SH-D17 to
+SH-D45 are the builders'.  SH-D46 to SH-D50 are the verifier's and the
+fixer's.  SH-D51 to SH-D53 are the fix round's, which numbered them
+SH-D20 to SH-D22 and collided with builder 1;  the judge renumbers them
+here and states the renumbering for the user.
+
+- SH-D1 The criterion lives in lib/rules.ml and conv.ml reads it through
+  the pack, so R0-AUDIT stays green.
+- SH-D2 The criterion is ported part for part, each part citing its pin
+  line, and never restated in kanon words.
+- SH-D3 The empty family passes part one and gets its ex falso.
+- SH-D4 A self recursive family never gets a large elimination.
+- SH-D5 An Elim at an SMu scrutinee with e_motive None is an error
+  inside the pack, never at the dispatch.
+- SH-D6 m_ind is Some n and is checked equal to the scrutinee family.
+- SH-D7 m_idx has the length of the family index telescope and a branch
+  body is checked at m_body instantiated at that constructor.
+- SH-D8 A missing branch and a repeated branch are both errors, read in
+  declaration order.
+- SH-D9 A branch leg binds one binder per field at the field quantities;
+  Lan SPi keeps ALeg 0 with two binders.
+- SH-D10 The SPEC.md count and the status cell move in this commit.
+- SH-D11 The section 10 obligation row is not edited here.
+- SH-D12 The seven fixtures enter as .kan files through the surface.
+- SH-D13 Every mutation runs on a fresh copy and ROOT is never mutated.
+- SH-D14 The plan's SH-M1b is carried as SH-M6.
+- SH-D15 No kernel file joins the believed list and the budgets do not
+  move.
+- SH-D16 A leg dev/gates.sh does not accept as an argument is read from
+  one whole run of the battery.
+- SH-D17 The criterion reaches conv.ml through one new pack field,
+  `subsingleton : 'c ops -> 'c -> Value.t Shape.t -> (bool, Error.t)
+  result` at lib/rules.ml:180, so conv.ml names no shape.
+- SH-D18 Every non recursive pack answers that field with
+  `no_subsingleton`, which is `Ok false`, at spi_pack and coll_pack.
+- SH-D19 `mu_subsingleton` (lib/rules.ml:1035) answers `Ok false` when
+  as_vmu fails or the family lookup errors, so conversion never turns a
+  missing family into a hard error.
+- SH-D20 The pin criterion is ported arm for arm at
+  `mu_zero_eliminable` (lib/rules.ml:993), Provisional at :996 for pin
+  :225, Builtin at :998 for :226, `Complete []` at :1000 for :227,
+  `Complete [c]` at :1002 for :228 with part two at :1006 and part three
+  at :1011, and `Complete (_ :: _ :: _)` at :1013 for :233.
+- SH-D21 The family record is read through one reader, `mu_family`
+  (lib/rules.ml:1018) wrapping ops.o_family, which is Global.find_family
+  (lib/global.ml:74);  the constructor is read with Positivity.ctor_of.
+- SH-D22 The large elimination refusal is Error.Universe carrying
+  `mu_large_word` (lib/rules.ml:980) and the family name.
+- SH-D23 `mu_large` (lib/rules.ml:1233) admits at once when the family
+  level is not zero and when the motive level is zero, and only then
+  asks the criterion, which is the pin order at check.ml:1370.
+- SH-D24 The motive level is measured under the index binders and the
+  self binder at Quantity.Zero, so the motive is never checked at a made
+  up universe.
+- SH-D25 The old `mu_elim_word` is dead and deleted, replaced by
+  `mu_motive_word` (lib/rules.ml:975) and `mu_large_word` (:980).
+- SH-D26 In arguments keep the untyped pairwise comparison in conv.ml;
+  the field types are enforced at the introduction site.
+- SH-D27 conv.ml step one is is_prop, then one o_whnf, then
+  subsingleton_step, then eta_step, so the head is computed once.
+- SH-D28 conv.ml branch_addr gains a third arm that compares
+  Term.as_actor, so no shape name enters conv.ml.
+- SH-D29 `mu_beta` reduces BElim at the branch whose ACtor key equals
+  the constructor of the Value.VIn, at `List.rev_append args env`;  BOut
+  keeps the Ran refusal.
+- SH-D30 Branch coverage is read in the declaration order of f_ctors and
+  missing, repeated and unknown each carry their own word
+  (lib/rules.ml:1277, :1281, :1289).
+- SH-D31 Each branch checks binder count then binder quantity field by
+  field against c_args, and a later field type sees the earlier binders.
+- SH-D32 The elimination result is the motive body at
+  `self :: List.rev_append idx env` (lib/rules.ml:1197), and the
+  scrutinee value is computed after the branches are checked.
+- SH-D33 Verification beyond the two required gates ran only on a copy
+  made with rsync, built with its own dev/dunecho.sh.
+- SH-D34 SPEC.md:173 alone carries the count move and reads
+  `named rules present 3: proof-irrelevance
+  subsingleton-large-elimination literal-fast-path`.
+- SH-D35 The status cell at SPEC.md:236 moves from `M1` to `present` and
+  names conv.ml step one through the `subsingleton` field, keeping the
+  pin citation.
+- SH-D36 The rule text lands in two blocks, the fibered Elim rules at
+  SPEC.md:47-63 and the three criterion parts at :239-257.
+- SH-D37 The section 10 obligation row at SPEC.md:508 keeps `M1` and is
+  untouched;  section 11 gains :467 and :480 and section 8 gains :302.
+- SH-D38 The surface motive gains `mo_ind` (surface/syntax.ml:46) and
+  `mo_idx` (:47) and no new form, so every M0 fixture keeps its text.
+- SH-D39 The surface branch becomes a sum, `BrLeg` (surface/syntax.ml:65)
+  and `BrCtor` (:66), so no branch carries both keys.
+- SH-D40 A field binder carries `fd_q` (surface/syntax.ml:55) and
+  `fd_name` (:56) only, because the field type is read from the record.
+- SH-D41 The index clause is read by `parse_index_clause`
+  (surface/parser.ml:168), which gives the tokens back unread when it
+  does not open with `in`, so it cannot collide with a let.
+- SH-D42 `parse_fields` (surface/parser.ml:215) and `parse_names` (:178)
+  are total and stop at the first token that is not a field or a name.
+- SH-D43 The branch bar takes a second row at surface/parser.ml:204 and
+  the failure word at :207 becomes `expected a leg number or a
+  constructor name after '|'`.
+- SH-D44 The elaborator splits on the shape of the scrutinee type,
+  `elab_coll_case` (surface/elab.ml:552) and `elab_mu_case` (:635), with
+  :611 and :724 refusing the other form.
+- SH-D45 The family and the constructor are read in the surface only,
+  Global.find_family (surface/elab.ml:639) and Positivity.ctor_of (:731),
+  so conv.ml still holds no family lookup.
+- SH-D46 The verifier changed no byte of ROOT, because the whole battery
+  was green on the tree as found.
+- SH-D47 A `.err` sidecar is measured against `Error.message`, which is
+  what test/main.ml:107-109 compares, with the error kind stripped at the
+  first `: `, and never against the prefixed CLI line.
+- SH-D48 The two positives are measured against both golden files,
+  `check --print` against .checked and `check --erased` against .erased.
+- SH-D49 SH-D16 governs SH-G2 and SH-G3, whose leg names dev/gates.sh
+  does not accept, so the whole battery ran once and the two PASS lines
+  are quoted from that run.
+- SH-D50 SH-D15 stands, because deliverable 3.4 landed in lib/rules.ml,
+  an already believed file, so dev/trusted-lines.sh is not edited.
+- SH-D51 The SH-M3 killer is the Stage G fixture
+  test/fixtures/mu-indexed.kan extended by one definition, not an eighth
+  fixture, because M1-PLAN.md:200 names that file.  PARSE-OK stays 80/80
+  and CHECK-OK and ERASE-OK go from 52/53 to 53/53.
+- SH-D52 The elimination sits under a let inside a definition at Type 0,
+  because Erase.decl (lib/erase.ml:1101-1104) drops a definition whose
+  declared type is not a runtime type, so the interim erasure word stays
+  pinned by test/erase-neg/mu-erase.kan alone.
+- SH-D53 The motive body is `V i` and not an index free type, so SH-M3
+  is killed by the evaluator, which answers Unbound
+  (lib/eval.ml:26-31), and not by a golden text difference.
+
+### Findings
+
+- SH-F-HIGH-1, high, closed by the fix round.  SH-M3 was not killed:
+  the index instantiation of `mu_result` (lib/rules.ml:1197) had no
+  fixture, because test/fixtures/mu-indexed.kan held no elimination and
+  no .kan file in the tree eliminated an indexed family, so the copy
+  with the index arguments dropped still printed `SUITE-KERNEL OK`.  The
+  fix adds `read_index` at test/fixtures/mu-indexed.kan:22, whose motive
+  body is `V i`, with the two goldens filled.  The judge reran the
+  mutation on judge-m3 and it now prints `CHECK mu-indexed FAIL:
+  unbound: de Bruijn index 1 is outside the environment`, `CHECK-OK
+  52/53` and `SUITE-KERNEL FAIL`.
+- SH-F-LOW-1, low, open for the user.  The missing branch refusal is
+  enforced twice, at `mu_cover` (lib/rules.ml:1277) and again at the
+  `List.find_opt` of `mu_branch` (:1309-1312), and the second site is
+  unreachable on every real path because `mu_cover` runs first at
+  mu_elim_elim:1367.  The fix round left it, because the smallest honest
+  edit is four lines plus a helper and the one line rule does not allow
+  it.  The judge reproduced the redundancy: SH-M2 is killed only when
+  both sites are disabled.
+
+### Hand-off notes for Stage I
+
+Stage I brings the structural order, the totality certificate and the
+translation of a recursive definition into one Elim (M1-PLAN.md:206).
+It reads five things this stage leaves ready.
+
+- The beta rule the translation feeds.  `mu_beta` at lib/rules.ml:1380
+  reduces `BElim` at :1383 by the branch whose ACtor key equals the
+  constructor of the value, at `List.rev_append args env` (:1392).
+  `BOut` keeps the M2 Ran refusal at :1382 (SH-D29).
+- The branch leg shape a recursive leg binder extends.  `mu_branch` at
+  lib/rules.ml:1297 binds one binder per field, checks the binder count
+  and then the field quantity against `c_args` (SH-D31), and the target
+  of each branch is `mu_result` at :1345.
+- The one family accessor.  `mu_family` at lib/rules.ml:1018 wraps
+  ops.o_family, which is Global.find_family at lib/global.ml:74, and it
+  stays the only reader (SH-D21).  A second reader outside that chain
+  breaks R0-AUDIT and SG-D2.
+- The criterion site of SH-D1.  `mu_zero_eliminable` at
+  lib/rules.ml:993, read by the pack field `subsingleton` (:180) and by
+  `mu_large` (:1233).  Stage I adds no part to it, because the pin has
+  three (SH-D2, SH-D20).
+- The obligation row Stage I marks discharged.  SPEC.md:509, the
+  structural recursion certificate row, which the plan cites as
+  SPEC.md:459 and which the Stage H edits moved to :509.  The
+  subsingleton obligation row at SPEC.md:508 keeps its milestone `M1`
+  and is Stage L's mark (SH-D11, SH-D37).
+
+Open for Stage I: the surface `case` of brief 3.8 elaborates through
+`elab_mu_case` at surface/elab.ml:635 and calls no guard, so the caller
+of `Totality.guard` is still absent (SPEC.md:509).

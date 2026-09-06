@@ -33,21 +33,37 @@ type binder = {
   b_ty : t;
 }
 
-(** A case motive, "as x return P".  The kernel motive carries an
-    inductive name and an index telescope;  neither has an M0
-    production, so the surface motive is the self name and the body. *)
+(** A case motive, "as x [in FAMILY i1 .. im] return P".  M1 Stage H,
+    brief 3.8:  the index clause is the minimum a fibered elimination
+    needs, and it mirrors kan-lang-tot-pin/surface/parser.ml:227-236.
+    [mo_ind] is the family the motive is built for, which the kernel
+    checks against the family of the scrutinee (SH-D6), and [mo_idx]
+    binds the index arguments beside the scrutinee binder (SH-D7).  An
+    M0 motive writes neither, so [mo_ind] is [None] and [mo_idx] is
+    empty and every M0 fixture keeps its text. *)
 and motive = {
   mo_self : string;
+  mo_ind : string option;
+  mo_idx : string list;
   mo_body : t;
 }
 
-(** A case branch, "| k binder* => body".  The key is the leg number,
-    which the elaborator reads as the leg address at Stage B. *)
-and branch = {
-  br_leg : int;
-  br_binders : binder list;
-  br_body : t;
+(** One field binder of a constructor keyed branch, "0 x" or "x".  A
+    field takes its type from the family record, so the branch names the
+    field and its mark alone (M1 Stage H, brief 3.8, SH-D9). *)
+and field = {
+  fd_q : Kanon_kernel.Quantity.t;
+  fd_name : string;
 }
+
+(** A case branch.  The M0 key is the leg number, which the elaborator
+    reads as the leg address at Stage B.  M1 Stage H adds the
+    constructor keyed branch of brief 3.8:  the key is a constructor
+    name and the branch binds one field binder per constructor field,
+    mirroring kan-lang-tot-pin/surface/parser.ml:288-299. *)
+and branch =
+  | BrLeg of int * binder list * t
+  | BrCtor of string * field list * t
 
 (** M1 Stage G, correction C7.  One constructor of a family, "| NAME :
     TYPE".  The type is an arrow chain:  its binders are the argument
@@ -162,12 +178,30 @@ and binder_text (b : binder) : string =
     takes parentheses and cannot swallow the branch bar that follows
     it. *)
 and branch_text (br : branch) : string =
-  Printf.sprintf " | %d%s => %s" br.br_leg
-    (String.concat "" (List.map (fun b -> " " ^ binder_text b) br.br_binders))
-    (at 1 br.br_body)
+  match br with
+  | BrLeg (k, bs, body) ->
+      Printf.sprintf " | %d%s => %s" k
+        (String.concat "" (List.map (fun (b : binder) -> " " ^ binder_text b) bs))
+        (at 1 body)
+  | BrCtor (c, fs, body) ->
+      Printf.sprintf " | %s%s => %s" c
+        (String.concat "" (List.map field_text fs))
+        (at 1 body)
 
+(** M1 Stage H:  a field binder prints its mark and its name, so the
+    printed branch re-parses to the same field list. *)
+and field_text (f : field) : string =
+  " " ^ mark f.fd_q ^ f.fd_name
+
+(** M1 Stage H:  the index clause prints only when the motive names a
+    family, so an M0 motive prints the text it printed at M0. *)
 and motive_text (mo : motive) : string =
-  Printf.sprintf " as %s return %s" mo.mo_self (at 1 mo.mo_body)
+  Printf.sprintf " as %s%s return %s" mo.mo_self (ind_text mo) (at 1 mo.mo_body)
+
+and ind_text (mo : motive) : string =
+  mo.mo_ind
+  |> Option.fold ~none:"" ~some:(fun (n : string) ->
+         " in " ^ n ^ String.concat "" (List.map (fun (x : string) -> " " ^ x) mo.mo_idx))
 
 and raw (s : t) : string =
   match s with

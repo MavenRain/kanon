@@ -137,6 +137,12 @@ type 'c rule_pack = {
           which is not a function of the payload levels (brief 3.5), and
           its right former answers the M2 word, which no [Level.t]
           can carry (SG-D4). *)
+  subsingleton : 'c ops -> 'c -> Value.t Shape.t -> (bool, Error.t) result;
+      (** M1 Stage H, brief 3.5 and SH-D1:  the subsingleton criterion of
+          brief 3.4, read through the pack.  Step one of conv.ml applies
+          it as named rule 2, so no shape name and no family lookup
+          enters conv.ml (dev/r0-audit.sh:6-11).  A shape that carries no
+          criterion answers [Ok false] and the comparison goes on. *)
 }
 
 (** The framework axiom of R-Q6, SPEC.md section 6:  [imax l zero] is
@@ -677,6 +683,13 @@ let spi_ann_lvl_eq (_s : Value.t Shape.t) (_u1 : Level.t option) (_u2 : Level.t 
     bool =
   true
 
+(** M1 Stage H, brief 3.5:  a shape with no subsingleton criterion.  The
+    two M0 packs answer [Ok false], so step one of conv.ml stands down at
+    every shape but the recursive one (SH-D1). *)
+let no_subsingleton (_ops : 'c ops) (_ctx : 'c) (_s : Value.t Shape.t) :
+    (bool, Error.t) result =
+  Ok false
+
 let spi_pack (() : unit) : 'c rule_pack =
   {
     form_lan = spi_form_lan;
@@ -696,6 +709,7 @@ let spi_pack (() : unit) : 'c rule_pack =
     ann_lvl_eq = spi_ann_lvl_eq;
     lan_lvl = payload_lvl spi_lan_lvl;
     ran_lvl = payload_lvl spi_ran_lvl;
+    subsingleton = no_subsingleton;
   }
 
 (* ---------------------------------------------------------------- *)
@@ -944,6 +958,7 @@ let coll_pack (() : unit) : 'c rule_pack =
     ann_lvl_eq = coll_ann_lvl_eq;
     lan_lvl = payload_lvl coll_lvl;
     ran_lvl = payload_lvl coll_lvl;
+    subsingleton = no_subsingleton;
   }
 
 (* ------- The pack of the mu shape, plan section 5, brief 3.1 ------- *)
@@ -952,14 +967,50 @@ let coll_pack (() : unit) : 'c rule_pack =
     former is refused INSIDE it;  a section is SNu's (SPEC.md:32). *)
 let mu_ran_word : string = "a right former at a mu shape arrives at M2"
 
-(** SG-D9:  the elimination fields hold the Stage H work, the motive,
-    branch and subsingleton rules (M1-PLAN.md:198). *)
-let mu_elim_word : string = "an elimination at a mu shape arrives at M1 Stage H"
+(** M1 Stage H, brief 3.3 and SH-D5:  the branch types of an indexed
+    family are not recoverable from the scrutinee type alone, so the
+    motive is required and the pack answers this word when it is
+    missing (A7, M1-PLAN.md:80).  It stands where the Stage H word of
+    SG-D9 stood. *)
+let mu_motive_word : string = "an elimination at a mu shape needs a motive"
+
+(** M1 Stage H, brief 3.4 and SH-D4:  a family that does not pass the
+    criterion carries no large elimination, and a self-recursive family
+    never passes it (A1, M1-PLAN.md:86). *)
+let mu_large_word : string =
+  "a large elimination out of a proposition needs a subsingleton family"
 
 let as_vmu (s : 'a Shape.t) : (string * 'a list) option =
   match s with
   | Shape.SMu (n, ix) -> Some (n, ix)
   | Shape.SPi (_, _, _) | Shape.SColl _ | Shape.SPar (_, _) | Shape.SNu (_, _) -> None
+
+(** Brief 3.4:  tot's three-part criterion, ported part for part from
+    kan-lang-tot-pin/lib/check.ml:223 [zero_eliminable] and never
+    restated in kanon's own words (D-M1-3, SH-D2).  Each arm carries the
+    pin line it is the port of.  The port reads three fields of the
+    record and adds none. *)
+let mu_zero_eliminable (fam : Positivity.family) : bool =
+  match fam.Positivity.f_status with
+  (* pin check.ml:225 *)
+  | Positivity.Provisional -> false
+  (* pin check.ml:226 *)
+  | Positivity.Builtin -> false
+  (* part one, pin check.ml:227 *)
+  | Positivity.Complete [] -> true
+  (* part one, pin check.ml:228 *)
+  | Positivity.Complete [ c ] ->
+      Positivity.ctor_of c fam
+      |> Option.fold ~none:false ~some:(fun (ct : Positivity.ctor) ->
+             (* part two, pin check.ml:231 *)
+             List.for_all
+               (fun ((q : Quantity.t), (_x : string), (_ty : Term.t)) ->
+                 Quantity.equal q Quantity.Zero)
+               ct.Positivity.c_args
+             (* part three, pin check.ml:232 *)
+             && not ct.Positivity.c_self_rec)
+  (* pin check.ml:233 *)
+  | Positivity.Complete (_ :: _ :: _) -> false
 
 (** The one accessor of brief 3.3 (SG-D2) reads the stored A4 verdict and
     never recomputes it (D-M1-2).  SG-D17:  a [Provisional] family forms,
@@ -974,6 +1025,21 @@ let mu_family (ops : 'c ops) (ctx : 'c) (n : string) : (Positivity.family, Error
       if f.Positivity.f_positive then Ok f
       else Error (Error.Not_yet Positivity.nonpositive_word)
   | Positivity.Builtin | Positivity.Provisional -> Ok f
+
+(** Brief 3.5:  the pack answers the criterion, so conv.ml applies named
+    rule 2 through this field and holds no family lookup of its own
+    (SH-D1).  A family the accessor cannot answer for is not a
+    subsingleton as far as the rule is concerned, so a failure here
+    weakens conversion to its other steps and never strengthens it
+    (conv.ml, rule 1). *)
+let mu_subsingleton (ops : 'c ops) (ctx : 'c) (s : Value.t Shape.t) :
+    (bool, Error.t) result =
+  as_vmu s
+  |> Option.fold ~none:(Ok false) ~some:(fun ((n : string), (_ix : Value.t list)) ->
+         mu_family ops ctx n
+         |> Result.fold
+              ~ok:(fun (fam : Positivity.family) -> Ok (mu_zero_eliminable fam))
+              ~error:(fun (_e : Error.t) -> Ok false))
 
 (** SG-D16:  the diagram at the mu shape is the parameter section, one
     binder free leg per parameter, so [diagram_arity] is zero. *)
@@ -1090,11 +1156,240 @@ let mu_intro_in (ops : 'c ops) (ctx : 'c) (mode : Quantity.t) (_s : Term.t Shape
   let* env = mu_telescope ops ctx mode c ct.Positivity.c_args args penv in
   mu_indices ops ctx n ct ixv env
 
-(** Reduction.  A checked mu term holds neither redex at this stage. *)
-let mu_beta (_ev : evaluator) (r : beta_redex) : (Value.t option, Error.t) result =
+(** Brief 3.3, SH-D5 and SH-D6:  the motive is required, it names the
+    family of the scrutinee shape, and it binds one index binder per
+    index of that family (A7, M1-PLAN.md:80). *)
+let mu_motive_of (n : string) (fam : Positivity.family) (ixv : Value.t list)
+    (e : Term.elim) : (Term.motive, Error.t) result =
+  let* mo =
+    e.Term.e_motive |> Option.to_result ~none:(Error.Cannot_infer mu_motive_word)
+  in
+  let* mn =
+    mo.Term.m_ind
+    |> Option.to_result
+         ~none:(Error.Mismatch ("the motive of an elimination at " ^ n ^ " names no family"))
+  in
+  let want : int = List.length fam.Positivity.f_indices in
+  let got : int = List.length mo.Term.m_idx in
+  match () with
+  | () when not (String.equal mn n) ->
+      Error
+        (Error.Mismatch
+           (Printf.sprintf "the motive is built for %s and the scrutinee is at %s" mn n))
+  | () when not (Int.equal got want) ->
+      Error
+        (Error.Mismatch
+           (Printf.sprintf "the motive of %s binds %d indices and the family has %d" n got
+              want))
+  | () when not (Int.equal (List.length ixv) want) ->
+      Error
+        (Error.Mismatch
+           (Printf.sprintf "%s is applied to %d indices and the family has %d" n
+              (List.length ixv) want))
+  | () -> Ok mo
+
+(** SH-D7:  the motive read at index values and at a term of the family,
+    in the scoping convention of lib/term.ml:10-14.  [m_body] is under
+    [m_idx] and then under [m_self], so the environment carries the self
+    value first and the indices innermost first. *)
+let mu_result (ops : 'c ops) (ctx : 'c) (mo : Term.motive) (idx : Value.t list)
+    (self : Value.t) : (Value.t, Error.t) result =
+  (ops.o_ev ctx).ev_eval (self :: List.rev_append idx (ops.o_env ctx)) mo.Term.m_body
+
+(** The motive is a type under its index binders and its scrutinee
+    binder, so a bad motive fails here and not at the first branch, as
+    [check_motive] does at the M0 shapes.  The index binders are erased
+    (A2), and the answer is the universe of the motive, which brief 3.4
+    reads to tell a large elimination from a small one. *)
+let mu_motive_lvl (ops : 'c ops) (ctx : 'c) (n : string) (fam : Positivity.family)
+    (mo : Term.motive) (dclo : Value.closure) (u : Level.t option) (penv : Value.t list) :
+    (Level.t, Error.t) result =
+  let* pairs =
+    zip fam.Positivity.f_indices mo.Term.m_idx
+    |> Option.to_result
+         ~none:(Error.Mismatch ("the motive of " ^ n ^ " does not bind the indices"))
+  in
+  let ev = ops.o_ev ctx in
+  let* ctx', _env, vals =
+    List.fold_left
+      (fun (acc : ('c * Value.t list * Value.t list, Error.t) result)
+           ((((_q : Quantity.t), (_x : string), (ty : Term.t)), (x : string)) :
+             (Quantity.t * string * Term.t) * string) ->
+        let* c_acc, env_acc, vals_acc = acc in
+        let* tyv = ev.ev_eval env_acc ty in
+        let v = Value.var (ops.o_size c_acc) in
+        Ok (ops.o_bind x Quantity.Zero tyv c_acc, v :: env_acc, v :: vals_acc))
+      (Ok (ctx, penv, []))
+      pairs
+  in
+  let self_ty = Value.VLan (Shape.SMu (n, List.rev vals), dclo, u) in
+  ops.o_infer_univ (ops.o_bind mo.Term.m_self Quantity.Zero self_ty ctx') mo.Term.m_body
+
+(** Brief 3.4 and M1-PLAN.md:86:  an elimination out of a proposition
+    into a motive above the proposition universe is admitted only when
+    the family passes the criterion (SH-D3, SH-D4).  A family above the
+    proposition universe and a motive at it are both small, so neither
+    asks the criterion. *)
+let mu_large (n : string) (fam : Positivity.family) (mlvl : Level.t) :
+    (unit, Error.t) result =
+  match () with
+  | () when not (Level.equal fam.Positivity.f_level Level.zero) -> Ok ()
+  | () when Level.equal mlvl Level.zero -> Ok ()
+  | () when mu_zero_eliminable fam -> Ok ()
+  | () -> Error (Error.Universe (Printf.sprintf "%s at %s" mu_large_word n))
+
+(** SH-D8:  the constructor names in declaration order, off the status
+    the record carries.  A family under declaration and a kernel family
+    have no branch list, so neither is eliminated here. *)
+let mu_ctor_names (n : string) (fam : Positivity.family) : (string list, Error.t) result =
+  match fam.Positivity.f_status with
+  | Positivity.Complete (names : string list) -> Ok names
+  | Positivity.Provisional ->
+      Error (Error.Unbound ("the family " ^ n ^ " is still under declaration"))
+  | Positivity.Builtin ->
+      Error (Error.Mismatch ("the family " ^ n ^ " is a kernel family and has no branches"))
+
+let mu_count (x : string) (xs : string list) : int =
+  List.length (List.filter (String.equal x) xs)
+
+(** SH-D8:  a missing branch and a repeated branch are both errors, and
+    a branch at a name the family does not declare is one too
+    (M1-PLAN.md:80, A15).  The list is read in declaration order. *)
+let mu_cover (n : string) (names : string list) (branches : (Term.addr * Term.leg) list) :
+    (unit, Error.t) result =
+  let keys : string list =
+    List.filter_map (fun ((a : Term.addr), (_l : Term.leg)) -> Term.as_actor a) branches
+  in
+  let* () =
+    if Int.equal (List.length keys) (List.length branches) then Ok ()
+    else
+      Error (Error.Wrong_leg ("a branch of " ^ n ^ " takes the constructor address"))
+  in
+  let* () =
+    List.fold_left
+      (fun (acc : (unit, Error.t) result) (c : string) ->
+        let* () = acc in
+        let k : int = mu_count c keys in
+        match () with
+        | () when Int.equal k 1 -> Ok ()
+        | () when Int.equal k 0 ->
+            Error
+              (Error.Missing_branch
+                 (Printf.sprintf "the elimination of %s has no branch at %s" n c))
+        | () ->
+            Error
+              (Error.Wrong_leg
+                 (Printf.sprintf "the elimination of %s repeats the branch at %s" n c)))
+      (Ok ()) names
+  in
+  List.fold_left
+    (fun (acc : (unit, Error.t) result) (k : string) ->
+      let* () = acc in
+      if List.exists (String.equal k) names then Ok ()
+      else Error (Error.Unbound (k ^ " is not a constructor of " ^ n)))
+    (Ok ()) keys
+
+(** Brief 3.2 and SH-D9:  the leg binds the constructor arguments in
+    order, one binder per field, at the field quantities the record
+    carries (M1-PLAN.md:61).  The body is checked at [m_body]
+    instantiated at that constructor's result index expressions and at
+    its own [In] term (SH-D7). *)
+let mu_branch (ops : 'c ops) (ctx : 'c) (mode : Quantity.t) (n : string)
+    (fam : Positivity.family) (mo : Term.motive) (penv : Value.t list)
+    (branches : (Term.addr * Term.leg) list) (c : string) : (unit, Error.t) result =
+  let* ct =
+    Positivity.ctor_of c fam
+    |> Option.to_result ~none:(Error.Unbound (c ^ " is not a constructor of " ^ n))
+  in
+  let* _key, leg =
+    List.find_opt
+      (fun ((a : Term.addr), (_l : Term.leg)) ->
+        Option.equal String.equal (Term.as_actor a) (Some c))
+      branches
+    |> Option.to_result
+         ~none:
+           (Error.Missing_branch
+              (Printf.sprintf "the elimination of %s has no branch at %s" n c))
+  in
+  let* pairs =
+    zip ct.Positivity.c_args leg.Term.l_binders
+    |> Option.to_result
+         ~none:
+           (Error.Missing_branch
+              (Printf.sprintf "the branch at %s binds %d fields and %s takes %d" c
+                 (List.length leg.Term.l_binders) c (List.length ct.Positivity.c_args)))
+  in
+  let ev = ops.o_ev ctx in
+  let* ctx', env, vals =
+    List.fold_left
+      (fun (acc : ('c * Value.t list * Value.t list, Error.t) result)
+           ((((q : Quantity.t), (_x : string), (ty : Term.t)), ((bq : Quantity.t), (bx : string))) :
+             (Quantity.t * string * Term.t) * (Quantity.t * string)) ->
+        let* c_acc, env_acc, vals_acc = acc in
+        let* tyv = ev.ev_eval env_acc ty in
+        let v = Value.var (ops.o_size c_acc) in
+        if Quantity.equal bq q then
+          Ok (ops.o_bind bx q tyv c_acc, v :: env_acc, v :: vals_acc)
+        else
+          Error
+            (Error.Quantity
+               (Printf.sprintf "the branch binder %s is marked %s and the field marks it %s"
+                  bx (Quantity.to_string bq) (Quantity.to_string q))))
+      (Ok (ctx, penv, []))
+      pairs
+  in
+  let* idx =
+    all_ok (List.map (fun (r : Term.t) -> ev.ev_eval env r) ct.Positivity.c_res_idx)
+  in
+  let self = Value.VIn (Shape.SMu (n, idx), Value.VACtor c, List.rev vals) in
+  let* target = mu_result ops ctx mo idx self in
+  ops.o_check ctx' mode leg.Term.l_body target
+
+(** Elimination, M1-PLAN.md:80 and brief 3.1 to 3.4.  The expected type
+    never stands in as the constant cocone here, because the motive is
+    required (SH-D5). *)
+let mu_elim_elim (ops : 'c ops) (ctx : 'c) (mode : Quantity.t) (e : Term.elim)
+    ~(expected : Value.t option) : (Value.t, Error.t) result =
+  let _ = expected in
+  let* scrut_ty = ops.o_infer ctx (Quantity.mul mode e.Term.e_scrut_q) e.Term.e_scrut in
+  let* w = ops.o_whnf ctx scrut_ty in
+  let* vs, dclo, u =
+    Value.as_lan w
+    |> Option.to_result ~none:(Error.Mismatch "the scrutinee is not a left former")
+  in
+  let* n, ixv = as_vmu vs |> Option.to_result ~none:(Error.Mismatch wrong_pack) in
+  let* fam = mu_family ops ctx n in
+  let* mo = mu_motive_of n fam ixv e in
+  let* penv = mu_param_env ops ctx dclo in
+  let* mlvl = mu_motive_lvl ops ctx n fam mo dclo u penv in
+  let* () = mu_large n fam mlvl in
+  let* names = mu_ctor_names n fam in
+  let* () = mu_cover n names e.Term.e_branches in
+  let* _checked =
+    all_ok (List.map (mu_branch ops ctx mode n fam mo penv e.Term.e_branches) names)
+  in
+  let* scrut_v = ops.o_eval ctx e.Term.e_scrut in
+  mu_result ops ctx mo ixv scrut_v
+
+(** Reduction, M1-PLAN.md:81 and brief 3.1:  an [Elim] at
+    [In (SMu .., ACtor c, args)] reduces to the branch at [c] with the
+    arguments substituted.  A recursive argument carries the recursive
+    result when the translation of Stage I built the [Elim];  this stage
+    lands the reduction that translation feeds.  A section at the mu
+    shape is still SNu's, so [BOut] keeps the M2 word (SG-D4). *)
+let mu_beta (ev : evaluator) (r : beta_redex) : (Value.t option, Error.t) result =
   match r with
   | BOut (_, _, _) -> Error (Error.Not_yet mu_ran_word)
-  | BElim (_, _, _, _) -> Error (Error.Not_yet mu_elim_word)
+  | BElim (_s, branches, env, v) ->
+      let@ _vs, addr, args = Value.as_in v in
+      let@ c = Value.as_ctor addr in
+      let@ _key, leg =
+        List.find_opt
+          (fun ((a : Term.addr), (_l : Term.leg)) ->
+            Option.equal String.equal (Term.as_actor a) (Some c))
+          branches
+      in
+      Result.map Option.some (ev.ev_eval (List.rev_append args env) leg.Term.l_body)
 
 (** Brief 3.5:  [lan_lvl] is the level the record carries (SG-D8, SG-D15). *)
 let mu_lan_lvl (ops : 'c ops) (ctx : 'c) (s : Value.t Shape.t) (_ls : Level.t list) :
@@ -1110,7 +1405,10 @@ let mu_pack (() : unit) : 'c rule_pack =
     form_lan = mu_form_lan;
     form_ran = (fun _ops _ctx _s _d ~expected:_ -> Error (Error.Not_yet mu_ran_word));
     intro_in = mu_intro_in;
-    elim_elim = (fun _ops _ctx _mode _e ~expected:_ -> Error (Error.Not_yet mu_elim_word));
+    (* M1 Stage H, brief 3.1:  the two elimination sites of the Stage H
+       word are this field and the [BElim] arm of [mu_beta].  Nothing
+       moves at the dispatch, which keys on the shape alone. *)
+    elim_elim = mu_elim_elim;
     intro_sec =
       (fun _ops _ctx _mode _s _legs ~expected:_ -> Error (Error.Not_yet mu_ran_word));
     elim_out = (fun _ops _ctx _mode _s _addr _head -> Error (Error.Not_yet mu_ran_word));
@@ -1131,6 +1429,8 @@ let mu_pack (() : unit) : 'c rule_pack =
     lan_lvl = mu_lan_lvl;
     (* A coinductive section is SNu's job (SPEC.md:32, SG-D4). *)
     ran_lvl = (fun _ops _ctx _s _ls -> Error (Error.Not_yet mu_ran_word));
+    (* M1 Stage H, brief 3.5:  conv.ml reads the criterion here. *)
+    subsingleton = mu_subsingleton;
   }
 
 (** The dispatch of plan section 5.  Three shapes have a pack;  the
@@ -1186,8 +1486,11 @@ let eta_table : (string * eta_row) list =
   List.map (fun ((n : string), (p : unit rule_pack)) -> (n, p.eta)) packs
 
 (** The named non-schema conversion rules of SPEC.md section 5.  Three
-    are declared and two are present at M0 (R-Q2). *)
+    are declared, two are present at M0 and the third arrives with the
+    criterion of brief 3.4, in the order the declared row uses (R-Q2,
+    SH-D10, M1-PLAN.md:8). *)
 let named_declared : string list =
   [ "proof-irrelevance"; "subsingleton-large-elimination"; "literal-fast-path" ]
 
-let named_present : string list = [ "proof-irrelevance"; "literal-fast-path" ]
+let named_present : string list =
+  [ "proof-irrelevance"; "subsingleton-large-elimination"; "literal-fast-path" ]
