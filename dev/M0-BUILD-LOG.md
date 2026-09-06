@@ -972,7 +972,7 @@ Plan section 12's criteria, one line each.
   SE-D22, SE-D23, SE-D24, SE-D25 and SE-D27.  The Stage D rulings
   SD-D1 to SD-D40 are still open as well.
 
-M0-EXIT RATIFY: ____________________ (the user writes the date and
+M0-EXIT RATIFY: 2026-09-06 ratified (the user writes the date and
 "ratified" here;  nothing else counts).
 
 ### Hand-off notes for M1
