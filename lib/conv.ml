@@ -82,9 +82,9 @@ and is_prop (ops : 'c Rules.ops) (ctx : 'c) (ty : Value.t) : bool =
   |> Option.fold ~none:false ~some:(fun (l : Level.t) -> Level.equal l Level.zero)
 
 (** M1 Stage H, brief 3.5:  the second half of step one, named rule 2 of
-    SPEC.md section 5.  Any two inhabitants of a family that passes the
-    criterion of brief 3.4 convert, which is what admits an elimination
-    out of a proposition into a motive above it (M1-PLAN.md:86).  The
+    SPEC.md section 5.  The pack restricts this comparison to Prop
+    families that pass the criterion of brief 3.4.  Erased fields alone
+    do not make inhabitants of a Type family definitionally equal.  The
     criterion is read through the pack, so this file holds no shape name
     and no family lookup of its own (SH-D1).  A shape whose pack cannot
     answer weakens the comparison to the other steps and never

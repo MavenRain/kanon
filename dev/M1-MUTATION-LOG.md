@@ -1,5 +1,87 @@
 # kanon M1 mutation log
 
+## Stage F
+
+Four mutations, each on its own fresh copy of the package made with
+`rsync -a --exclude .lake /Users/oobi/Documents/kanon-stage-f/meta/
+SCRATCH/stageF/judge/jmN/`, then given a copy of meta/.lake/packages
+with a second `rsync -a` so the copy builds with no remote.  Each copy
+was built through the detached runner with
+`/Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir
+SCRATCH/stageF/judge/jmN build`.  ROOT was never mutated:  `git -C ROOT
+status --porcelain` lists the untracked meta/ directory and the two new
+dev/M1 log files, and no other path, before and after.  The
+judge reran all four at 2026-09-06 03:02.
+
+### SF-M1 dropped hypothesis
+
+- Site.  The copy's KanonMeta/BeckChevalley.lean:29, the right side of
+  `bc_lan_spi`.
+- Edit.  `Term.lan (Shape.SPi q x (subst sigma dom)) (subst (up sigma)
+  A)` becomes `Term.lan (Shape.SPi q x (subst sigma dom)) (subst sigma
+  A)`, so the lift under the one binder of the point diagram is gone.
+- Killing line.  `error: KanonMeta/BeckChevalley.lean:29:70: unsolved
+  goals`, then `error: build failed`, exit file `EXIT 1`.  The column
+  names the mutated right side of `bc_lan_spi`.
+
+### SF-M2 swapped side
+
+- Site.  The copy's KanonMeta/BeckChevalley.lean:36, the right side of
+  `bc_ran_spi`.
+- Edit.  `Term.ran (Shape.SPi q x (subst sigma dom)) (subst (up sigma)
+  A)` becomes `Term.ran (Shape.SPi q x dom) (subst (up sigma) A)`, so
+  the shape payload is not carried through sigma, which is the error the
+  design verdict names at :164-166.
+- Killing line.  `error: KanonMeta/BeckChevalley.lean:36:61: unsolved
+  goals`, then `error: build failed`, exit file `EXIT 1`.
+
+### SF-M3 SColl n to SColl 0
+
+- Site.  The copy's KanonMeta/BeckChevalley.lean:52, the right side of
+  `bc_ran_scoll`.
+- Edit.  `= Term.ran (Shape.SColl n) (subst sigma A)` becomes
+  `= Term.ran (Shape.SColl 0) (subst sigma A)`, on the right side only.
+- Killing line.  `error: KanonMeta/BeckChevalley.lean:52:52: unsolved
+  goals`, then `error: build failed`, exit file `EXIT 1`.
+
+### SF-M4 the SF-G2 control
+
+- Site.  The copy's KanonMeta/BeckChevalley.lean:30, the proof body of
+  `bc_lan_spi`.
+- Edit.  `kan_rfl` becomes `sorry`.
+- Killing line.  The sweep kills it, not the build, which is what the
+  brief expects.  `rg -n -c "sorry" SCRATCH/stageF/judge/jm4` printed
+  `SCRATCH/stageF/judge/jm4/KanonMeta/BeckChevalley.lean:1`, rg exit 0,
+  so the SF-G2 sweep is not vacuous.  The build itself only warned,
+  in these words, with the escape hatch name in backticks:
+  warning: KanonMeta/BeckChevalley.lean:26:8: declaration uses `sorry`.
+  The last build line is `Build completed successfully (40 jobs).` and
+  the exit file holds `EXIT 0`.
+
+### Stage F review mutations (2026-09-06)
+
+Each mutation used a separate copy of the fixed package under
+/private/tmp/kanon-stage-f-fixes, retaining cached dependencies.  Each
+ran `/Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir COPY
+build`.  The unmutated package and its 16 regression checks built with
+exit 0.  All four mutated builds exited 1 in the regression target.
+
+- `binder-subst`: replace `subst (upN binders.length sigma) body` with
+  `subst sigma body` in Subst.lean.  First killing line:
+  `error: test/Regression.lean:21:43: unsolved goals`.
+- `binder-ren`: replace `ren (upRenN binders.length rho) body` with
+  `ren rho body`.  First killing line:
+  `error: test/Regression.lean:25:43: unsolved goals`.
+- `point-subst`: replace `Addr.apt q (subst sigma arg)` with
+  `Addr.apt q arg`.  First killing line:
+  `error: test/Regression.lean:75:51: unsolved goals`.
+- `point-ren`: replace `Addr.apt q (ren rho arg)` with `Addr.apt q arg`.
+  First killing line:
+  `error: test/Regression.lean:79:51: unsolved goals`.
+
+The four log and exit files use these names with `.log` and `.exit`
+suffixes in the scratch directory.  No repository source was mutated.
+
 ## Stage G
 
 Five mutations, each on its own fresh copy of the repository made with

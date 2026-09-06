@@ -3,6 +3,237 @@
 This log follows the plan at kanon-m1/M1-PLAN.md.  dev/M0-BUILD-LOG.md is
 closed at M0-EXIT (M1-PLAN.md:51) and no M1 stage writes to it again.
 
+## Stage F (2026-09-06)
+
+The lake package kanon-meta and the four Beck-Chevalley statements over the two admitted shapes.  One builder wrote the package and the judge reran every gate and every mutation on a cleaned build tree before this entry.
+
+### Deliverables
+
+- meta/lean-toolchain, 1 line.  `leanprover/lean4:v4.33.0-rc1`, byte for
+  byte KT/lean-toolchain (SF-D2).
+- meta/lakefile.lean, 12 lines.  Package `kanon-meta`, `autoImplicit`
+  false, one require of kan-tactics at the 40 character revision
+  3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac, and the default target
+  `KanonMeta`.
+- meta/.gitignore, 1 line.  `.lake/`, so ROOT/.gitignore stays untouched
+  (SF-D8).
+- meta/lake-manifest.json, 26 lines.  The two pinned revisions,
+  kan-tactics at 3317f7ac and comp-cat-theory at cc6ced10.
+- meta/KanonMeta.lean, 11 lines.  The root module.  It imports the three
+  module files and holds no declaration.
+- meta/KanonMeta/Syntax.lean, 63 lines.  `Quantity`, the mutual family
+  `Shape` and `Term`, and `Addr`, mirroring lib/shape.ml:11-12 and
+  SPEC.md:26-42 with De Bruijn indices.
+- meta/KanonMeta/Subst.lean, 122 lines.  The renaming layer, then
+  `Subst`, `up`, `subst` and `substShape`, every function total and
+  structurally recursive.
+- meta/KanonMeta/BeckChevalley.lean, 55 lines.  The four theorems
+  `bc_lan_spi`, `bc_ran_spi`, `bc_lan_scoll` and `bc_ran_scoll`, each
+  closed by `kan_rfl` and nothing else.
+- meta/Axioms.lean, 21 lines.  The SF-G4 driver with exactly four
+  `#print axioms` commands.
+- dev/M1-BUILD-LOG.md and dev/M1-MUTATION-LOG.md gain this entry and the
+  Stage F mutation section (the judge).
+
+### Gates (the judge reran SF-G1 to SF-G7 on the tree at 2026-09-06 03:01)
+
+- SF-G1 BUILD, OK.  `rm -rf meta/.lake/build`, then
+  `/Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir
+  /Users/oobi/Documents/kanon-stage-f/meta build`, detached.  The last
+  five log lines are `✔ [36/40] Built KanonMeta.Syntax (557ms)`,
+  `✔ [37/40] Built KanonMeta.Subst (392ms)`, `✔ [38/40] Built
+  KanonMeta.BeckChevalley (4.0s)`, `✔ [39/40] Built KanonMeta (1.3s)`
+  and `Build completed successfully (40 jobs).`;  the exit file holds
+  `EXIT 0`.  `rg -c "error:"` over the log prints nothing, rg exit 1.
+- SF-G2 NO-SORRY, OK.  `rg -n -c "sorry" meta` printed nothing, exit 1
+  (`SWEEP-A-EXIT 1`).  `rg -n -c "axiom |native_decide|partial |unsafe "
+  meta` printed nothing, exit 1 (`SWEEP-B-EXIT 1`).
+- SF-G3 CLIENT, OK.  The client under SCRATCH/stageF/client, its build
+  tree deleted first and its fetched packages kept, built with exit 0.
+  The final three lines are `ℹ [41/42] Built Client (1.2s)`, the
+  `#check` report `info: Client.lean:5:0: KanonMeta.bc_lan_spi (sigma :
+  Subst) (A : Term) (q : Quantity) (x : String) (dom : Term) : subst
+  sigma (Term.lan (Shape.SPi q x dom) A) = Term.lan (Shape.SPi q x
+  (subst sigma dom)) (subst (up sigma) A)`, and `Build completed
+  successfully (42 jobs).`
+- SF-G4 AXIOMS, OK.  `lake env lean meta/Axioms.lean`, detached, exit 0.
+  The four lines, verbatim and in the order of the brief:
+  `'KanonMeta.bc_lan_spi' does not depend on any axioms`,
+  `'KanonMeta.bc_ran_spi' does not depend on any axioms`,
+  `'KanonMeta.bc_lan_scoll' does not depend on any axioms`,
+  `'KanonMeta.bc_ran_scoll' does not depend on any axioms`.  No axiom
+  name appears, so SF-B7 does not fire.
+- SF-G5 TACTICS, OK.  `rg -n -o "kan_[a-z_]+" meta` returned five hits,
+  all `kan_rfl`, the final line
+  `meta/KanonMeta/BeckChevalley.lean:53:kan_rfl`.  Four are the proof
+  bodies at :30, :37, :46 and :53;  the fifth at :13 is the module doc
+  comment.  `rg -n "by$|by " meta` returned four `:= by` lines, at :29,
+  :36, :45 and :52, each followed by `kan_rfl` alone.  A word sweep for
+  the thirteen core tactic names of the brief over
+  BeckChevalley.lean returned only statement text and doc prose, no
+  tactic position.
+- SF-G6 ROOT-GATES, OK.  `zsh dev/gates.sh` printed fifteen PASS lines,
+  the MEASURE block and `GATES-OK`, exit 0.  `rg -c "^PASS "` over the
+  log is 15 and the final line is `GATES-OK`.  The battery reads as it
+  read at 09e77e9, because Stage F adds no OCaml line.  The battery ran
+  twice, before and after this log file was written, and printed
+  `GATES-OK` with no FAIL line both times.  `git -C ROOT status
+  --porcelain` prints three lines, `?? dev/M1-BUILD-LOG.md`,
+  `?? dev/M1-MUTATION-LOG.md` and `?? meta/`.
+- SF-G7 TRUSTED-LINES, OK.  `zsh dev/trusted-lines.sh` printed
+  `TRUSTED-LINES kernel=2305/3000 encoder=216/600 OK`, exit 0.  The
+  numbers are the M0 numbers, because Lean files are not in the believed
+  OCaml set.
+
+### MEASURE
+
+| Row | Value |
+| --- | --- |
+| build wall clock (the build verb of lake) | 15 s, start 1788688894, end 1788688909, after `rm -rf meta/.lake/build`;  budget 900 s |
+| olean count under meta/.lake/build | 4 (KanonMeta, KanonMeta.Syntax, KanonMeta.Subst, KanonMeta.BeckChevalley) |
+| theorem count | 4 |
+| package line count | 312 across the nine meta files |
+
+### Decisions
+
+- SF-D1 The package lives at ROOT/meta with the lake package name
+  `kanon-meta` and the library root `KanonMeta`.
+- SF-D2 meta/lean-toolchain holds `leanprover/lean4:v4.33.0-rc1`.  No
+  agent ran an install verb.
+- SF-D3 kan-tactics is required at the 40 character revision
+  3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac, never a branch name.
+- SF-D4 The object language holds the two admitted shapes only.  SPar,
+  SMu and SNu stay out.
+- SF-D5 De Bruijn indices with `Subst := Nat -> Term` and a lift, which
+  mirrors `Var of int` (SPEC.md:26).
+- SF-D6 The four theorem names are `bc_lan_spi`, `bc_ran_spi`,
+  `bc_lan_scoll` and `bc_ran_scoll`, in that order.
+- SF-D7 The nineteen kan-tactics names are the whole tactic allowlist
+  and SF-G5 is the rg check of it.
+- SF-D8 meta/.gitignore carries `.lake/`, so ROOT/.gitignore stays
+  untouched.
+- SF-D9 meta/lake-manifest.json is committed.
+- SF-D10 Every lake command ran through the detached runner of brief
+  section 8, never in the foreground.
+- SF-D11 Every lake command carries `+leanprover/lean4:v4.33.0-rc1`
+  first and an absolute `--dir`, because elan reads the working
+  directory and not the flag.
+- SF-D12 Stage F writes under ROOT/meta only, plus the two new M1 log
+  files under ROOT/dev that the judge writes.
+- SF-D13 The fetch order of the brief was kept.  No fetch ran in this
+  session:  the packages were already present, so the resumed run never
+  fetched twice.
+- SF-D14 `Addr` stays outside the mutual family and holds no term:  the
+  point argument of `APt` rides in the argument field of `Term.intro`
+  and `Term.out`, so the family is the minimal faithful pair Shape and
+  Term.  `ACtor` stays out with the two recursive shapes that own it.
+- SF-D15 The `lan` and `ran` arms of `ren` and of `subst` split on the
+  shape and lift only under `SPi`, which is `spi_diagram_arity = 1` and
+  `coll_diagram_arity = 0` (lib/rules.ml:635 and :637).  Every pattern
+  field is named and used, so no arm carries a wildcard.
+- SF-D16 The branch of `elim` and the leg of `sec` take the substitution
+  unlifted, because the kernel gives each leg its own binder list
+  (lib/term.ml:27-30) and this mirror does not carry that list.
+- SF-D17 The renaming layer is defined before the substitution layer,
+  because `up` weakens the terms a substitution carries.
+- SF-D18 `Ren` and `Subst` are `abbrev`, so a plain `Nat -> Nat` or
+  `Nat -> Term` unifies with them with no coercion.
+- SF-D19 The require line of meta/lakefile.lean keeps the absolute path
+  /Users/oobi/Documents/kan-tactics of brief 3.1, not the GitHub URL
+  that SF-D13 mentions, because meta/lake-manifest.json pins that url at
+  3317f7ac and a second update is forbidden.
+- SF-D20 meta/Axioms.lean and the client file carry `open KanonMeta`, so
+  the unqualified `#check` and the four `#print axioms` commands resolve
+  and the output prints the qualified names.
+- SF-D21 The doc prose of Subst.lean and Axioms.lean avoids the literal
+  tokens that SF-G2 sweeps, because the gate is textual.
+- SF-D22 `Level.t` is an OCaml `int` (lib/level.ml:2), so `Term.univ`
+  holds a `Nat`, and `Quantity` mirrors lib/quantity.ml:10-13.
+- SF-D23 The MEASURE wall clock was taken after `rm -rf
+  meta/.lake/build`, so it is a full build of the library against built
+  dependencies and not a cache read.
+- SF-D24 A scratch probe under SCRATCH/stageF/probe proved the mutual
+  structural recursion definitional before any file was written under
+  meta, so no core tactic was ever needed in the package.
+
+### Findings
+
+- F1, info, brief text.  Brief section 3.4 SF-D13 asks for the GitHub
+  URL of kan-tactics, while section 3.1 asks for the absolute path
+  /Users/oobi/Documents/kan-tactics.  kan-tactics has no GitHub remote
+  here, so the URL clause cannot apply.  Resolution: the package follows
+  3.1 and meta/lake-manifest.json, which pins the absolute path;  the
+  brief clause needs the correction, the package needs none.
+- F2, low, sandbox.  A rebuild of the SF-G3 client from a deleted
+  .lake directory fails, because comp-cat-theory is fetched from GitHub
+  and the sandbox has no network.  Resolution: only PACKAGE/.lake/build
+  is deleted to force a real build, never .lake/packages.  The judge's
+  rerun deleted the build tree of meta and of the client and kept both
+  package trees, and both builds are green.
+- One defect of the builder was found and fixed inside the run, not
+  logged as a finding:  an append with `head -n -2` is not supported by
+  the BSD head of this machine and emptied BeckChevalley.lean, so run
+  bc2 failed.  The file was rewritten whole and every later append went
+  through a checked appender.
+
+### Hand-off notes
+
+- The optional agreement lemma of M1-PLAN.md:89 and :182 stays
+  unwritten.  The ruling round 2026-09-06 (b) rules it out of this run.
+  It is a separate opt-in now that the four theorems are green.
+- The M1-EXIT criterion "Stage F green" (M1-PLAN.md:252) is met by the
+  seven gates above.  D-M1-8 (RATIFICATIONS.md:66) makes Stage F, and
+  not Stage G, the gate of M1-EXIT.
+- meta/.lake is ignored by meta/.gitignore, so the stage commit carries
+  the nine files of Deliverables and these two log files.  The user
+  commits;  no agent commits.
+- The client package of SF-G3 lives under SCRATCH and never in ROOT.  It
+  is rebuilt from meta's fetched packages, because the sandbox reaches
+  no remote.
+
+### Stage F review fixes (2026-09-06)
+
+The review found that section and branch bodies lost their binders,
+and that point addresses lost their argument.  The following changes
+supersede SF-D14 and SF-D16 and the original syntax description above.
+
+- `Addr.apt` now holds the point term independently of the function
+  head or fibre arguments.  It joins the mutual syntax family.
+- `Leg` retains the binder list.  Sections retain all their legs, and
+  eliminations retain their quantity, motive and addressed branches.
+  Introductions retain their fibre argument list.  `Motive` retains its
+  indices, self binder and body as specified in lib/term.ml.
+- `ren` and `subst` traverse all these fields.  Leg bodies lift under
+  their explicit binders; motive bodies lift under their indices and
+  self binder.  Point arguments use the outer context.  List, option
+  and pair traversal helpers keep both mutual definitions structurally
+  recursive through the equation compiler.
+- `meta/test/Regression.lean` adds 16 checks using `kan_rfl`.  A separate
+  default Lake target builds them without importing tests from the
+  public library.  They cover closed binders, free variables, weakening,
+  empty and multiple collection legs, point operands and motive scope.
+
+Validation used scratch copies at /private/tmp/kanon-stage-f-fixes and
+the pinned Lean 4.33.0-rc1 toolchain with cached dependencies.  Commands
+used `/Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir`.
+
+- Package `meta build`: `Build completed successfully (42 jobs).`,
+  exit 0, including the four theorems and all 16 regression checks.
+- Fresh `client build`, requiring the scratch package and checking all
+  four theorems plus `substLeg` and `substAddr`:
+  `Build completed successfully (42 jobs).`, exit 0.
+- `meta env lean /private/tmp/kanon-stage-f-fixes/meta/Axioms.lean`,
+  exit 0, printed:
+  `'KanonMeta.bc_lan_spi' does not depend on any axioms`
+  `'KanonMeta.bc_ran_spi' does not depend on any axioms`
+  `'KanonMeta.bc_lan_scoll' does not depend on any axioms`
+  `'KanonMeta.bc_ran_scoll' does not depend on any axioms`.
+- All four review mutations failed in the regression target, as recorded
+  in M1-MUTATION-LOG.md.  The source escape-hatch sweep had no hits.
+- No OCaml or root gate implementation changed.  The root runtime
+  battery was not rerun for these Lean-only fixes.  The optional
+  agreement lemma remains outside this change.
+
 ## Stage G (2026-09-06)
 
 ### Deliverables
@@ -647,3 +878,24 @@ It reads five things this stage leaves ready.
 Open for Stage I: the surface `case` of brief 3.8 elaborates through
 `elab_mu_case` at surface/elab.ml:635 and calls no guard, so the caller
 of `Totality.guard` is still absent (SPEC.md:509).
+
+### Stage H conversion review fix (2026-09-06)
+
+The review reproduced a closed cast from `Nat` to `Nat -> Nat` using
+a `Type 1` family with one erased type field.  SH-D27's conversion
+shortcut applied the large elimination criterion without checking the
+family universe, so two different type payloads converted.
+
+`mu_subsingleton` now requires the family level to be `Prop` before
+answering true.  Type families retain the remaining conversion rules.
+The large elimination check keeps its existing criterion.  The comments
+in conv.ml and SPEC.md record the distinction.
+
+The new negative `mu-type-erased-cast` carries the closed reproducer.
+The unfixed Stage H checker accepts it with exit 0; the fixed checker
+rejects its cast with the expected type mismatch.  Validation on a
+scratch copy: build with zero errors and warnings, `SUITE-KERNEL OK`
+(81 parses, 53 positive checks, 53 erasures, 27 negatives),
+`SUITE-WASM OK` (15/15), HOUSE, R0-COUNT, R0-AUDIT and TRUSTED-LINES
+all pass.  The existing Prop and empty-family large elimination
+fixtures still pass.  The full runtime gate battery was not rerun.

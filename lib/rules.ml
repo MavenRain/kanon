@@ -1026,9 +1026,11 @@ let mu_family (ops : 'c ops) (ctx : 'c) (n : string) : (Positivity.family, Error
       else Error (Error.Not_yet Positivity.nonpositive_word)
   | Positivity.Builtin | Positivity.Provisional -> Ok f
 
-(** Brief 3.5:  the pack answers the criterion, so conv.ml applies named
-    rule 2 through this field and holds no family lookup of its own
-    (SH-D1).  A family the accessor cannot answer for is not a
+(** Brief 3.5:  conversion uses the criterion only for a Prop family.
+    Erased fields of a Type family may contain distinct types, so the
+    large elimination criterion alone cannot make its inhabitants equal.
+    The pack keeps the family lookup out of conv.ml (SH-D1).
+    A family the accessor cannot answer for is not a
     subsingleton as far as the rule is concerned, so a failure here
     weakens conversion to its other steps and never strengthens it
     (conv.ml, rule 1). *)
@@ -1038,7 +1040,10 @@ let mu_subsingleton (ops : 'c ops) (ctx : 'c) (s : Value.t Shape.t) :
   |> Option.fold ~none:(Ok false) ~some:(fun ((n : string), (_ix : Value.t list)) ->
          mu_family ops ctx n
          |> Result.fold
-              ~ok:(fun (fam : Positivity.family) -> Ok (mu_zero_eliminable fam))
+              ~ok:(fun (fam : Positivity.family) ->
+                Ok
+                  (Level.equal fam.Positivity.f_level Level.zero
+                  && mu_zero_eliminable fam))
               ~error:(fun (_e : Error.t) -> Ok false))
 
 (** SG-D16:  the diagram at the mu shape is the parameter section, one

@@ -255,6 +255,12 @@ proposition needs a subsingleton family`, which carries the name of the
 family that failed.  A family above `Prop`, and a motive at `Prop`, are
 both small and neither asks the criterion.
 
+Conversion applies the pack's subsingleton shortcut only to families
+at `Prop`.  A `Type` family with erased fields can retain distinct type
+payloads, so passing the large elimination criterion does not make its
+inhabitants definitionally equal.  Such inhabitants use the remaining
+conversion rules.
+
 M1 obligation, recorded here: the literal fast path needs an agreement
 lemma against the unary recursive Nat.
 
