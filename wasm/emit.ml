@@ -393,20 +393,20 @@ let runtime_func (l : L.t) (name : string) : (G.func, Err.t) result =
   let* ft = L.type_index l (L.runtime_ty_key name) in
   let* r = nat_indices l in
   let* locals, body =
-    match name with
-    | "length" -> Ok (nat_length r)
-    | "digit" -> Ok (nat_digit r)
-    | "copy" -> Ok (nat_copy r)
-    | "normal" -> Ok (nat_normal r)
-    | "compareDigits" -> Ok (nat_compare_digits r)
-    | "compare" -> Ok (nat_compare r)
-    | "addLoop" -> Ok (nat_add_loop r)
-    | "subLoop" -> Ok (nat_sub_loop r)
-    | "mulLoop" -> Ok (nat_mul_loop r)
-    | "slowAdd" -> Ok (nat_slow_add r)
-    | "slowSub" -> Ok (nat_slow_sub r)
-    | "slowMul" -> Ok (nat_slow_mul r)
-    | _other -> P.of_name name
+    match () with
+    | () when String.equal name "length" -> Ok (nat_length r)
+    | () when String.equal name "digit" -> Ok (nat_digit r)
+    | () when String.equal name "copy" -> Ok (nat_copy r)
+    | () when String.equal name "normal" -> Ok (nat_normal r)
+    | () when String.equal name "compareDigits" -> Ok (nat_compare_digits r)
+    | () when String.equal name "compare" -> Ok (nat_compare r)
+    | () when String.equal name "addLoop" -> Ok (nat_add_loop r)
+    | () when String.equal name "subLoop" -> Ok (nat_sub_loop r)
+    | () when String.equal name "mulLoop" -> Ok (nat_mul_loop r)
+    | () when String.equal name "slowAdd" -> Ok (nat_slow_add r)
+    | () when String.equal name "slowSub" -> Ok (nat_slow_sub r)
+    | () when String.equal name "slowMul" -> Ok (nat_slow_mul r)
+    | () -> P.of_name name
         |> Option.to_result ~none:(Err.Unbound ("unknown Nat runtime helper: " ^ name))
         |> Result.map (nat_primitive r) in
   Ok { G.ftype = ft; locals; body }

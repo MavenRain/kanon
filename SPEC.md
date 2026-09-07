@@ -327,7 +327,7 @@ column to confirm that no surface form is a former.
 | `p.2` | `Elim` at `Lan (SPi ..)`, leg `ALeg 0`, second branch binder, with the projection motive | sugar, not former.  D-M0-3 |
 | `inj k of n t` | `In (SColl n) (ALeg k) [t]` | sugar, not former |
 | `case t as x return M with \| k xs => b` | `Elim` at `Lan (SColl n)` | sugar, not former |
-| `case t as x in F i1 .. im return M with \| c y1 .. yn => b` | `Elim` at `Lan (SMu (F, ..))` | sugar, not former.  M1 Stage H |
+| `match t as x in F i1 .. im return M with \| c y1 .. yn => b` | `Elim` at `Lan (SMu (F, ..))`, constructor keys `ACtor c` | sugar, not former.  SL-D3; Stage H constructor `case` remains accepted |
 | `tuple (t1, .., tn)` | `Sec (SColl n) [.. => t1; ..]` | sugar, not former |
 | `sum (A1, .., An)` | `Lan (SColl n) (Sec (SColl n) [.. => A1; ..])` | sugar, not former.  SB-D1 |
 | `prod (A1, .., An)` | `Ran (SColl n) (Sec (SColl n) [.. => A1; ..])` | sugar, not former.  SB-D1 |
@@ -339,7 +339,10 @@ column to confirm that no surface form is a former.
 | `let x : A := d in b` | `Let (x, A, d, b)` | sugar, not former |
 | `(t : A)` | `Ann (t, A)` | sugar, not former |
 | `auto` | `Auto` | sugar, not former.  SA-D3 |
-| `mu` | none.  Reserved;  the parser refuses it with "mu arrives at M1" | SA-D3 |
+| `mu F params : indices -> Type n := ...` | a checked family record; references elaborate to `Lan (SMu (F, indices))` | declaration sugar.  SL-D1; the Stage G `with` spelling remains accepted |
+| constructor `\| c binders : F args` | the existing constructor telescope and `In (SMu ..) (ACtor c)` introductions | binder sugar folds to arrows, preserving names and quantities.  SL-D1 |
+| `mutual mu ... mu ... end` | one mutually checked family group | two or more members.  SL-D2; the Stage G `and` spelling remains accepted |
+| `def rec f : A := body` and recursive `and` groups | a `Totality.guard_group` certificate admits `Order.translate`; the translated `Elim` body is checked and installed as `Global.Def` | sugar, not former.  SI-D9, SL-D9; no new term constructor |
 | `nu` | none.  Reserved;  the parser refuses it with "nu arrives at M2" | SA-D3 |
 
 SB-D1.  `sum` and `prod` are the two collection type words.  Both are
@@ -512,6 +515,13 @@ an out-of-i31 export traps, with driver exit 4 on every execution host.
 ```
 decl    ::= 'def' name ':' term ':=' term
           | 'axiom' name ':' term
+          | 'def' 'rec' rec-member ('and' rec-member)*
+          | mu-decl ('and' mu-member)*
+          | 'mutual' mu-decl mu-decl+ 'end'
+mu-decl ::= 'mu' mu-member
+mu-member ::= name binder* ':' term (':=' | 'with') ctor*
+ctor    ::= '|' name binder* ':' term
+rec-member ::= name ':' term ':=' term
 term    ::= 'fun' binder+ '=>' term
           | binder '->' term  |  term '->' term
           | binder '*' term   |  term '*' term
@@ -520,6 +530,8 @@ term    ::= 'fun' binder+ '=>' term
           | 'inj' nat 'of' nat term
           | 'case' term ['as' name ['in' name name*] 'return' term] 'with'
               ('|' nat binder* '=>' term | '|' name field* '=>' term)*
+          | 'match' term ['as' name ['in' name name*] 'return' term] 'with'
+              ('|' name field* '=>' term)*
           | 'tuple' '(' (term (',' term)*)? ')'  |  term '.' nat
           | 'sum' '(' (term (',' term)*)? ')'       (* SB-D1 *)
           | 'prod' '(' (term (',' term)*)? ')'      (* SB-D1 *)
@@ -528,10 +540,10 @@ term    ::= 'fun' binder+ '=>' term
           | 'natAdd' | 'natSub' | 'natMul' | 'natEq' | 'natLt'
           | 'let' name ':' term ':=' term 'in' term
           | 'auto'                                 (* SA-D3 *)
-          | 'mu'  |  'nu'                          (* SA-D3, reserved *)
+          | 'nu'                                  (* reserved, arrives at M2 *)
           | '(' term ':' term ')'  |  name  |  '(' term ')'
 binder  ::= '(' ('0' | '1')? name ':' term ')'
-field   ::= ('0' | '1')? name                      (* M1 Stage H *)
+field   ::= ('0' | '1')? name | binder             (* M1 Stages H and L *)
 ```
 
 Precedence, loosest first: the arrow and the star, then application, then
@@ -543,11 +555,30 @@ The binder mark is one of three:  `0` is `Quantity.Zero`, `1` is
 printer writes `0 `, `1 ` and the empty text back, so a marked binder
 round trips.
 
-`sum`, `prod`, `mu` and `nu` are reserved words.  The parser accepts neither and returns
-the milestone name for `mu` and `nu`, so a program that names a shape
-past M0 fails at the first pass over the text and never reaches the
-checker.  `sum` and `prod` have the two productions above, so neither
-can be a definition name.
+`sum`, `prod`, `mu`, `mutual`, `match`, `end` and `nu` are reserved
+words.  `mu` opens a declaration; its parameter binders precede the
+colon, and its index telescope is the arrow chain after it.  Constructor
+binders before the colon abbreviate the same arrow chain in the
+constructor type.  `mutual` requires two or more `mu` declarations and
+an explicit `end`.  The earlier `mu ... with` and `and` grammar remains
+accepted.  The printer normalizes families to `:=` and groups of two or
+more to `mutual ... end` (SL-D1, SL-D2, SL-D5).
+
+`match` admits constructor keys and requires a family scrutinee, even
+when its branch list is empty.  Numeric `case` remains the collection
+eliminator, and the Stage H constructor `case` form remains compatible.
+Both forms share the existing elaboration rules.  A constructor field
+may be a quantity and a name or a typed binder; an explicit type must
+agree with its constructor field type under all preceding fields.
+Every branch binder retains its written quantity (SL-D3, SL-D4).
+
+Match and case bodies extend to the right; parentheses delimit nested
+eliminations before a following outer branch.  `end` closes a mutual
+declaration group only.  The index clause of Stage H remains available
+for indexed motives.  The parser accepts the optional-motive grammar,
+and the existing kernel requirement for a fibered motive still applies.
+`nu` retains the parser refusal "nu arrives at M2" in both declaration
+and term positions; `auto` retains its M2 checker refusal (SL-D6).
 
 ## 10 Obligations at M0
 
@@ -559,6 +590,6 @@ closes it.
 | linear counting for `One` | M1 | discharged by Stage K SK-G3: exact path usage, 27 direct kernel checks and 22 surface path cases, including duplication negatives |
 | arbitrary precision Nat | M1 | discharged by Stage K SK-G4: Zarith 1.14, exact kernel and Wasm arithmetic, both runtime hosts and separate export-boundary checks |
 | finite agreement of the literal fast path | M1 | discharged by Stage K SK-G5 under ruling 2026-09-06 (d): all 5445 unary witnesses and 2000 independent full-range cases described in section 5 pass |
-| subsingleton large elimination | M1 | it arrives with the Prop valued recursive shape.  Section 5 records its criterion and its origin in tot |
+| subsingleton large elimination | M1 | discharged by Stage H SH-G7: singleton and empty Prop families admit large elimination, non-subsingleton and self-recursive families are refused.  Section 5 records the criterion and its origin in tot |
 | structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller.  discharged at M1 Stage I: surface/elab.ml:1004 calls `Totality.guard_group` and only a certificate reaches `Order.translate` at surface/elab.ml:1029 (SI-D9, SI-D13) |
-| the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  resolved at Stage D: link.ml maps any to eqref (SD-D6) |
+| the `any` repr | M1 | discharged at Stage D: a runtime value of a variable type takes the tid `any`, which link.ml maps to eqref (SD-D6) |

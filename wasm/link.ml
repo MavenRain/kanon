@@ -1122,11 +1122,11 @@ let valtype_of (l : t) (r : E.repr) : (G.valtype, Err.t) result =
 let eqs (n : int) : G.valtype list = List.init n (fun (_i : int) -> G.Ref G.HEq)
 
 let runtime_valtype (l : t) (s : string) : (G.valtype, Err.t) result =
-  match s with
-  | "i" -> Ok G.I32
-  | "n" -> Ok (G.Ref G.HEq)
-  | "a" -> Result.map (fun (i : int) -> G.Ref (G.HType i)) (type_index l limb_key)
-  | _other -> Error (Err.Mismatch ("unknown natural runtime value type: " ^ s))
+  match () with
+  | () when String.equal s "i" -> Ok G.I32
+  | () when String.equal s "n" -> Ok (G.Ref G.HEq)
+  | () when String.equal s "a" -> Result.map (fun (i : int) -> G.Ref (G.HType i)) (type_index l limb_key)
+  | () -> Error (Err.Mismatch ("unknown natural runtime value type: " ^ s))
 
 (** Aggregate storage is uniform across type instantiations.  A pair of
     any values and a pair of naturals have identical final struct types,

@@ -1760,3 +1760,262 @@ No Stage K blocker remains.  PREP/spine-correction.md explains the
 approved correction and its evidence.  Close copies and stages only
 reviewed Stage K paths after checking the unchanged Stage J base.
 Stage F remains committed; no optional Lean agreement theorem was added.
+
+## Stage L (2026-09-06)
+
+### Status and scope
+
+IMPLEMENTED, VALIDATION PENDING.  The user requested continued kanon
+development and staging all changes.  The entry is c418062, the committed
+Stage K.  This stage adds the full M1 surface, executable feature ledger,
+permanent agreement runners, M1 spine and 1,000-line corpus.  The native
+collaboration workflow ran separate scope, surface, gate, example review,
+surface review, gate review and isolated mutation tasks.
+
+The full battery returned GATES-FAIL, with sixteen passing legs and three
+open legs: M0-TIME, M0-RATIO and AGREEMENT.  This is not a Stage L PASS or
+an M1-EXIT ratification.  The user retains commits and the M1-EXIT stamp.
+The explicit request to stage all changes supersedes historical SL-B3's
+clean-porcelain exit condition.  Concurrent main-tree metatheory changes
+are preserved and included in staging; they are not part of this compiler
+validation.  No kernel, encoder, M0 spine, pin or frozen denominator changed.
+
+### Deliverables and decisions
+
+- SL-D1: `mu ... :=` and constructor `| name binder* : result` sugar
+  reuse the Stage G family tree. Constructor binders fold into the
+  existing dependent arrow chain with their original quantities.
+  `mu ... with` and `and` remain compatible.
+- SL-D2: `mutual mu ... mu ... end` creates one family group and
+  requires at least two members. Empty, singleton, unterminated and
+  `and`-joined explicit mutual blocks are parser refusals. Three-member
+  recursion is covered by `sl-mutual-three.kan`.
+- SL-D3: `match` has a distinct `SMatch` surface node, accepts only
+  constructor keys, and requires a mu scrutinee even with zero branches.
+  It calls the existing fibered elaboration. Numeric `case` and Stage H
+  constructor `case` retain their behavior.
+- SL-D4: constructor branches accept Stage H quantity/name fields and
+  typed binders, including mixtures. An optional type annotation is
+  checked at a universe and compared by existing type conversion with
+  the declared field type, in the context of preceding fields. The
+  kernel still checks field quantities and branches.
+- SL-D5: the printer writes `:=`, normalizes multi-family declarations
+  to `mutual ... end`, keeps constructor types as expanded arrows, and
+  preserves `case` versus `match` and typed field annotations. Parsed
+  trees round-trip exactly.
+- SL-D6: `nu` keeps `nu arrives at M2` in term and declaration positions.
+  Match keeps the Stage H optional index clause and existing kernel
+  motive requirement. `end` terminates mutual groups only; parentheses
+  delimit nested match bodies before an outer branch.
+- SL-D7: `test/sl_surface.ml` holds 20 permanent parser boundary,
+  round-trip and sugar-equivalence checks. Run without arguments;
+  success is exit 0 and final line `SL-SURFACE OK`. Parser negatives
+  belong here because the existing kernel suite parses every negative.
+- SL-D8: added two runtime fixtures with checked, erased and Wat goldens,
+  plus three semantic negatives for collection matching and incorrect
+  field annotations. Parent-authorized migration renames embedded
+  `def mutual` and its lookup in `test/main.ml` to `mutualValue`, because
+  `mutual` is now a required reserved word. Gates agent owns the other
+  independent change in that file.
+- SL-D9: SPEC sections 7 and 9 describe the new sugar and complete M1
+  grammar, including retained recursive definitions and compatibility
+  forms. Section 10 marks subsingleton elimination discharged by Stage
+  H SH-G7 and `any` discharged by Stage D SD-D6, retaining milestone M1.
+  Independent review amendment: section 7 explicitly maps `def rec` and
+  recursive `and` groups through `Totality.guard_group`, `Order.translate`
+  and checking of the translated `Elim` body before `Global.Def`
+  installation, as M1-PLAN section 4 requires. The implementation was
+  read at surface/elab.ml:1035, :1061 and :1062 and lib/order.ml:510;
+  this amendment changes documentation only.
+
+- SL-D10: M0-TIME uses the median of three medians of five, always prints the
+  three BENCH lines, retains 150 ms and excludes wasm-opt as previously ruled.
+- SL-D11: M0-RATIO is binding on the unrounded per-line value, with six decimal
+  places displayed; its numerator is the median of five corpus checks.
+- SL-D12: Record the 8138 checked pin lines in dated denominators-m1.json;
+  validate the ruled 103.662 ms and line-count fields before dividing.
+- SL-D13: M1-CORPUS times check, emit, validation, kernel observation and the
+  both-host driver path together, including their repeated driver work. It
+  requires exactly 1000 newline-terminated lines and the 713 ms bound.
+- SL-D14: The permanent AGREEMENT leg always executes both finite sets,
+  totaling 5445 unary and 2000 independent exact-arithmetic cases.
+- SL-D15: Retain original agreement source/manifest equality checks, unary
+  round trips, both goldens and all three full-range host observations.
+- SL-D16: Key HOUSE allowances by relative path, enclosing top-level function
+  and exact arm text, with one reason each; line movement grants no new site.
+- SL-D17: Replace the three additional named fallthroughs with exhaustive
+  unit guards while preserving their existing successful and error branches.
+- SL-D18: POSITIVITY discovers each positive fixture containing a mu
+  declaration and requires the direct, mutual and indexed originals, plus
+  the exact named nonpositive negative diagnostic.
+- SL-D19: The executable M1 ledger retains original source fixtures, appending
+  small closed scalar observations only into generated .gatework copies.
+- SL-D20: Every ledger observation checks, emits, validates and compares
+  kernel with both hosts; exact checker negatives accompany its feature row.
+- SL-D21: Empty-family large elimination is checked and erased before a
+  closed scalar observation. It cannot be applied to a closed Void inhabitant,
+  because none exists. The non-subsingleton and self-recursive Prop negatives
+  separately pin the two required refusals.
+- SL-D22: Each primitive also has a small typed unary witness, both runtime
+  observations and a deliberately wrong witness with an exact sidecar.
+- SL-D23: Keep the original 27 direct kernel and 22 surface One path cases
+  mandatory in M1-SUITE, including all original exact quantity diagnostics.
+- SL-D24: Keep the original 20 Nat runtime observations mandatory, including
+  the independent oversized-export trap on all four driver host modes.
+- SL-D25: M1-SUITE runs surface's durable SL-SURFACE regression executable and
+  the parent-owned M1 spine, requiring at least 300 lines and its main promise.
+- SL-D26: Write generated suite sources, Wasm, WAT and evidence under
+  .gatework; permanent data includes only reviewed sources and exact sidecars.
+- SL-D27: Preserve all existing watchdog ceilings; use SUITE for positivity,
+  M1-SUITE and AGREEMENT and SLOW for the timed corpus leg.
+- SL-D28: Force RUNS=5 for each benchmark and reject malformed BENCH output;
+  Decimal arithmetic avoids a rounded ratio silently crossing the bound.
+  All three timing legs report the observed one-minute load.
+- SL-D29: Keep explicit bound arguments in the helper for isolated mutation
+  controls, while the permanent battery always supplies its fixed constants
+  and accepts no environment-based bound or sampling overrides.
+
+- SL-D30: examples/m1-spine.kan has 396 lines and returns 599.  It carries
+  every accepted M0 form and all required M1 forms without a postulate.
+  Its five small typed agreement witnesses compare unary recursion with
+  literal arithmetic.  Each wrong witness was independently rejected.
+- SL-D31: test/corpus/m1-corpus.kan has exactly 1,000 lines and returns
+  814: the complete spine's 599, a 5-by-5 arithmetic grid's 200, and six
+  indexed vector copies' 15.  Every grid cell and copy reaches the export.
+  Checked agreement witnesses are proof obligations, not padding.
+  dev/gen-m1-corpus.py regenerates the corpus byte for byte.  Continuation
+  lines retain their source indentation; no blank or comment padding is
+  added to reach the prescribed size.
+- SL-D32: checksum expressions form balanced trees.  The initial scratch
+  experiment used 100 grid cells and chained partial-sum globals, causing
+  repeated elaboration through those globals.  The final representative
+  corpus keeps every prescribed feature.  The separate ratified 7,445-case
+  agreement matrix and its original sources are unchanged.
+- SL-D33: strengthen HOUSE to scan complete source text, because review
+  reproduced valid multiline catch-all arms that the first line scanner
+  missed.  The two allowances remain exact, function-specific and single-use.
+- SL-D34: preserve every failed timing result.  No threshold, sampling
+  count, watchdog, ratio normalization or agreement requirement is waived.
+  High load prevents a quiet-machine verdict in this run.  Stage L and
+  M1-EXIT remain open until the failed legs pass.
+- SL-D35: copy only reviewed compiler deliverables after checking entry
+  hashes against main.  Stage all main-tree changes as explicitly requested,
+  including the independent metatheory work.  Do not commit or write RATIFY.
+
+### Observed gates
+
+The full battery used these unchanged bounds: M0-TIME 150 ms, M0-RATIO
+2.000, M1-CORPUS 713 ms, kernel 4,000 lines and encoder 600 lines.
+
+```text
+LOAD BEFORE (74.99462890625, 68.26806640625, 49.6728515625)
+PASS BUILD
+PASS CARRY
+PASS R0-COUNT
+PASS R0-AUDIT
+PASS SUITE-KERNEL
+PASS SUITE-WASM
+PASS ENCODER-SUBSET
+PASS AXIOMS
+PASS M0-E2E main=521
+BENCH m0_e2e_1 median_ms=677.199 min_ms=309.302 max_ms=1485.977 runs=5
+BENCH m0_e2e_2 median_ms=439.204 min_ms=353.436 max_ms=618.814 runs=5
+BENCH m0_e2e_3 median_ms=432.310 min_ms=377.661 max_ms=571.466 runs=5
+FAIL M0-TIME median_ms=439.204 bound_ms=150 load1=62.494 samples=3x5
+BENCH m1_check_corpus median_ms=40.266 min_ms=33.296 max_ms=51.084 runs=5
+MEASURE M0-RATIO kanon_ms=40.266 kanon_lines=1000 tot_ms=103.662 tot_lines=8138 ratio=3.161088 bound=2.000 load1=62.494
+FAIL M0-RATIO kanon_ms=40.266 kanon_lines=1000 tot_ms=103.662 tot_lines=8138 ratio=3.161088 bound=2.000 load1=62.494
+PASS TRUSTED-LINES
+PASS DENOMINATORS
+PASS HOUSE
+PASS PIN sha=8cf0b8b
+PASS POSITIVITY fixtures=22 negative=mu-nonpositive
+PASS M1-CORPUS elapsed_ms=416.399 bound_ms=713 lines=1000 main=814 load1=62.494
+PASS M1-SUITE ledger=16 focused-one=49 nat-runtime=20 surface=OK
+FAIL AGREEMENT
+MEASURE M0-RATIO tier=SLOW elapsed_ms=510.578 exit=1
+LOAD AFTER (127.60986328125, 85.99951171875, 62.1220703125)
+```
+
+M0-TIME's three medians were 677.199, 439.204 and 432.310 ms; their
+median was 439.204 ms.  M0-RATIO's corpus check median was 40.266 ms,
+giving 3.161088 after the required per-line normalization.  Both failed
+at one-minute load 62.494.  A quiet-machine regression verdict under
+SL-B1 was not obtained.  M1-CORPUS passed at 416.399 ms, returning 814.
+
+After all build and mutation tasks stopped, a standalone retry also
+failed at load 63.640.  Its M0-TIME medians were 654.705, 567.048 and
+432.928 ms, giving 567.048 ms.  Its M0-RATIO check median was 39.639 ms,
+giving 3.111865.  These retries are retained in evidence/retry-2-time.log,
+retry-2-ratio.log and retry-2.json.  No passing baseline is claimed.
+
+AGREEMENT reached its unchanged 300-second SUITE watchdog and exited
+124 after completing unary and full-range natAdd and natSub, 2,978 cases.
+It did not finish all 7,445 cases.  Exact manifest regeneration and all
+ten persistent source matrices passed comparison; that is source evidence,
+not a replacement for completing execution.  The full result remains FAIL.
+
+The kernel suite passed PARSE 127/127, CHECK and ERASE 76/76, NEG 51/51,
+KNEG 2/2, REC 1/1 and MIGRATED 4/4.  The full Wasm golden suite passed.
+M1-SUITE passed sixteen feature rows, all exact negative twins, 27 direct
+and 22 surface One cases, 20 Nat runtime cases and 20 surface regressions.
+New runtime fixtures return 42 and 3 on both hosts.  Independent surface
+review also rejected ten adversarial parser, annotation and recursion probes.
+
+### MEASURE table
+
+```text
+MEASURE M0-RATIO kanon_ms=40.266 kanon_lines=1000 tot_ms=103.662 tot_lines=8138 ratio=3.161088 bound=2.000 load1=62.494
+MEASURE BUILD tier=SLOW elapsed_ms=3598.988 exit=0
+MEASURE CARRY tier=MED elapsed_ms=2402.726 exit=0
+MEASURE R0-COUNT tier=FAST elapsed_ms=665.852 exit=0
+MEASURE R0-AUDIT tier=FAST elapsed_ms=248.324 exit=0
+MEASURE SUITE-KERNEL tier=SUITE elapsed_ms=4203.299 exit=0
+MEASURE SUITE-WASM tier=SUITE elapsed_ms=7125.111 exit=0
+MEASURE ENCODER-SUBSET tier=FAST elapsed_ms=121.273 exit=0
+MEASURE AXIOMS tier=MED elapsed_ms=77.868 exit=0
+MEASURE M0-E2E tier=SLOW elapsed_ms=507.528 exit=0
+MEASURE M0-TIME tier=SLOW elapsed_ms=11153.945 exit=1
+MEASURE M0-RATIO tier=SLOW elapsed_ms=510.578 exit=1
+MEASURE TRUSTED-LINES tier=FAST elapsed_ms=59.268 exit=0
+MEASURE DENOMINATORS tier=MED elapsed_ms=99.927 exit=0
+MEASURE HOUSE tier=MED elapsed_ms=391.917 exit=0
+MEASURE PIN tier=FAST elapsed_ms=183.576 exit=0
+MEASURE POSITIVITY tier=SUITE elapsed_ms=632.984 exit=0
+MEASURE M1-CORPUS tier=SLOW elapsed_ms=568.765 exit=0
+MEASURE M1-SUITE tier=SUITE elapsed_ms=16105.603 exit=0
+MEASURE AGREEMENT tier=SUITE elapsed_ms=300037.444 exit=124
+```
+
+### Review and mutations
+
+The surface review found no implementation defect.  Its missing structural
+recursion sugar row was added to SPEC under SL-D9.  The gate review's
+multiline catch-all finding was fixed and independently verified.  The
+clean scanner passes; named, wildcard, typed and split-pipe multiline
+controls fail.  HOUSE was rerun after the fix and passed.  The example
+review's explicit agreement-witness and indentation findings were fixed.
+All three required isolated mutations were caught; details are in the
+Stage L mutation section.  They do not discharge a failing baseline leg.
+
+### Handoff and evidence
+
+Evidence root: /Users/oobi/Documents/gpt4/kanon-stage-l.  The entry manifest
+is baseline.json; scope and workflow are in README.md; builder decisions
+are in surface-result.md and gates-result.md; independent review is in
+example-review.md, surface-review.md and gates-review.md.  The full output
+and measurement state are evidence/battery-1.log and battery-1.json.
+Mutation commands, exits and source hashes are under mutations/.
+
+On a quiet machine, rerun the three open legs without changing constants:
+
+```sh
+zsh dev/gates.sh --leg time
+zsh dev/gates.sh --leg ratio
+zsh dev/gates.sh --leg agreement
+```
+
+Record their actual results before claiming Stage L PASS.  M1-EXIT still
+requires the user commits, a green committed-tree battery and the user's
+ratification.  F3 is closed for mu by the new spine; auto and nu remain
+M2 work.  The optional Lean agreement theorem was not part of this stage.

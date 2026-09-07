@@ -33,6 +33,7 @@ let keywords : (string * Token.kind) list =
     ("inj", Token.KInj);
     ("of", Token.KOf);
     ("case", Token.KCase);
+    ("match", Token.KMatch);
     ("as", Token.KAs);
     ("return", Token.KReturn);
     ("with", Token.KWith);
@@ -51,6 +52,8 @@ let keywords : (string * Token.kind) list =
     ("natLt", Token.KNatLt);
     ("auto", Token.KAuto);
     ("mu", Token.KMu);
+    ("mutual", Token.KMutual);
+    ("end", Token.KEnd);
     ("nu", Token.KNu);
     (* M1 Stage G, correction C7:  the mutual group word. *)
     ("and", Token.KAnd);

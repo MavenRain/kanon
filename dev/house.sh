@@ -20,7 +20,7 @@ root=${1:-${0:A:h:h}}
 fail=0
 
 emdash=$'\u2014'
-pat_house='raise |failwith|assert |exception |\| _ ->|List\.nth|\.\('
+pat_house='raise |failwith|assert |exception |List\.nth|\.\('
 pat_state='\bref\b|\bmutable\b|Array\.|Hashtbl|Buffer\.'
 pat_bool='true ->|false ->'
 
@@ -35,8 +35,18 @@ report_empty () {
   fi
 }
 
-# Leg 1:  no exception, no wildcard arm, no List.nth, no unsafe index.
+# Leg 1: no exception, unapproved catch-all, List.nth or unsafe index.
+# SL-D16: allow entries identify a function and exact arm, so line shifts
+# cannot authorize another catch-all or invalidate the two ruled sites.
 leg1=$(rg -n -- $pat_house $root/lib $root/surface $root/bin $root/test $root/wasm)
+named=$(python3 -P $root/dev/house-catchalls.py $root 2>&1)
+named_code=$?
+if [[ $named_code -ne 0 && -z $named ]]; then
+  named="named catch-all scan failed with exit=$named_code"
+fi
+if [[ -n $named ]]; then
+  leg1="${leg1}${leg1:+$'\n'}${named}"
+fi
 report_empty "no-exception" "$leg1"
 
 # Leg 2:  no mutable state in the kernel or the encoder, except the one

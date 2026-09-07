@@ -245,10 +245,10 @@ let kneg_self () : (unit, string) result =
 (** The KNEG rows by name, so the group reads one list of names as
     every other group does. *)
 let kneg (name : string) : (unit, string) result =
-  match name with
-  | "smu" -> kneg_smu ()
-  | "self" -> kneg_self ()
-  | other -> Error (Printf.sprintf "no kernel negative is named \"%s\"" other)
+  match () with
+  | () when String.equal name "smu" -> kneg_smu ()
+  | () when String.equal name "self" -> kneg_self ()
+  | () -> Error (Printf.sprintf "no kernel negative is named \"%s\"" name)
 
 (** One line of a group, and whether it passed. *)
 let report (kind : string) (name : string) (r : (unit, string) result) : bool =
@@ -322,7 +322,7 @@ def rec choose : N -> Nat -> Nat := fun (n : N) => case n as x in N return (Nat 
 def doubled : N := double (succ (succ zero))
 def four : N := succ (succ (succ (succ zero)))
 def z : N := zero
-def mutual : Nat := sizeA (node (cons leaf))
+def mutualValue : Nat := sizeA (node (cons leaf))
 def two : Nat := 2
 def helper : N := f (succ zero)
 def helperDirect : N := g zero
@@ -348,7 +348,7 @@ def neutral : N -> Nat := fun (n : N) => keep 7 n
           let* want = normal expected in
           if String.equal got want then Ok ()
           else Error (Error.Mismatch (actual ^ " did not compute: " ^ got)))
-        (Ok ()) ["doubled", "four"; "mutual", "two"; "helper", "z";
+        (Ok ()) ["doubled", "four"; "mutualValue", "two"; "helper", "z";
                  "helperDirect", "z"; "spare", "z"; "kept", "seven";
                  "chosen", "seven"; "indexed", "one"]
     in

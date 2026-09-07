@@ -487,3 +487,31 @@ ROUNDTRIP FAIL with a precise parse error and exit 1.  All five actual
 unary files pass the same source/print/source tree-equality assertion
 previously run by the ordinary kernel suite.  Evidence:
 PREP/agreement-roundtrip-evidence.json.
+
+## Stage L (2026-09-06)
+
+All mutations ran in isolated copies under
+/Users/oobi/Documents/gpt4/kanon-stage-l/mutations.  Nine protected active
+source hashes matched before and after.  No mutation edited active WORK.
+
+| id | isolated change | observed catch | status |
+| --- | --- | --- | --- |
+| SL-M1 | M1_CORPUS_MS 713 to 1 | M1-CORPUS exit 1 after the successful 814 pipeline; elapsed 31365.121 ms against 1 at load 143.812 | caught |
+| SL-M2 | M0_RATIO 2.000 to 0.1 | M0-RATIO exit 1; median 475.531 ms, normalized ratio 37.331629 against 0.100 at load 212.221 | caught |
+| SL-M3 | remove the top-level mu declaration production | isolated build has 0 errors and 0 warnings; spine check exits 1 at the first mu, line 259 column 1; active control checks and returns 599 | caught |
+
+SL-M1's unmodified baseline passed at 416.399 ms against 713 in the full
+battery.  SL-M2 proves the ratio comparison fails at the mutated bound;
+the unmodified 2.000 baseline still failed under load, so this catch does
+not discharge SL-G11.  SL-M3 uses its own build directory, and the two
+bound-only copies share the active binary without writing it.
+
+Commands and exact output: mutations/commands.json, results.json,
+sl-m1-corpus.stdout, sl-m2-ratio.stdout and sl-m3-spine-check.stderr.
+Each *-change.json records old and new source bytes.  The full record is
+mutations-result.md.  Additional controls reject each of the five wrong
+typed agreement witnesses and five catch-all forms; these supplement the
+three required mutations without replacing any one of them.
+
+Stage L validation remains pending M0-TIME, M0-RATIO and complete
+AGREEMENT execution.  No failed baseline was waived.

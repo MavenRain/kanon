@@ -10,3 +10,8 @@ import KanonMeta.Syntax
 import KanonMeta.Subst
 import KanonMeta.BeckChevalley
 import KanonMeta.Initiality
+import KanonMeta.InitialChain
+import KanonMeta.ChainColimit
+import KanonMeta.NatConstruction
+import KanonMeta.LinearConstruction
+import KanonMeta.VectorConstruction

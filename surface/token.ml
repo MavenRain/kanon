@@ -28,8 +28,9 @@ let next_line (l : loc) : loc = { line = l.line + 1; col = 1 }
     grammar reads it as one form.  [Dot1] and [Dot2] are the pair
     projections and [Dot] with a following [Nat] is the collection
     projection (SA-D16).  [KSum] and [KProd] are the two collection type
-    words that Stage B adds (SB-D1).  [KMu] and [KNu] are reserved: the parser
-    refuses both with their milestone name (SA-D3). *)
+    words that Stage B adds (SB-D1).  [KMu] opens a family declaration;
+    Stage L adds [KMutual], [KMatch] and [KEnd].  [KNu] keeps the
+    milestone refusal of SA-D3. *)
 type kind =
   | LParen
   | RParen
@@ -50,6 +51,7 @@ type kind =
   | KInj
   | KOf
   | KCase
+  | KMatch
   | KAs
   | KReturn
   | KWith
@@ -63,6 +65,8 @@ type kind =
   | KIn
   | KAuto
   | KMu
+  | KMutual
+  | KEnd
   | KNu
   | KAnd
       (** M1 Stage G, correction C7:  the one word the minimal mu
@@ -108,6 +112,7 @@ let describe (k : kind) : string =
   | KInj -> "'inj'"
   | KOf -> "'of'"
   | KCase -> "'case'"
+  | KMatch -> "'match'"
   | KAs -> "'as'"
   | KReturn -> "'return'"
   | KWith -> "'with'"
@@ -121,6 +126,8 @@ let describe (k : kind) : string =
   | KIn -> "'in'"
   | KAuto -> "'auto'"
   | KMu -> "'mu'"
+  | KMutual -> "'mutual'"
+  | KEnd -> "'end'"
   | KNu -> "'nu'"
   | KAnd -> "'and'"
   | KRec -> "'rec'"

@@ -8,13 +8,13 @@
     parenthesis is followed by the operator, the [parse_arrow] fold of
     parser.ml:354-360, the left-associative application loop of
     parser.ml:380-390 and the atom table of parser.ml:392-427.  tot's
-    hole record, its data items and its "end"-terminated match have no
-    M0 production and are left out.
+    hole record and its "end"-terminated match are left out.  Stage L
+    uses "end" only to close an explicitly mutual family group.
 
     Precedence, loosest first (SPEC.md section 9):  the arrow and the
     star, which are right associative;  then application, which is left
-    associative (SA-D1);  then the postfix projections.  The three
-    binding forms fun, let and case sit at the loosest level and reach
+    associative (SA-D1);  then the postfix projections.  The four
+    binding forms fun, let, case and match sit at the loosest level and reach
     as far right as they can. *)
 
 open Kanon_kernel
@@ -53,7 +53,7 @@ let kind_starts_atom (k : Token.kind) : bool =
   (* M1 Stage I, SI-D8:  'rec' stands inside a declaration header and
      never inside a term, so it starts no atom either. *)
   | Token.KReturn | Token.KWith | Token.KAbsurd | Token.KLet | Token.KIn | Token.KMu
-  | Token.KAnd | Token.KRec | Token.Eof ->
+  | Token.KAnd | Token.KRec | Token.KMatch | Token.KMutual | Token.KEnd | Token.Eof ->
       false
 
 let starts_atom (ts : Token.t list) : bool =
@@ -80,11 +80,28 @@ let bounded_nat (loc : Token.loc) (n : Bignum.t) : (int, Error.t) result =
   else Bignum.to_int n
     |> Option.to_result ~none:(Error.Parse ("numeric literal too long", loc.Token.line, loc.Token.col))
 
+(** SL-D3: legacy case also admits the constructor keys of Stage H.
+    Match admits only constructor keys and retains its identity in the
+    tree, including when no branches occur. *)
+type elimination = LegacyCase | FiberedMatch
+
+let elimination_node (form : elimination) (scrut : Syntax.t)
+    (mo : Syntax.motive option) (branches : Syntax.branch list) : Syntax.t =
+  match form with
+  | LegacyCase -> Syntax.SCase (scrut, mo, branches)
+  | FiberedMatch -> Syntax.SMatch (scrut, mo, branches)
+
+let numeric_key (form : elimination) (loc : Token.loc) : (unit, Error.t) result =
+  match form with
+  | LegacyCase -> Ok ()
+  | FiberedMatch -> parse_err loc "a match branch keys a constructor, not a leg number"
+
 let rec parse_term (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   match ts with
   | { Token.kind = Token.KFun; loc = _ } :: rest -> parse_fun rest
   | { Token.kind = Token.KLet; loc = _ } :: rest -> parse_let rest
-  | { Token.kind = Token.KCase; loc = _ } :: rest -> parse_case rest
+  | { Token.kind = Token.KCase; loc = _ } :: rest -> parse_case LegacyCase rest
+  | { Token.kind = Token.KMatch; loc = _ } :: rest -> parse_case FiberedMatch rest
   | ({ Token.kind = _; loc = _ } :: _ | []) -> parse_arrow ts
 
 (** "fun binder+ => body".  One binder at least;  the body reaches as
@@ -149,7 +166,8 @@ and parse_let (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
     kan-lang-tot-pin/surface/parser.ml:227-236 and :288-299.  The clause
     sits after "as x", so it cannot collide with a "let .. in .."
     scrutinee, which [parse_term] has already read whole. *)
-and parse_case (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
+and parse_case (form : elimination) (ts : Token.t list) :
+    (Syntax.t * Token.t list, Error.t) result =
   let* scrut, rest = parse_term ts in
   match rest with
   | { Token.kind = Token.KAs; loc = _ } :: { Token.kind = Token.Ident x; loc = _ } :: rest2
@@ -160,18 +178,18 @@ and parse_case (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
           let* body, rest5 = parse_term rest4 in
           match rest5 with
           | { Token.kind = Token.KWith; loc = _ } :: rest6 ->
-              let* branches, rest7 = parse_branches rest6 [] in
+              let* branches, rest7 = parse_branches form rest6 [] in
               let mo : Syntax.motive =
                 { Syntax.mo_self = x; mo_ind = ind; mo_idx = idx; mo_body = body }
               in
-              Ok (Syntax.SCase (scrut, Some mo, branches), rest7)
+              Ok (elimination_node form scrut (Some mo) branches, rest7)
           | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest5)
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'return'" rest3)
   | { Token.kind = Token.KAs; loc } :: _rest ->
       parse_err loc "expected 'NAME [in FAMILY IDX..] return TYPE' after 'as'"
   | { Token.kind = Token.KWith; loc = _ } :: rest2 ->
-      let* branches, rest3 = parse_branches rest2 [] in
-      Ok (Syntax.SCase (scrut, None, branches), rest3)
+      let* branches, rest3 = parse_branches form rest2 [] in
+      Ok (elimination_node form scrut None branches, rest3)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'as' or 'with'" rest
 
 (** M1 Stage H, brief 3.8:  the optional "'in' FAMILY idx*" clause of a
@@ -196,25 +214,26 @@ and parse_names (ts : Token.t list) (acc : string list) : string list * Token.t 
     a bar, so the enclosing form reads on.  mirrors
     kan-lang-tot-pin/surface/parser.ml:283-314 for the leg keyed row and
     :288-299 for the constructor keyed row of M1 Stage H. *)
-and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
+and parse_branches (form : elimination) (ts : Token.t list) (acc : Syntax.branch list) :
     (Syntax.branch list * Token.t list, Error.t) result =
   match ts with
   | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Nat k; loc } :: rest
     -> (
+      let* () = numeric_key form loc in
       let* k = bounded_nat loc k in
       let* binders, rest2 = parse_binders rest [] in
       match rest2 with
       | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
           let* body, rest4 = parse_term rest3 in
-          parse_branches rest4 (Syntax.BrLeg (k, binders, body) :: acc)
+          parse_branches form rest4 (Syntax.BrLeg (k, binders, body) :: acc)
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2)
   | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Ident c; loc = _ } :: rest
     -> (
-      let fields, rest2 = parse_fields rest [] in
+      let* fields, rest2 = parse_fields rest [] in
       match rest2 with
       | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
           let* body, rest4 = parse_term rest3 in
-          parse_branches rest4 (Syntax.BrCtor (c, fields, body) :: acc)
+          parse_branches form rest4 (Syntax.BrCtor (c, fields, body) :: acc)
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'=>'" rest2)
   | { Token.kind = Token.Pipe; loc } :: _rest ->
       parse_err loc "expected a leg number or a constructor name after '|'"
@@ -222,16 +241,23 @@ and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
 
 (** M1 Stage H, brief 3.8:  zero or more field binders of a constructor
     keyed branch, each a mark and a name.  A field takes its type from
-    the family record, so no field carries an annotation.  Total:  the
-    list ends at the first token that no mark and no name opens, and the
-    mark of that token is never consumed. *)
+    the family record.  SL-D4 additionally accepts a typed binder and
+    preserves its annotation for checking under preceding fields.
+    The list ends when no binder, mark or name opens the next field. *)
 and parse_fields (ts : Token.t list) (acc : Syntax.field list) :
-    Syntax.field list * Token.t list =
-  let q, rest = mark_prefix ts in
-  match rest with
-  | { Token.kind = Token.Ident x; loc = _ } :: rest2 ->
-      parse_fields rest2 ({ Syntax.fd_q = q; fd_name = x } :: acc)
-  | ({ Token.kind = _; loc = _ } :: _ | []) -> (List.rev acc, ts)
+    (Syntax.field list * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.LParen; loc = _ } :: _rest ->
+      let* b, rest = parse_binder ts in
+      parse_fields rest
+        ({ Syntax.fd_q = b.Syntax.b_q; fd_name = b.Syntax.b_name;
+           fd_ty = Some b.Syntax.b_ty } :: acc)
+  | ({ Token.kind = _; loc = _ } :: _ | []) ->
+      let q, rest = mark_prefix ts in
+      match rest with
+      | { Token.kind = Token.Ident x; loc = _ } :: rest2 ->
+          parse_fields rest2 ({ Syntax.fd_q = q; fd_name = x; fd_ty = None } :: acc)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)
 
 (** The arrow and the star.  The speculative binder group runs first and
     commits only when the operator follows it, so "(t : A)" stays an
@@ -457,8 +483,12 @@ and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) resul
   | { Token.kind = Token.KMu; loc = _ } :: rest ->
       let* fams, rest2 = parse_fam_group rest [] in
       Ok (Syntax.DMu fams, rest2)
+  | { Token.kind = Token.KMutual; loc = _ } :: rest ->
+      let* fams, rest2 = parse_mutual_group rest [] in
+      Ok (Syntax.DMu fams, rest2)
+  | { Token.kind = Token.KNu; loc } :: _rest -> parse_err loc "nu arrives at M2"
   | ({ Token.kind = _; loc = _ } :: _ | []) ->
-      expected "'def NAME :', 'def rec NAME :', 'axiom NAME :' or 'mu NAME'" ts
+      expected "'def NAME :', 'def rec NAME :', 'axiom NAME :', 'mu NAME' or 'mutual'" ts
 
 (** M1 Stage I, SI-D8:  the minimal recursive definition production.
 
@@ -469,8 +499,7 @@ and parse_decl (ts : Token.t list) : (Syntax.decl * Token.t list, Error.t) resul
     one is a definition that may call itself and nothing else of the
     surface moves.  'and' does not start an atom, so the term parser
     stops at the end of every member without a terminator word, exactly
-    as it does at a mu group (correction C7).  The sugar rows and the
-    spine additions stay at Stage L (M1-PLAN.md:230). *)
+    as it does at a mu group (correction C7). *)
 and parse_rec_group (ts : Token.t list) (acc : Syntax.rec_def list) :
     (Syntax.rec_def list * Token.t list, Error.t) result =
   let* m, rest = parse_rec_member ts in
@@ -503,8 +532,8 @@ and parse_rec_member (ts : Token.t list) :
     telescope and whose result is the declared universe;  the elaborator
     splits it (brief 3.9).  A constructor type is an arrow chain whose
     binders are the argument telescope, one quantity per field, and
-    whose result names the family at its result index expressions.  The
-    sugar and the spine additions stay at Stage L (M1-PLAN.md:230).
+    whose result names the family at its result index expressions.
+    Stage L also accepts ':=' and constructor binder sugar (SL-D1).
 
     Neither 'and' nor '|' starts an atom, so the term parser stops at
     the end of every header and of every constructor without a
@@ -516,6 +545,22 @@ and parse_fam_group (ts : Token.t list) (acc : Syntax.fam list) :
   | { Token.kind = Token.KAnd; loc = _ } :: rest2 -> parse_fam_group rest2 (fm :: acc)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev (fm :: acc), rest)
 
+(** SL-D2: an explicit mutual group is a sequence of mu declarations,
+    closed by end.  Requiring two members rejects accidental singleton
+    and empty groups before any family enters the global table. *)
+and parse_mutual_group (ts : Token.t list) (acc : Syntax.fam list) :
+    (Syntax.fam list * Token.t list, Error.t) result =
+  match ts with
+  | { Token.kind = Token.KMu; loc = _ } :: rest ->
+      let* fm, rest2 = parse_fam rest in
+      parse_mutual_group rest2 (fm :: acc)
+  | { Token.kind = Token.KEnd; loc } :: rest -> (
+      match acc with
+      | [] -> parse_err loc "a mutual group needs at least two mu declarations"
+      | [ _one ] -> parse_err loc "a mutual group needs at least two mu declarations"
+      | _first :: _second :: _remaining -> Ok (List.rev acc, rest))
+  | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'mu' or 'end' in a mutual group" ts
+
 and parse_fam (ts : Token.t list) : (Syntax.fam * Token.t list, Error.t) result =
   match ts with
   | { Token.kind = Token.Ident name; loc = _ } :: rest -> (
@@ -524,7 +569,7 @@ and parse_fam (ts : Token.t list) : (Syntax.fam * Token.t list, Error.t) result 
       | { Token.kind = Token.Colon; loc = _ } :: rest3 -> (
           let* ty, rest4 = parse_term rest3 in
           match rest4 with
-          | { Token.kind = Token.KWith; loc = _ } :: rest5 ->
+          | { Token.kind = Token.KWith | Token.ColonEq; loc = _ } :: rest5 ->
               let* ctors, rest6 = parse_fam_ctors rest5 [] in
               Ok
                 ( {
@@ -534,21 +579,28 @@ and parse_fam (ts : Token.t list) : (Syntax.fam * Token.t list, Error.t) result 
                     fm_ctors = ctors;
                   },
                   rest6 )
-          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'with'" rest4)
+          | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':=' or 'with'" rest4)
       | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':'" rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "a family name" ts
 
-(** Zero or more "| NAME : TYPE" rows.  The list ends at the first token
-    that is not a bar, so 'and' and the next declaration read on. *)
+(** SL-D1: constructor binder sugar folds to the existing arrow chain,
+    preserving field names, dependent types and quantities.  Zero
+    binders is the Stage G production. *)
 and parse_fam_ctors (ts : Token.t list) (acc : Syntax.fam_ctor list) :
     (Syntax.fam_ctor list * Token.t list, Error.t) result =
   match ts with
   | { Token.kind = Token.Pipe; loc = _ }
     :: { Token.kind = Token.Ident name; loc = _ }
-    :: { Token.kind = Token.Colon; loc = _ }
-    :: rest ->
-      let* ty, rest2 = parse_term rest in
-      parse_fam_ctors rest2 ({ Syntax.fc_name = name; fc_ty = ty } :: acc)
+    :: rest -> (
+      let* binders, rest2 = parse_binders rest [] in
+      match rest2 with
+      | { Token.kind = Token.Colon; loc = _ } :: rest3 ->
+          let* result, rest4 = parse_term rest3 in
+          let ty = List.fold_right
+              (fun (b : Syntax.binder) (body : Syntax.t) -> Syntax.SArrow (b, body))
+              binders result in
+          parse_fam_ctors rest4 ({ Syntax.fc_name = name; fc_ty = ty } :: acc)
+      | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "':' after constructor binders" rest2)
   | { Token.kind = Token.Pipe; loc } :: _rest ->
       parse_err loc "expected a constructor name and ':' after '|'"
   | ({ Token.kind = _; loc = _ } :: _ | []) -> Ok (List.rev acc, ts)

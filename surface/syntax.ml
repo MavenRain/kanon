@@ -49,11 +49,12 @@ and motive = {
 }
 
 (** One field binder of a constructor keyed branch, "0 x" or "x".  A
-    field takes its type from the family record, so the branch names the
-    field and its mark alone (M1 Stage H, brief 3.8, SH-D9). *)
+    field takes its type from the family record (M1 Stage H, SH-D9).
+    SL-D4 adds an optional annotation, checked against that type. *)
 and field = {
   fd_q : Kanon_kernel.Quantity.t;
   fd_name : string;
+  fd_ty : t option;
 }
 
 (** A case branch.  The M0 key is the leg number, which the elaborator
@@ -76,8 +77,8 @@ and fam_ctor = {
 
 (** M1 Stage G, correction C7.  One member of a mu group:  the header
     with its parameter binders, then an arrow chain of index binders that
-    ends in the declared universe, then the constructor list.  The sugar
-    and the spine additions stay at Stage L (M1-PLAN.md:230). *)
+    ends in the declared universe, then the constructor list.  Stage L
+    binder sugar translates directly into this same record (SL-D1). *)
 and fam = {
   fm_name : string;
   fm_params : binder list;
@@ -125,6 +126,9 @@ and t =
   | SLet of string * t * t * t
   | SAnn of t * t
   | SCase of t * motive option * branch list
+  | SMatch of t * motive option * branch list
+      (** SL-D3: constructor elimination has its own surface node, so
+          even an empty match must eliminate a family. *)
 
 type decl =
   | DDef of string * t * t
@@ -174,6 +178,7 @@ let level_of (s : t) : int =
   | SStar (_, _) -> 0
   | SLet (_, _, _, _) -> 0
   | SCase (_, _, _) -> 0
+  | SMatch (_, _, _) -> 0
 
 let mark (q : Kanon_kernel.Quantity.t) : string =
   match q with
@@ -206,7 +211,10 @@ and branch_text (br : branch) : string =
 (** M1 Stage H:  a field binder prints its mark and its name, so the
     printed branch re-parses to the same field list. *)
 and field_text (f : field) : string =
-  " " ^ mark f.fd_q ^ f.fd_name
+  f.fd_ty
+  |> Option.fold ~none:(" " ^ mark f.fd_q ^ f.fd_name)
+       ~some:(fun (ty : t) ->
+         " " ^ binder_text { b_q = f.fd_q; b_name = f.fd_name; b_ty = ty })
 
 (** M1 Stage H:  the index clause prints only when the motive names a
     family, so an M0 motive prints the text it printed at M0. *)
@@ -251,16 +259,21 @@ and raw (s : t) : string =
       Printf.sprintf "case %s%s with%s" (at 1 scrut)
         (mo |> Option.fold ~none:"" ~some:motive_text)
         (String.concat "" (List.map branch_text brs))
+  | SMatch (scrut, mo, brs) ->
+      Printf.sprintf "match %s%s with%s" (at 1 scrut)
+        (mo |> Option.fold ~none:"" ~some:motive_text)
+        (String.concat "" (List.map branch_text brs))
 
 (** One constructor row of a mu group.  The row starts at the bar, so the
     printed text re-parses to the same list. *)
 let fam_ctor_text (fc : fam_ctor) : string =
   Printf.sprintf "| %s : %s\n" fc.fc_name (at 0 fc.fc_ty)
 
-(** One member of a mu group under the word that opens it, "mu" for the
-    first member and "and" for every later one. *)
+(** SL-D5: every family prints with :=.  A mutual group prints one mu
+    declaration per member and one closing end.  Constructor types
+    remain expanded arrow chains, so binder sugar needs no extra node. *)
 let fam_text (word : string) (fm : fam) : string =
-  Printf.sprintf "%s %s%s : %s with\n%s" word fm.fm_name
+  Printf.sprintf "%s %s%s : %s :=\n%s" word fm.fm_name
     (String.concat "" (List.map (fun (b : binder) -> " " ^ binder_text b) fm.fm_params))
     (at 0 fm.fm_ty)
     (String.concat "" (List.map fam_ctor_text fm.fm_ctors))
@@ -270,12 +283,10 @@ let decl_text (d : decl) : string =
   | DDef (name, ty, def) ->
       Printf.sprintf "def %s : %s := %s\n" name (at 0 ty) (at 0 def)
   | DAxiom (name, ty) -> Printf.sprintf "axiom %s : %s\n" name (at 0 ty)
-  | DMu fams ->
-      String.concat ""
-        (List.mapi
-           (fun (i : int) (fm : fam) ->
-             fam_text (if Int.equal i 0 then "mu" else "and") fm)
-           fams)
+  | DMu [] -> ""
+  | DMu [ fm ] -> fam_text "mu" fm
+  | DMu ((_first :: _second :: _rest) as fams) ->
+      "mutual\n" ^ String.concat "" (List.map (fam_text "mu") fams) ^ "end\n"
   | DRec ms ->
       String.concat ""
         (List.mapi

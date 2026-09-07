@@ -2,6 +2,8 @@ This audit distinguishes implemented behavior from the mathematical obligations 
 
 The [validation record](FOUNDATION-VALIDATION.md) lists the commands, outcomes, proof dependencies, and limits of the evidence, including the concurrent source refresh.
 
+The later [initial-chain increment](INITIAL-CHAIN.md) constructs sequence colimits and a concrete recursive initial algebra. It advances the semantic existence argument while retaining the separate obligation to connect that construction to the compiler's admitted shapes. The [indexed construction](INDEXED-CONSTRUCTION.md) adds preservation for nullary/unary indexed signatures and a constructed vector model with payload-preserving copy.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |

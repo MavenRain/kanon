@@ -1,6 +1,6 @@
 #!/bin/zsh
 # dev/gates.sh
-# The M0 gate battery:  every leg of plan section 9, in the order the
+# The M1 gate battery: every carried and new leg of plan section 9, in the order the
 # plan writes them.  Example:
 #   zsh /Users/oobi/Documents/kanon/dev/gates.sh
 #
@@ -46,6 +46,9 @@ PIN_WORKTREE=${KANON_PIN_WORKTREE:-/Users/oobi/Documents/kan-lang-tot-pin}
 # correction C1 ratifies it at 150, with the resolution in milliseconds.
 # No agent moves this number.
 M0_TIME_MS=150
+# D-M1-6 and Stage L section 9: these are binding, never environment overrides.
+M0_RATIO=2.000
+M1_CORPUS_MS=713
 
 # The watchdog.  GNU coreutils ships timeout as gtimeout on stock macOS.
 watchdog=""
@@ -165,55 +168,44 @@ leg_e2e () {
   return 1
 }
 
-# M0-TIME.  bench.sh times the driver's whole run path, check, erase,
-# emit, node and wasmtime.  wasm-opt is a step of M0-E2E and stays
-# outside this measurement (SE-D9).
+# M0-TIME retains the whole driver path and SE-D9's wasm-opt exclusion.
+# SL-D10: force five runs for each of three benches, print their spread,
+# and compare the median of their medians against the unchanged bound.
 leg_time () {
-  local bench code median verdict
-  bench=$(zsh $ROOT/dev/bench.sh m0_e2e \
-    "$DRIVER run $SPINE --export main --host both" 2>&1)
-  code=$?
-  print -r -- "$bench"
-  if [[ $code -ne 0 ]]; then
-    print -r -- "FAIL M0-TIME"
-    return 1
-  fi
-  median=$(print -r -- "$bench" | awk '{ for (i = 1; i <= NF; i = i + 1) { if (index($i, "median_ms=") == 1) { print substr($i, 11) } } }')
-  verdict=$(awk -v m="$median" -v b="$M0_TIME_MS" 'BEGIN { print (m + 0 <= b + 0) ? "PASS" : "FAIL" }')
-  print -r -- "$verdict M0-TIME median_ms=$median bound_ms=$M0_TIME_MS"
-  if [[ $verdict == PASS ]]; then
-    return 0
-  fi
-  return 1
+  python3 -P $ROOT/dev/m1-gates.py time --root $ROOT --bound $M0_TIME_MS
 }
 
-# M0-RATIO.  The numerator is the kernel suite of this tree and the
-# denominator is tot's warm kernel suite, so both sides of the ratio are
-# the same command on the two trees (SE-D10).  Correction C2 makes the
-# ratio informational at M0:  only a bench error or an unreadable
-# denominator fails this leg.
+# SL-D11: the binding ratio reads the 1000-line corpus, the frozen
+# 103.662 ms denominator and the separately dated 8138-line normalization.
+# Comparison uses the unrounded ratio; printed precision is six decimals.
 leg_ratio () {
-  local bench code kanon tot tcode ratio
-  bench=$(zsh $ROOT/dev/bench.sh m0_ratio \
-    "$ROOT/_build/default/test/main.exe $ROOT/test" 2>&1)
-  code=$?
-  print -r -- "$bench"
-  if [[ $code -ne 0 ]]; then
-    print -r -- "FAIL M0-RATIO"
-    return 1
+  python3 -P $ROOT/dev/m1-gates.py ratio --root $ROOT --bound $M0_RATIO
+}
+
+leg_positivity () {
+  python3 -P $ROOT/dev/m1-gates.py positivity --root $ROOT
+}
+
+leg_corpus () {
+  python3 -P $ROOT/dev/m1-gates.py corpus --root $ROOT --bound $M1_CORPUS_MS
+}
+
+leg_m1_suite () {
+  python3 -P $ROOT/dev/m1-gates.py m1-suite --root $ROOT
+}
+
+# SL-D14: never pass --only or --mutation in the permanent battery.
+# Both approved finite sets, their round trips, goldens and exact host
+# observations remain mandatory under the existing SUITE watchdog.
+leg_agreement () {
+  python3 -P $ROOT/dev/agreement.py --root $ROOT --evidence $WORK/agreement
+  local code=$?
+  if [[ $code -eq 0 ]]; then
+    print -r -- "PASS AGREEMENT cases=7445 unary=5445 full-range=2000"
+    return 0
   fi
-  kanon=$(print -r -- "$bench" | awk '{ for (i = 1; i <= NF; i = i + 1) { if (index($i, "median_ms=") == 1) { print substr($i, 11) } } }')
-  tot=$(/opt/homebrew/bin/python3 -P -c 'import json, sys; print("{0:.3f}".format(json.load(open(sys.argv[1]))["tot_suite_kernel_warm_ms"]["median"]))' $ROOT/dev/denominators.json 2>&1)
-  tcode=$?
-  if [[ $tcode -ne 0 ]]; then
-    print -r -- "denominator exit=$tcode out=[$tot]"
-    print -r -- "FAIL M0-RATIO"
-    return 1
-  fi
-  ratio=$(awk -v k="$kanon" -v t="$tot" 'BEGIN { printf "%.3f\n", (t + 0 > 0) ? (k + 0) / (t + 0) : 0 }')
-  print -r -- "MEASURE M0-RATIO kanon_ms=$kanon tot_ms=$tot ratio=$ratio"
-  print -r -- "PASS M0-RATIO ratio=$ratio"
-  return 0
+  print -r -- "FAIL AGREEMENT"
+  return 1
 }
 
 # DENOMINATORS.  shasum reads the row of DENOMINATORS.sha256 relative to
@@ -260,6 +252,10 @@ if [[ $# -ge 2 && $1 == "--leg" ]]; then
     e2e) leg_e2e; exit $? ;;
     time) leg_time; exit $? ;;
     ratio) leg_ratio; exit $? ;;
+    positivity) leg_positivity; exit $? ;;
+    corpus) leg_corpus; exit $? ;;
+    m1-suite) leg_m1_suite; exit $? ;;
+    agreement) leg_agreement; exit $? ;;
     denominators) leg_denominators; exit $? ;;
     pin) leg_pin; exit $? ;;
     *) print -r -- "gates: unknown leg $2"; exit 64 ;;
@@ -336,6 +332,10 @@ leg FAST TRUSTED-LINES '^TRUSTED-LINES kernel=[0-9]+/[0-9]+ encoder=[0-9]+/[0-9]
 leg MED DENOMINATORS SELF zsh $SELF --leg denominators
 leg MED HOUSE '^HOUSE OK$' zsh $ROOT/dev/house.sh $ROOT
 leg FAST PIN SELF zsh $SELF --leg pin
+leg SUITE POSITIVITY SELF zsh $SELF --leg positivity
+leg SLOW M1-CORPUS SELF zsh $SELF --leg corpus
+leg SUITE M1-SUITE SELF zsh $SELF --leg m1-suite
+leg SUITE AGREEMENT SELF zsh $SELF --leg agreement
 
 print -r -- ""
 cat $MEASURE_FILE

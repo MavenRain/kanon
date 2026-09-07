@@ -105,7 +105,8 @@ let app_split (s : Syntax.t) : (Syntax.t * Syntax.t) option =
   | Syntax.SUnit | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
   | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
   | Syntax.SFun (_, _) | Syntax.SArrow (_, _) | Syntax.SStar (_, _)
-  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _)
+  | Syntax.SMatch (_, _, _) ->
       None
 
 let arrow_split (s : Syntax.t) : (Syntax.binder * Syntax.t) option =
@@ -115,7 +116,8 @@ let arrow_split (s : Syntax.t) : (Syntax.binder * Syntax.t) option =
   | Syntax.SUnit | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
   | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
   | Syntax.SFun (_, _) | Syntax.SApp (_, _) | Syntax.SStar (_, _)
-  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _)
+  | Syntax.SMatch (_, _, _) ->
       None
 
 let var_name (s : Syntax.t) : string option =
@@ -125,7 +127,8 @@ let var_name (s : Syntax.t) : string option =
   | Syntax.SAuto | Syntax.SPair (_, _) | Syntax.STuple _ | Syntax.SSum _
   | Syntax.SProd _ | Syntax.SProj (_, _) | Syntax.SInj (_, _, _) | Syntax.SAbsurd _
   | Syntax.SFun (_, _) | Syntax.SApp (_, _) | Syntax.SArrow (_, _) | Syntax.SStar (_, _)
-  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _) ->
+  | Syntax.SLet (_, _, _, _) | Syntax.SAnn (_, _) | Syntax.SCase (_, _, _)
+  | Syntax.SMatch (_, _, _) ->
       None
 
 (** The head of an application spine and its arguments, in the order
@@ -241,6 +244,7 @@ let rec elab (c : Check.ctx) ~(expected : Value.t option) (s : Syntax.t) :
       let* a' = elab c ~expected:(Some tyv) a in
       Ok (Term.Ann (a', ty'))
   | Syntax.SCase (scrut, mo, brs) -> elab_case c ~expected scrut mo brs
+  | Syntax.SMatch (scrut, mo, brs) -> elab_match c ~expected scrut mo brs
 
 (** The items of a section, each at the leg type the expected type gives
     it when it gives one.  The two lists are paired by the total [zip] of
@@ -383,6 +387,18 @@ and elab_app (c : Check.ctx) (f : Syntax.t) (a : Syntax.t) : (Term.t, Error.t) r
        ~none:(fun () -> elab_app_point c f a)
        ~some:(fun (r : mu_ref) -> fun () -> elab_mu_ref c r args)
   |> fun (k : unit -> (Term.t, Error.t) result) -> k ()
+
+(** SL-D3: match selects the existing fibered elimination directly.
+    Its scrutinee must have a mu family type even when the branch list
+    is empty, so an empty collection cannot pass as a family. *)
+and elab_match (c : Check.ctx) ~(expected : Value.t option) (scrut : Syntax.t)
+    (mo : Syntax.motive option) (brs : Syntax.branch list) : (Term.t, Error.t) result =
+  let wrong = Error.Mismatch "a match needs a mu family as the type of its scrutinee" in
+  let* scrut' = elab c ~expected:None scrut in
+  let* w = type_of c scrut' in
+  let* vs, dclo, u = Value.as_lan w |> Option.to_result ~none:wrong in
+  let* n, ixv = Rules.as_vmu vs |> Option.to_result ~none:wrong in
+  elab_mu_case c ~expected scrut' n ixv dclo u mo brs
 
 (** M1 Stage G, correction C7:  a family at its parameters and indices,
     or a constructor at its arguments.  The family reference is the left
@@ -710,6 +726,21 @@ and bind_indices (c : Check.ctx) (penv : Value.t list)
     (Ok (c, penv, []))
     pairs
 
+(** SL-D4: an optional field annotation is checked in the context of
+    preceding fields.  The family's field type remains authoritative;
+    an annotation never changes the type supplied to the kernel. *)
+and check_field_annotation (c : Check.ctx) (expected : Value.t) (f : Syntax.field) :
+    (unit, Error.t) result =
+  f.Syntax.fd_ty
+  |> Option.fold ~none:(Ok ()) ~some:(fun (ty : Syntax.t) ->
+         let* term = elab c ~expected:None ty in
+         let* _level = Check.infer_univ c term in
+         let* actual = eval_in c term in
+         let* agrees = Conv.conv_type Check.ops c actual expected in
+         if agrees then Ok ()
+         else Error (Error.Mismatch ("the annotation of constructor field " ^ f.Syntax.fd_name ^
+                                    " differs from its declared type")))
+
 (** One constructor keyed branch.  The field binders take their types
     from the family record, each read under the fields before it, and the
     body is elaborated at the motive instantiated at that constructor's
@@ -768,6 +799,7 @@ and bind_fields (c : Check.ctx) (penv : Value.t list)
            (Quantity.t * string * Term.t) * Syntax.field) ->
       let* c_acc, env_acc, vals_acc = acc in
       let* tyv = Eval.eval (globals_of c_acc) env_acc ty in
+      let* () = check_field_annotation c_acc tyv f in
       let v = Value.var (size_of c_acc) in
       Ok
         ( Check.bind f.Syntax.fd_name f.Syntax.fd_q tyv c_acc,
