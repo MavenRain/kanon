@@ -1,8 +1,8 @@
 erased Nat
 erased Two
-rec [sum<i31|i31>]
-fun plain (union sum<i31|i31>) : i31 := KCase sum<i31|i31> (KVar 0) [{0 1 (KVar 0)}; {1 1 (KTail (KGlobal natAdd) [KVar 0; KLit 1])}]
-rec [sum<i31|i31>]
-fun withMotive (union sum<i31|i31>) : i31 := KCase sum<i31|i31> (KVar 0) [{0 1 (KVar 0)}; {1 1 (KVar 0)}]
+rec [sum<union nat|union nat>; nat]
+fun plain (union sum<union nat|union nat>) : union nat := KCase sum<union nat|union nat> (KVar 0) [{0 1 (KVar 0)}; {1 1 (KTail (KGlobal natAdd) [KVar 0; KLit 1])}]
+rec [sum<union nat|union nat>; nat]
+fun withMotive (union sum<union nat|union nat>) : union nat := KCase sum<union nat|union nat> (KVar 0) [{0 1 (KVar 0)}; {1 1 (KVar 0)}]
 rec [any]
 fun fromVoid () : union any := KCase any (KErased) []

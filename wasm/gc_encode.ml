@@ -13,9 +13,8 @@
     the flat reading of the groups, which is the invariant [types]
     carries.
 
-    The array form is not encoded at M0 (SD-D19):  an OCaml constructor
-    that no caller builds is an error under [-warn-error +a], so the arm
-    is absent until a caller needs it.
+    Stage K adds i32 arrays with field mutability 1 for fresh Nat limbs.
+    Struct fields remain immutable; only array construction stores.
 
     SD-D18:  [byte] is the one site with a byte buffer.  The buffer never
     leaves the function and its byte adder takes an integer, so the
@@ -35,6 +34,7 @@ type valtype =
 
 type comptype =
   | CStruct of valtype list  (** every field is immutable *)
+  | CArray of valtype  (** field mutability 1, used while constructing limbs *)
   | CFunc of valtype list * valtype list
 
 (** One arm per mnemonic of SPEC.md section 8.  [Block] and [If] carry
@@ -71,6 +71,10 @@ type instr =
   | Ref_func of int
   | Struct_new of int
   | Struct_get of int * int
+  | Array_new of int
+  | Array_get of int
+  | Array_set of int
+  | Array_len
 
 type func = {
   ftype : int;  (** the index of this function's type *)
@@ -134,6 +138,7 @@ let field (v : valtype) : string = valtype v ^ byte 0x00
 let comptype (c : comptype) : string =
   match c with
   | CStruct fields -> byte 0x5F ^ vec field fields
+  | CArray v -> byte 0x5E ^ valtype v ^ byte 0x01
   | CFunc (params, results) -> byte 0x60 ^ vec valtype params ^ vec valtype results
 
 (** A member of a multi-member group is a sub final entry:  0x4F, the
@@ -191,6 +196,10 @@ let rec instr (i : instr) : string =
   | Ref_func f -> byte 0xD2 ^ uleb f
   | Struct_new t -> gc 0 ^ uleb t
   | Struct_get (t, f) -> gc 2 ^ uleb t ^ uleb f
+  | Array_new t -> gc 6 ^ uleb t
+  | Array_get t -> gc 11 ^ uleb t
+  | Array_set t -> gc 14 ^ uleb t
+  | Array_len -> gc 15
 
 and instrs (xs : instr list) : string = String.concat "" (List.map instr xs)
 

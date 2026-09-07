@@ -16,7 +16,7 @@ let rec nth_name (n : int) (names : string list) : string option =
 let literal (l : Literal.t) : string =
   match l with
   | Literal.LString s -> "\"" ^ String.escaped s ^ "\""
-  | Literal.LInt n -> string_of_int n
+  | Literal.LInt n -> Bignum.to_string n
 
 let binder_names (bs : (Quantity.t * string) list) : string list =
   List.map (fun ((_q : Quantity.t), (x : string)) -> x) bs

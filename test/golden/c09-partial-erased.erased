@@ -1,14 +1,14 @@
-rec []
-fun f () : i31 := KLit 5
-rec []
-fun g () : i31 := KTail (KGlobal f) []
-rec []
-fun n () : i31 := KTail (KGlobal g) []
-rec []
-fun local () : i31 := KLet h (KGlobal f) (KTail (KVar 0) [])
-rec []
-fun both () : i31 := KTail (KGlobal f) []
-rec []
-fun runtimeAlias (i31) : i31 := KTail (KApp (KGlobal natAdd) [KLit 1]) [KVar 0]
-rec []
-fun appliedAlias () : i31 := KTail (KGlobal runtimeAlias) [KLit 2]
+rec [nat]
+fun f () : union nat := KLit 5
+rec [nat]
+fun g () : union nat := KTail (KGlobal f) []
+rec [nat]
+fun n () : union nat := KTail (KGlobal g) []
+rec [nat]
+fun local () : union nat := KLet h (KGlobal f) (KTail (KVar 0) [])
+rec [nat]
+fun both () : union nat := KTail (KGlobal f) []
+rec [nat]
+fun runtimeAlias (union nat) : union nat := KTail (KApp (KGlobal natAdd) [KLit 1]) [KVar 0]
+rec [nat]
+fun appliedAlias () : union nat := KTail (KGlobal runtimeAlias) [KLit 2]

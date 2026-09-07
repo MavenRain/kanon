@@ -99,9 +99,7 @@ let spawn ((launcher : string), (rel : string)) ~(root : string)
     (Filename.quote (err_path ~wasm))
   |> Sys.command |> of_exit ~wasm
 
-(** The largest i31 payload the emitter carries (SD-D9). *)
-let i31_max : int = 1073741823
-
+(** The refusal text for a value that is not a literal (SD-D9). *)
 let not_a_literal : string = "the kernel value is not a literal"
 
 (** The oracle:  reduce the exported global to a literal.  A literal in
@@ -121,10 +119,12 @@ let kernel_outcome (globals : Kanon_kernel.Global.t) ~(export : string) :
                      ~some:(fun (lit : Kanon_kernel.Literal.t) ->
                        match lit with
                        | Kanon_kernel.Literal.LInt n ->
-                           if n >= 0 && n <= i31_max then Value n
-                           else
-                             Trap
-                               (Printf.sprintf "%d is outside the i31 range" n)
+                           Kanon_kernel.Bignum.to_i31 n
+                           |> Option.fold
+                                ~none:(Trap
+                                  (Kanon_kernel.Bignum.to_string n
+                                   ^ " is outside the i31 range"))
+                                ~some:(fun (small : int) -> Value small)
                        | Kanon_kernel.Literal.LString _ -> Invalid not_a_literal)))
 
 (** One host on one module.  [globals] carries the declarations the file

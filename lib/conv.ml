@@ -282,35 +282,28 @@ and conv_addr (ops : 'c Rules.ops) (ctx : 'c) (arg_ty : Value.t option)
 
 and conv_list (ops : 'c Rules.ops) (ctx : 'c) (xs : Value.t list) (ys : Value.t list) :
     (bool, Error.t) result =
-  match (xs, ys) with
-  | [], [] -> Ok true
-  | x :: r1, y :: r2 ->
-      let* eq = conv_type ops ctx x y in
-      if eq then conv_list ops ctx r1 r2 else Ok false
-  | [], _y :: _ -> Ok false
-  | _x :: _, [] -> Ok false
+  Rules.payload_eq (conv_type ops ctx) xs ys
 
 and conv_legs (ops : 'c Rules.ops) (ctx : 'c) (xs : Value.vleg list)
     (ys : Value.vleg list) : (bool, Error.t) result =
-  match (xs, ys) with
-  | [], [] -> Ok true
-  | x :: r1, y :: r2 ->
-      let arity : int = List.length x.Value.vl_binders in
-      let size : int = ops.Rules.o_size ctx in
-      let fresh : Value.t list =
-        List.init arity (fun (i : int) -> Value.var (size + arity - 1 - i))
-      in
-      let ev : Rules.evaluator = ops.Rules.o_ev ctx in
-      let* v1 = Rules.open_closure ev x.Value.vl_clo (List.rev fresh) in
-      let* v2 = Rules.open_closure ev y.Value.vl_clo (List.rev fresh) in
-      let* eq =
-        match () with
-        | () when not (Int.equal arity (List.length y.Value.vl_binders)) -> Ok false
-        | () -> conv_type ops (grow ops ctx arity) v1 v2
-      in
-      if eq then conv_legs ops ctx r1 r2 else Ok false
-  | [], _y :: _ -> Ok false
-  | _x :: _, [] -> Ok false
+  Rules.payload_eq
+    (fun (x : Value.vleg) (y : Value.vleg) ->
+      conv_closures ops ctx (List.length x.Value.vl_binders) x.Value.vl_clo
+        (List.length y.Value.vl_binders) y.Value.vl_clo)
+    xs ys
+
+(** Both semantic legs and frozen branches open in declaration order
+    under the same fresh variables and compare in the grown context. *)
+and conv_closures (ops : 'c Rules.ops) (ctx : 'c) (arity : int) (x : Value.closure)
+    (other_arity : int) (y : Value.closure) : (bool, Error.t) result =
+  if not (Int.equal arity other_arity) then Ok false
+  else
+    let size = ops.Rules.o_size ctx in
+    let fresh = List.init arity (fun i -> Value.var (size + arity - 1 - i)) in
+    let ev = ops.Rules.o_ev ctx in
+    let* v1 = ev.Rules.ev_eval (fresh @ x.Value.env) x.Value.body in
+    let* v2 = ev.Rules.ev_eval (fresh @ y.Value.env) y.Value.body in
+    conv_type ops (grow ops ctx arity) v1 v2
 
 (** Two frozen eliminations, tot's [conv_stuck_match]
     (kan-lang-tot-pin/lib/eval.ml:401) with the address of a branch in
@@ -359,28 +352,15 @@ and conv_motive (ops : 'c Rules.ops) (ctx : 'c) (m1 : Value.stuck_elim)
 and conv_branches (ops : 'c Rules.ops) (ctx : 'c) (env1 : Value.t list)
     (env2 : Value.t list) (bs1 : (Term.addr * Term.leg) list)
     (bs2 : (Term.addr * Term.leg) list) : (bool, Error.t) result =
-  match (bs1, bs2) with
-  | [], [] -> Ok true
-  | (a1, l1) :: r1, (a2, l2) :: r2 ->
-      let arity : int = List.length l1.Term.l_binders in
-      let size : int = ops.Rules.o_size ctx in
-      let fresh : Value.t list =
-        List.init arity (fun (i : int) -> Value.var (size + arity - 1 - i))
-      in
-      let ev : Rules.evaluator = ops.Rules.o_ev ctx in
+  Rules.payload_eq
+    (fun (a1, l1) (a2, l2) ->
       let* addr = branch_addr ops ctx env1 env2 a1 a2 in
-      let* eq =
-        match () with
-        | () when not addr -> Ok false
-        | () when not (Int.equal arity (List.length l2.Term.l_binders)) -> Ok false
-        | () ->
-            let* v1 = ev.Rules.ev_eval (fresh @ env1) l1.Term.l_body in
-            let* v2 = ev.Rules.ev_eval (fresh @ env2) l2.Term.l_body in
-            conv_type ops (grow ops ctx arity) v1 v2
-      in
-      if eq then conv_branches ops ctx env1 env2 r1 r2 else Ok false
-  | [], _b :: _ -> Ok false
-  | _b :: _, [] -> Ok false
+      if not addr then Ok false
+      else
+        conv_closures ops ctx (List.length l1.Term.l_binders)
+          { Value.env = env1; body = l1.Term.l_body }
+          (List.length l2.Term.l_binders) { Value.env = env2; body = l2.Term.l_body })
+    bs1 bs2
 
 (** A branch address is a term, so it is compared under the environment
     the elimination froze. *)

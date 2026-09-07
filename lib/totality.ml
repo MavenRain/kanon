@@ -48,10 +48,7 @@ and spend_node (budget : Budget.t) (t : Term.t) : (unit, Error.t) result =
   | Term.Global _ -> Ok ()
   | Term.Lit _ -> Ok ()
   | Term.Auto -> Ok ()
-  | Term.Lan (s, d) ->
-      let* () = spend_shape budget s in
-      spend budget d
-  | Term.Ran (s, d) ->
+  | Term.Lan (s, d) | Term.Ran (s, d) ->
       let* () = spend_shape budget s in
       spend budget d
   | Term.In (s, a, args) ->
@@ -127,13 +124,7 @@ and spend_all (budget : Budget.t) (ts : Term.t list) : (unit, Error.t) result =
 let guard_group ?(budget : Budget.t = Budget.unlimited) (globals : Global.t)
     (members : (string * Term.t) list) : (Order.t option, Error.t) result =
   let _ = globals in
-  let* () =
-    List.fold_left
-      (fun (acc : (unit, Error.t) result) (((_n : string), (b : Term.t)) : string * Term.t) ->
-        let* () = acc in
-        spend budget b)
-      (Ok ()) members
-  in
+  let* () = spend_all budget (List.map snd members) in
   Order.certify members
 
 (** The M1 entry point (kan-lang-tot-pin/lib/totality.ml:188).  [guard

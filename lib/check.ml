@@ -10,11 +10,10 @@
     cocone (kan-lang-tot-pin/lib/term.ml:38-40).  Everything else is
     inferred and then converted against the expectation.
 
-    Quantities are modes, not counters, exactly as the pin has them.  A
-    binder at [Zero] exists at check time only, so reading it at a
-    runtime mode is [Error (Quantity ..)].  [One] counts as [Many] at M0
-    (SB-D3) and the linear counter is an M1 obligation in SPEC.md
-    section 10.
+    A binder at [Zero] exists at check time only. Stage K carries pure
+    runtime usage alongside each checked type, then discharges [One]
+    binders exactly once per reachable path at their scope boundary.
+    Type inference and conversion at [Zero] contribute no usage.
 
     Every entry point takes an optional budget and every [infer] polls
     it, so a driver can stop a check that does not end.
@@ -67,10 +66,27 @@ let names_of (c : ctx) : string list =
     (fun ((x : string), (_q : Quantity.t), (_ty : Value.t)) -> x)
     c.locals
 
+(** Levels identify binders independently of spelling and shadowing.
+    Unreachable eliminations have no returning runtime path to discharge. *)
+let close ?(affine : bool = false) (c : ctx) (size : int) (mode : Quantity.t) (uses : Quantity.usage) :
+    (Quantity.usage, Error.t) result =
+  List.fold_left
+    (fun acc (level, (name, q, _ty)) ->
+      let* free = acc in
+      if level < size then Ok free
+      else if not (Quantity.equal mode Quantity.Zero) && Quantity.equal q Quantity.One
+              && not ((if affine then Quantity.at_most_once else Quantity.exactly_once) level free) then
+        let message = if affine then "the linear alias " ^ name ^ " may be used at most once"
+          else "the linear binder " ^ name ^ " must be used exactly once on every runtime path" in
+        Error (Error.Quantity message)
+      else Ok (Quantity.remove level free))
+    (Ok uses) (List.mapi (fun ix local -> c.size - ix - 1, local) c.locals)
+
 let rec ops : ctx Rules.ops =
   {
-    Rules.o_infer = (fun (c : ctx) (q : Quantity.t) (t : Term.t) -> infer c q t);
-    o_check = (fun (c : ctx) (q : Quantity.t) (t : Term.t) (ty : Value.t) -> check c q t ty);
+    Rules.o_infer = (fun (c : ctx) (q : Quantity.t) (t : Term.t) -> infer_uses c q t);
+    o_check = (fun (c : ctx) (q : Quantity.t) (t : Term.t) (ty : Value.t) -> check_uses c q t ty);
+    o_close = (fun c size mode uses -> close c size mode uses);
     o_infer_univ = (fun (c : ctx) (t : Term.t) -> infer_univ c t);
     o_conv = (fun (c : ctx) ~(ty : Value.t) (a : Value.t) (b : Value.t) -> Conv.conv ops c ~ty a b);
     o_conv_type = (fun (c : ctx) (a : Value.t) (b : Value.t) -> Conv.conv_type ops c a b);
@@ -112,7 +128,7 @@ and head_ty (c : ctx) (h : Value.head) : (Value.t, Error.t) result =
 (** The universe a term lives at.  A type is read at mode [Zero], so an
     erased local may appear in it. *)
 and infer_univ (c : ctx) (t : Term.t) : (Level.t, Error.t) result =
-  let* v = infer c Quantity.Zero t in
+  let* v, _uses = infer_uses c Quantity.Zero t in
   let* w = Eval.whnf c.globals v in
   Value.as_univ w
   |> Option.to_result
@@ -120,11 +136,11 @@ and infer_univ (c : ctx) (t : Term.t) : (Level.t, Error.t) result =
          (Error.Universe
             ("a term used as a type is not a universe:  " ^ pp_value c w))
 
-and infer (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t, Error.t) result =
+and infer_uses (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t * Quantity.usage, Error.t) result =
   if Budget.exhausted c.budget then Error (Error.Budget_exhausted budget_msg)
   else infer_node c mode t
 
-and infer_node (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t, Error.t) result =
+and infer_node (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t * Quantity.usage, Error.t) result =
   match t with
   | Term.Var ix ->
       let* x, q, ty =
@@ -134,20 +150,20 @@ and infer_node (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t, Error.t) r
                (Error.Unbound
                   (Printf.sprintf "de Bruijn index %d is outside the context" ix))
       in
-      if readable mode q then Ok ty
+      if readable mode q then Ok (ty, Quantity.occurrence (c.size - ix - 1) mode)
       else
         Error
           (Error.Quantity
              (Printf.sprintf "the erased binder %s is read in a runtime position" x))
-  | Term.Univ l -> Ok (Value.VUniv (Level.succ l))
+  | Term.Univ l -> Ok (Value.VUniv (Level.succ l), Quantity.empty)
   | Term.Lan (s, diagram) ->
       let* (pack : ctx Rules.rule_pack) = Rules.rules s in
       let* l = pack.Rules.form_lan ops c s diagram ~expected:None in
-      Ok (Value.VUniv l)
+      Ok (Value.VUniv l, Quantity.empty)
   | Term.Ran (s, diagram) ->
       let* (pack : ctx Rules.rule_pack) = Rules.rules s in
       let* l = pack.Rules.form_ran ops c s diagram ~expected:None in
-      Ok (Value.VUniv l)
+      Ok (Value.VUniv l, Quantity.empty)
   | Term.Out (s, addr, scrut) ->
       let* (pack : ctx Rules.rule_pack) = Rules.rules s in
       pack.Rules.elim_out ops c mode s addr scrut
@@ -155,26 +171,27 @@ and infer_node (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t, Error.t) r
       let* (pack : ctx Rules.rule_pack) = Rules.rules e.Term.e_shape in
       pack.Rules.elim_elim ops c mode e ~expected:None
   | Term.Let (x, ty, def, body) ->
-      let* c' = let_ctx c mode x ty def in
-      infer c' mode body
+      let_body c mode x ty def (fun c' -> infer_uses c' mode body)
   | Term.Ann (tm, ty) ->
       let* _l = infer_univ c ty in
       let* tyv = Eval.eval c.globals c.env ty in
-      let* () = check c mode tm tyv in
-      Ok tyv
+      let* uses = check_uses c mode tm tyv in
+      Ok (tyv, uses)
   | Term.Global n ->
-      Global.find n c.globals
-      |> Option.to_result ~none:(Error.Unbound n)
-      |> Fun.flip Result.bind (fun (e : Global.entry) ->
-             Eval.eval c.globals [] (Global.entry_ty e))
-  | Term.Lit (Literal.LInt _) -> Eval.eval c.globals [] Prim.nat_ty
+      let* ty = head_ty c (Value.HGlobal n) in
+      Ok (ty, Quantity.empty)
+  | Term.Lit (Literal.LInt value) ->
+      if Bignum.sign value < 0 then Error (Error.Mismatch "a Nat literal must be nonnegative")
+      else
+        let* ty = Eval.eval c.globals [] Prim.nat_ty in
+        Ok (ty, Quantity.empty)
   | Term.Lit (Literal.LString _) -> Error (Error.Not_yet string_word)
   | Term.In (_, _, _) -> Error (no_infer "an injection")
   | Term.Sec (_, _) -> Error (no_infer "a section")
   | Term.Auto -> Error (Error.Not_yet Rules.auto_word)
 
-and check (c : ctx) (mode : Quantity.t) (t : Term.t) (expected : Value.t) :
-    (unit, Error.t) result =
+and check_uses (c : ctx) (mode : Quantity.t) (t : Term.t) (expected : Value.t) :
+    (Quantity.usage, Error.t) result =
   match t with
   | Term.Sec (s, legs) ->
       let* (pack : ctx Rules.rule_pack) = Rules.rules s in
@@ -184,17 +201,21 @@ and check (c : ctx) (mode : Quantity.t) (t : Term.t) (expected : Value.t) :
       pack.Rules.intro_in ops c mode s addr args ~expected
   | Term.Elim e ->
       let* (pack : ctx Rules.rule_pack) = Rules.rules e.Term.e_shape in
-      let* got = pack.Rules.elim_elim ops c mode e ~expected:(Some expected) in
-      ensure c got expected
-  | Term.Lan (s, diagram) -> check_former c s diagram expected ~left:true
-  | Term.Ran (s, diagram) -> check_former c s diagram expected ~left:false
+      let* got, uses = pack.Rules.elim_elim ops c mode e ~expected:(Some expected) in
+      let* () = ensure c got expected in
+      Ok uses
+  | Term.Lan (s, diagram) ->
+      Result.map (fun () -> Quantity.empty) (check_former c s diagram expected ~left:true)
+  | Term.Ran (s, diagram) ->
+      Result.map (fun () -> Quantity.empty) (check_former c s diagram expected ~left:false)
   | Term.Let (x, ty, def, body) ->
-      let* c' = let_ctx c mode x ty def in
-      check c' mode body expected
+      Result.map snd (let_body c mode x ty def (fun c' ->
+        let* uses = check_uses c' mode body expected in Ok (expected, uses)))
   | Term.Var _ | Term.Univ _ | Term.Out (_, _, _) | Term.Ann (_, _) | Term.Global _
   | Term.Lit _ | Term.Auto ->
-      let* got = infer c mode t in
-      ensure c got expected
+      let* got, uses = infer_uses c mode t in
+      let* () = ensure c got expected in
+      Ok uses
 
 (** A former checked against a universe passes the expected level to the
     pack (SB-D6), which is what gives the width zero collection its
@@ -233,16 +254,31 @@ and ensure (c : ctx) (got : Value.t) (expected : Value.t) : (unit, Error.t) resu
          (Printf.sprintf "the term has type %s and the expected type is %s"
             (pp_value c got) (pp_value c expected)))
 
-(** A let binds its definition, so the body sees the value and not only
-    the name.  The local carries the mode the let was read at, so an
-    erased let stays erased in its body. *)
-and let_ctx (c : ctx) (mode : Quantity.t) (x : string) (ty : Term.t) (def : Term.t) :
-    (ctx, Error.t) result =
+(** Eager definitions count once. An implicit alias carrying a linear
+    resource is affine: its own reads may be zero or one, never duplicated. *)
+and let_body (c : ctx) (mode : Quantity.t) (x : string) (ty : Term.t) (def : Term.t)
+    (body : ctx -> (Value.t * Quantity.usage, Error.t) result) :
+    (Value.t * Quantity.usage, Error.t) result =
   let* _l = infer_univ c ty in
   let* tyv = Eval.eval c.globals c.env ty in
-  let* () = check c mode def tyv in
+  let* def_uses = check_uses c (Quantity.runtime mode) def tyv in
   let* defv = Eval.eval c.globals c.env def in
-  Ok (define x mode tyv defv c)
+  let linear = List.exists (fun (ix, (_name, q, _ty)) ->
+    Quantity.equal q Quantity.One && Quantity.used (c.size - ix - 1) def_uses)
+    (List.mapi (fun ix local -> ix, local) c.locals) in
+  let q = if Quantity.equal mode Quantity.Zero then Quantity.Zero
+          else if linear then Quantity.One else Quantity.Many in
+  let c' = define x q tyv defv c in
+  let* result, uses = body c' in
+  let* free = close ~affine:linear c' c.size mode uses in
+  Ok (result, Quantity.sequence (Quantity.scale mode def_uses) free)
+
+let infer (c : ctx) (mode : Quantity.t) (t : Term.t) : (Value.t, Error.t) result =
+  Result.map fst (infer_uses c (Quantity.runtime mode) t)
+
+let check (c : ctx) (mode : Quantity.t) (t : Term.t) (expected : Value.t) :
+    (unit, Error.t) result =
+  Result.map (fun _uses -> ()) (check_uses c (Quantity.runtime mode) t expected)
 
 (** The two kinds of declaration M0 has.  A definition carries a body, an
     axiom does not (R-Q3). *)

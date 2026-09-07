@@ -66,9 +66,19 @@ let starts_atom (ts : Token.t list) : bool =
     Total:  a token that is neither leaves the list where it was. *)
 let mark_prefix (ts : Token.t list) : Quantity.t * Token.t list =
   match ts with
-  | { Token.kind = Token.Nat 0; loc = _ } :: rest -> (Quantity.Zero, rest)
-  | { Token.kind = Token.Nat 1; loc = _ } :: rest -> (Quantity.One, rest)
+  | { Token.kind = Token.Nat n; loc = _ } :: rest when Bignum.equal n Bignum.zero ->
+      (Quantity.Zero, rest)
+  | { Token.kind = Token.Nat n; loc = _ } :: rest when Bignum.equal n Bignum.one ->
+      (Quantity.One, rest)
   | ({ Token.kind = _; loc = _ } :: _ | []) as same -> (Quantity.Many, same)
+
+(** SK-D3 keeps the old eighteen-digit range for levels and leg numbers.
+    Natural literals alone become unbounded; checked narrowing never wraps. *)
+let bounded_nat (loc : Token.loc) (n : Bignum.t) : (int, Error.t) result =
+  if Bignum.sign n < 0 || String.length (Bignum.to_string n) > 18 then
+    parse_err loc "numeric literal too long"
+  else Bignum.to_int n
+    |> Option.to_result ~none:(Error.Parse ("numeric literal too long", loc.Token.line, loc.Token.col))
 
 let rec parse_term (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   match ts with
@@ -189,8 +199,9 @@ and parse_names (ts : Token.t list) (acc : string list) : string list * Token.t 
 and parse_branches (ts : Token.t list) (acc : Syntax.branch list) :
     (Syntax.branch list * Token.t list, Error.t) result =
   match ts with
-  | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Nat k; loc = _ } :: rest
+  | { Token.kind = Token.Pipe; loc = _ } :: { Token.kind = Token.Nat k; loc } :: rest
     -> (
+      let* k = bounded_nat loc k in
       let* binders, rest2 = parse_binders rest [] in
       match rest2 with
       | { Token.kind = Token.DArrow; loc = _ } :: rest3 ->
@@ -289,10 +300,12 @@ and parse_app (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
 
 and parse_inj (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) result =
   match ts with
-  | { Token.kind = Token.Nat k; loc = _ }
+  | { Token.kind = Token.Nat k; loc = kloc }
     :: { Token.kind = Token.KOf; loc = _ }
-    :: { Token.kind = Token.Nat n; loc = _ }
+    :: { Token.kind = Token.Nat n; loc = nloc }
     :: rest ->
+      let* k = bounded_nat kloc k in
+      let* n = bounded_nat nloc n in
       let* a, rest2 = parse_app rest in
       Ok (Syntax.SInj (k, n, a), rest2)
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'K of N' after 'inj'" ts
@@ -316,7 +329,8 @@ and parse_postfix (a : Syntax.t) (ts : Token.t list) :
   match ts with
   | { Token.kind = Token.Dot1; loc = _ } :: rest -> parse_postfix (Syntax.SProj (a, 1)) rest
   | { Token.kind = Token.Dot2; loc = _ } :: rest -> parse_postfix (Syntax.SProj (a, 2)) rest
-  | { Token.kind = Token.Dot; loc = _ } :: { Token.kind = Token.Nat k; loc = _ } :: rest ->
+  | { Token.kind = Token.Dot; loc = _ } :: { Token.kind = Token.Nat k; loc } :: rest ->
+      let* k = bounded_nat loc k in
       parse_postfix (Syntax.SProj (a, k)) rest
   | { Token.kind = Token.Dot; loc } :: _rest ->
       parse_err loc "expected a leg number after '.'"
@@ -328,7 +342,8 @@ and parse_atom_head (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) res
   | { Token.kind = Token.Ident x; loc = _ } :: rest -> Ok (Syntax.SVar x, rest)
   | { Token.kind = Token.Nat n; loc = _ } :: rest -> Ok (Syntax.SNat n, rest)
   | { Token.kind = Token.KProp; loc = _ } :: rest -> Ok (Syntax.SProp, rest)
-  | { Token.kind = Token.KType; loc = _ } :: { Token.kind = Token.Nat n; loc = _ } :: rest ->
+  | { Token.kind = Token.KType; loc = _ } :: { Token.kind = Token.Nat n; loc } :: rest ->
+      let* n = bounded_nat loc n in
       Ok (Syntax.SType n, rest)
   | { Token.kind = Token.KType; loc = _ } :: rest -> Ok (Syntax.SType 0, rest)
   | { Token.kind = Token.KAuto; loc = _ } :: rest -> Ok (Syntax.SAuto, rest)

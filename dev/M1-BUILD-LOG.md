@@ -1654,3 +1654,109 @@ kernel=3993/4000 and encoder=237/600.  Existing goldens stayed unchanged.
 Blockers: none remain from this review.  Merge verdict: merge with these
 staged fixes, which make nominal constructor layouts consistent across
 instantiations and preserve migrated test coverage.  No commit was made.
+
+## M1 Stage K: arbitrary precision Nat and exact One (2026-09-06)
+
+Status: PASS, all eleven Stage K gates and all four semantic mutations.
+The user's agreement correction and explicit M0-spine freeze exception
+are recorded in RATIFICATIONS.md rounds 2026-09-06 (d) and (e).
+No commit or M1-EXIT is claimed; the commit remains a user step.
+
+ROOT remains `/Users/oobi/Documents/kanon` at Stage J commit
+`ac94fe36c7fc7d4013a00d3fa102666e2cafdd0a`.  The isolated implementation is
+`/Users/oobi/Documents/gpt4/kanon-stage-k/work`; PREP denotes its parent.
+The frozen tot pin and vendor are `8cf0b8bfbb574e344d8d489ba6fd6b81de4cf562`.
+Earlier M0 and M1 log entries, denominators and R0 counts are unchanged.
+
+### Decisions and implementation
+
+| Id | Final decision and evidence |
+| --- | --- |
+| SK-D1 | Bignum is the total signed Zarith 1.14 boundary, pinned in dune-project and linked by lib/dune.  Decimal folding validates digits; narrowing checks representability.  Negative forged Nat literals and primitive operands are rejected.  PREP/naturals-check.sh passes 44 boundary checks. |
+| SK-D2 | The closed LInt constructor carries Bignum.t.  Its consumers, printers and surface tokens are widened.  The carried literal delta is 15; no kernel term, shape or IR constructor is added. |
+| SK-D3 | Nat decimals have no host-integer ceiling.  Universe, binder, leg and projection numbers use total bounded readers.  Exact add, truncated subtract, multiply, equality and less-than retain Bool leg 1 for true and 0 for false. |
+| SK-D4 | Runtime Nat uses i31 through 1073741823, otherwise an immutable sign-1 struct holding little-endian base-32768 limbs.  Helpers promote before overflow, allocate fresh result arrays, trim high zero limbs and normalize small answers to i31.  The largest schoolbook intermediate is 1073741823. |
+| SK-D5 | CArray and array.new/get/set/len are the complete encoder additions.  array.set is required to populate heterogeneous fresh limbs.  Shared operands are never stored into.  SPEC records exact encodings.  Binaryen's printed exact reference qualifier is structural syntax, with no new encoder instruction; the subset negative control still rejects i32.and. |
+| SK-D6 | Internal large values remain exact.  The unchanged zero-argument i32 export traps only for an out-of-i31 final result, with driver exit 4 on kernel, Node, Wasmtime and both.  The focused runtime runner passes 20/20 observations. |
+| SK-D7 | Quantity owns pure path intervals and retained dependencies from nonreturning paths.  One is exactly one use on every returning runtime path.  Runtime mode is separate from multiplicity; repeated type inference does not count as runtime use.  The carried quantity delta is 151 after the review round of 2026-09-06. |
+| SK-D8 | Rules compose sequences, declared argument scaling and branch alternatives.  Runtime Zero scrutinee stamps are rejected; surface and eta-generated cases use One.  Explicit One scopes close in the kernel.  Eager let definitions count once; aliases carrying a linear resource may be used at most once.  Closure construction retains dependencies even when invocation cannot return. |
+| SK-D9 | Five actual unary SMu sources each contain 1089 indexed Agreement witnesses for every pair from 0 through 32, 5445 total.  Every unary definition and observer avoids its tested primitive, and all axiom disclosures are empty. |
+| SK-D10 | Python integer arithmetic independently supplies all 400 pairs per primitive from the approved 20-value set, 2000 total.  Kernel, Node and Wasmtime each produce 400 successful small observations per operation.  No general theorem or billion-node unary execution is claimed. |
+| SK-D11 | All eleven Stage K gates and four mutations remain required.  The ordinary suite retains all 61 original positive sources unchanged.  No bound, denominator, opcode guard, expected result or pin is waived. |
+| SK-D12 | The believed list retains every existing member and adds Bignum.  Substantive reuse and traversal factoring hold the measured total at 3997/4000; encoder is 246/600.  No trusted work moves into an unmeasured new module and no documentation is deleted to meet the bound. |
+| SK-D13 | The byte-identical unary matrices move to test/agreement, with all ten goldens retained in test/golden.  The dedicated mandatory gate also performs their original surface roundtrips.  Repeating all 5445 witnesses six times in the general-suite benchmark exceeded its 120-second watchdog; the dedicated gate preserves coverage and restores the original benchmark's bounded role. |
+| SK-D14 | The user explicitly approved the M1-PLAN.md:153 exception: "Please apply the spine correction."  The linear function is now the identity; its former addition occurs at the closed call site as natAdd (linear 8) 1.  Linear use remains covered, linearValue remains 9, and the active baseline returns 521.  No quantity, expected answer, bound or denominator changes. |
+| SK-D15 | Review exposed type-only and erased-field/call/let closure captures plus application erasure trusting APt stamps.  Erasure now prunes captures from the actual erased body's free variables and remaps retained indices; application quantities come from checked function types.  The combined regression returns 58 on all four host settings. |
+
+The trusted count starts at 3993.  Shared occurrence traversal and list
+comparison recover 40 lines.  After the initial usage implementation and
+Bignum integration, the count was 4054.  Shared closure/list comparison,
+former inspection, binder-quantity diagnostics and global-head lookup
+recover 55 lines.  Soundness fixes add 12.  Totality reuses its ordered
+spend_all traversal and merges identical Lan/Ran arms (9 lines); shared
+SPi former checking recovers another 5.  Final: 3997, a net increase of
+4 over Stage J and 3 lines of headroom.  Encoder grows by 9 to 246.
+
+### Gates and observed results
+
+| Id | Command in WORK unless stated otherwise | Observed result |
+| --- | --- | --- |
+| SK-G1 BUILD | zsh dev/dunecho.sh build | PASS, zero errors and warnings; Zarith 1.14 installed and pinned. |
+| SK-G2 CARRY | zsh dev/carry-check.sh | PASS; quantity 97, literal 15, every other carried delta unchanged. |
+| SK-G3 SUITE-KERNEL | _build/default/test/main.exe test; zsh one-paths.sh | PASS; PARSE 120/120, CHECK 73/73, ERASE 73/73, NEG 47/47, KNEG 2/2, REC 1/1, MIGRATED 4/4.  Direct One checks 27/27 and surface path checks 22/22.  Five exhaustive positives are additionally required by SK-G5. |
+| SK-G4 SUITE-WASM | _build/default/test/wasm.exe test _build/stage-k-wasm-standalone; zsh dev/nat-runtime.sh | PASS; WASM 29/29 and focused runtime 20/20.  Extra capture regression returns 58 on kernel, Node, Wasmtime and both. |
+| SK-G5 AGREEMENT | zsh agreement.sh | PASS; all 5445 unary and 2000 full-range cases, 7445/7445.  Unary parser roundtrips and both checked/erased goldens are mandatory.  Independent expectations match all three execution hosts. |
+| SK-G6 ENCODER-SUBSET | zsh dev/encoder-subset.sh | PASS after exact printer-type accounting; the real printed exact control passes and unlisted i32.and is rejected. |
+| SK-G7 TRUSTED-LINES | zsh dev/trusted-lines.sh | PASS; kernel 3997/4000, encoder 246/600, Bignum included. |
+| SK-G8 DENOMINATORS | zsh dev/gates.sh --leg denominators | PASS; frozen JSON and hash unchanged. |
+| SK-G9 HOUSE | zsh dev/house.sh; git diff --check | PASS; all house checks and whitespace clean. |
+| SK-G10 BASELINE | zsh dev/gates.sh | PASS, all 15 legs and GATES-OK on the first active run after the approved spine correction.  M0-E2E 521; M0-TIME 110.466 ms against 150 ms.  PREP/gate-evidence/baseline-approved-spine.out and .json retain exact output and unchanged source digests. |
+| SK-G11 LOGS | python3 -P PREP/validate-stage-k-close.py | PASS; exactly one Stage K section in each M1 log, all eleven gate rows, fifteen decision rows, four mutation rows and the Stage L handoff.  All earlier log bytes remain unchanged. |
+
+The final active baseline records BUILD 304.825 ms, CARRY 798.448 ms,
+SUITE-KERNEL 218.659 ms, SUITE-WASM 6027.434 ms and M0-RATIO 1411.866 ms.
+Its informational raw M0 ratio is 2.054.  The normalized M1 ratio remains
+a Stage L obligation.  M0-TIME measures 110.466 ms median, 101.794 ms
+minimum and 113.624 ms maximum, five runs, against the unchanged 150 ms
+bound.  Load averages were 18.88/25.36/36.07.  No timing rerun was needed.
+
+The previous active baseline failed AXIOMS and M0-E2E on the frozen
+spine's invalid One use; M0-TIME reported BENCH-ERROR before timing.
+Its other twelve legs passed.  The earlier ratio watchdog failure was
+resolved by SK-D13.  Both historical failures remain in gate-evidence.
+
+A fresh positive proposal copy at PREP/spine-proposal-check/work now
+passes the unchanged full battery on its first attempt: all fifteen legs
+PASS, GATES-OK, M0-E2E 521 and M0-TIME 110.636 ms against 150 ms.  Its
+source manifest proves the spine patch was the only difference at that
+validation time, before subsequent SPEC and log updates.  Results and
+full output remain under PREP/spine-proposal-check.  The user's explicit
+exception then authorized application and the passing active run above.
+
+Evidence: PREP/gate-evidence, agreement-evidence, agreement-reference.json,
+agreement-move.json, agreement-roundtrip-evidence.json, check-review,
+one-final-validation.json, one-paths.log, one-mutation, mutations and
+linearity-handoff.md.  The mutation section below records SK-M1 through
+SK-M4 and their explicit failure observations.
+
+### Review and Stage L handoff
+
+Review corrected eager-let accounting, unreachable closure construction,
+runtime Zero scrutinee stamps, SPi eta stamp consistency, unnecessary
+runtime captures, and forged APt application erasure.  Each concrete
+finding has a passing regression under PREP/check-review.  The encoder
+printer qualifier has separate positive and negative reader controls.
+
+Stage L must integrate PREP/agreement.py, agreement-roundtrip.ml/.sh,
+agreement-reference.json and full-range/*.kan into its required permanent
+agreement leg.  Persistent unary sources are test/agreement/*.kan;
+their checked and erased goldens remain in test/golden.  The existing
+ordinary fixture suite and all its original sources remain present.
+Integrate the focused One runner at PREP/one-paths.ml/.sh and the runtime
+runner currently at WORK/dev/nat-runtime.sh.  Keep both finite agreement
+sets mandatory and retain mutation controls and exact negative sidecars.
+
+No Stage K blocker remains.  PREP/spine-correction.md explains the
+approved correction and its evidence.  Close copies and stages only
+reviewed Stage K paths after checking the unchanged Stage J base.
+Stage F remains committed; no optional Lean agreement theorem was added.

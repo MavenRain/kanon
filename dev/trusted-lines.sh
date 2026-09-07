@@ -48,6 +48,8 @@ kernel_files=(
   # structural order and the certificate joins the believed list and the
   # two budgets above do not move.
   $root/lib/order.ml
+  # Stage K SK-D1: the arbitrary precision host boundary is believed.
+  $root/lib/bignum.ml
 )
 encoder_file=$root/wasm/gc_encode.ml
 

@@ -15,13 +15,16 @@ module E = Kanon_kernel.Eterm
 module Err = Kanon_kernel.Error
 module P = Kanon_kernel.Prim
 module Lit = Kanon_kernel.Literal
+module B = Kanon_kernel.Bignum
 module G = Gc_encode
 module L = Link
 
 let ( let* ) = Result.bind
 
-(** SD-D7.  A natural rides in an i31, so it holds thirty bits. *)
-let nat_max : int = 1073741823
+(** The small arm of the Stage K natural representation holds thirty
+    bits.  The bound comes from the kernel, so the literal split that
+    [B.to_i31] makes and the arithmetic guards below read one number. *)
+let nat_max : int = B.nat_max
 
 (* ---------- locals ---------- *)
 
@@ -32,16 +35,6 @@ type st = {
 
 let alloc (s : st) (v : G.valtype) : int * st =
   (s.base + List.length s.extra, { s with extra = s.extra @ [ v ] })
-
-(** [n] fresh i32 locals, and the index of the first of them.  A count of
-    zero answers the index the next allocation would take, which no body
-    reads. *)
-let alloc_i32s (s : st) (n : int) : int * st =
-  ( s.base + List.length s.extra,
-    List.fold_left
-      (fun (acc : st) (_i : int) -> snd (alloc acc G.I32))
-      s
-      (List.init n (fun (i : int) -> i)) )
 
 type ctx = {
   l : L.t;
@@ -103,82 +96,320 @@ let with_coercion (body : G.instr list) (cast : G.instr list) : G.instr list =
   | [] -> body @ cast
   | _i :: _rest -> body @ cast
 
-(** The i31 boundary of SD-D7:  a primitive reads two tagged integers,
-    works on i32 and tags its answer again.  natEq and natLt answer the
-    tag of a two leg sum, and one is the true leg.
-
-    An answer above the bound is a trap and not a wrapped number, so
-    natAdd and natMul read their answer before they tag it (SD-D23).
-    [over_bound] is that reading:  the answer stays in the local [t] and
-    the module traps when it is above the bound. *)
-let over_bound (t : int) : G.instr list =
-  [
-    G.Local_get t; G.I32_const nat_max; G.I32_gt_u;
-    G.If (None, [ G.Unreachable ], []);
-  ]
-
-(** Truncated subtraction needs the two operands twice, so it holds two
-    locals of its own (lib/prim.ml, SB-D4).  It never leaves the range,
-    because it answers zero below zero. *)
-let prim_sub (a : int) (b : int) : G.instr list =
-  [
-    G.Local_set b; G.Local_set a; G.Local_get a; G.Local_get b; G.I32_lt_u;
-    G.If
-      ( Some G.I32,
-        [ G.I32_const 0 ],
-        [ G.Local_get a; G.Local_get b; G.I32_sub ] );
-    G.Ref_i31;
-  ]
-
-(** Addition holds one local:  the sum of two naturals of the range
-    cannot wrap an i32, so the bound alone is read (SD-D7). *)
-let prim_add (t : int) : G.instr list =
-  [ G.I32_add; G.Local_set t ] @ over_bound t @ [ G.Local_get t; G.Ref_i31 ]
-
-(** Multiplication holds three locals:  the two operands and the
-    product.  The i32 product of two naturals of the range can wrap, so
-    the division reads the wrap back first, and the bound is read after
-    it.  A first operand of zero gives a product of zero, which no
-    division reads (SD-D7). *)
-let prim_mul (a : int) (b : int) (t : int) : G.instr list =
-  [
-    G.Local_set b; G.Local_set a; G.Local_get a; G.Local_get b; G.I32_mul;
-    G.Local_set t; G.Local_get a; G.I32_const 0; G.I32_ne;
-    G.If
-      ( None,
-        [
-          G.Local_get t; G.Local_get a; G.I32_div_u; G.Local_get b; G.I32_ne;
-          G.If (None, [ G.Unreachable ], []);
-        ],
-        [] );
-  ]
-  @ over_bound t
-  @ [ G.Local_get t; G.Ref_i31 ]
-
-(** The i32 locals a primitive holds beyond its two operands. *)
-let prim_locals (p : P.t) : int =
-  match p with
-  | P.Nat_add -> 1
-  | P.Nat_mul -> 3
-  | P.Nat_sub -> 2
-  | P.Nat_eq | P.Nat_lt -> 0
-
-(** The body of a primitive, with the two untagged operands on the stack
-    and the first of its own locals at [base]. *)
-let prim_body (p : P.t) (base : int) : G.instr list =
-  match p with
-  | P.Nat_add -> prim_add base
-  | P.Nat_mul -> prim_mul base (base + 1) (base + 2)
-  | P.Nat_sub -> prim_sub base (base + 1)
-  | P.Nat_eq -> [ G.I32_eq; G.Ref_i31 ]
-  | P.Nat_lt -> [ G.I32_lt_u; G.Ref_i31 ]
-
-(** The two arguments of a primitive, each untagged as it is pushed. *)
+(** Primitive arguments stay references until the runtime dispatch. *)
 let prim_args (args : G.instr list list) : (G.instr list, Err.t) result =
   match args with
-  | [ ia; ib ] ->
-      Ok (ia @ [ G.Ref_cast G.HI31; G.I31_get_u ] @ ib @ [ G.Ref_cast G.HI31; G.I31_get_u ])
+  | [ ia; ib ] -> Ok (ia @ ib)
   | [] | [ _ ] | _ :: _ :: _ :: _ -> Error (Err.Mismatch "a primitive takes two arguments")
+
+(* ---------- exact natural arithmetic ---------- *)
+
+(** Radix 2^15, least significant limb first. Positive big values have
+    sign 1 and at least three limbs with a nonzero final limb. Every
+    stored limb is below radix. The largest multiplication accumulator
+    is (radix-1)^2 + 2*(radix-1) = 1073741823. Operand arrays are read
+    only. Stores target freshly allocated construction arrays. *)
+let radix : int = 32768
+
+type nat_runtime = {
+  array : int; big : int; length : int; digit : int; copy : int;
+  normal : int; cmp_digits : int; cmp : int; add_loop : int;
+  sub_loop : int; mul_loop : int; slow_add : int; slow_sub : int;
+  slow_mul : int;
+}
+
+(** The two type indices and the twelve function indices of the Nat
+    runtime, read one time for each helper the emitter writes. *)
+let nat_indices (l : L.t) : (nat_runtime, Err.t) result =
+  let f (n : string) : (int, Err.t) result = L.func_index l (L.runtime_fkey n) in
+  let* array = L.type_index l L.limb_key in
+  let* big = L.type_index l L.big_key in
+  let* length = f "length" in
+  let* digit = f "digit" in
+  let* copy = f "copy" in
+  let* normal = f "normal" in
+  let* cmp_digits = f "compareDigits" in
+  let* cmp = f "compare" in
+  let* add_loop = f "addLoop" in
+  let* sub_loop = f "subLoop" in
+  let* mul_loop = f "mulLoop" in
+  let* slow_add = f "slowAdd" in
+  let* slow_sub = f "slowSub" in
+  let* slow_mul = f "slowMul" in
+  Ok { array; big; length; digit; copy; normal; cmp_digits; cmp;
+       add_loop; sub_loop; mul_loop; slow_add; slow_sub; slow_mul }
+
+(** Unsigned remainder, using only the existing numeric subset. *)
+let low_limb (i : int) : G.instr list =
+  [ G.Local_get i; G.Local_get i; G.I32_const radix; G.I32_div_u;
+    G.I32_const radix; G.I32_mul; G.I32_sub ]
+
+(** The limb count of one value.  An i31 answers 0 for zero, 1 below
+    the radix and 2 above it.  A big struct answers the length of its
+    array, which is 3 at least. *)
+let nat_length (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32 ],
+   [ G.Block (Some (G.Ref G.HI31),
+       [ G.Local_get 0; G.Br_on_cast (0, G.HEq, G.HI31);
+         G.Ref_cast (G.HType r.big); G.Struct_get (r.big, 1);
+         G.Array_len; G.Return ]);
+     G.I31_get_u; G.Local_set 1;
+     G.Local_get 1; G.I32_const 0; G.I32_eq;
+     G.If (Some G.I32, [ G.I32_const 0 ],
+       [ G.Local_get 1; G.I32_const radix; G.I32_lt_u;
+         G.If (Some G.I32, [ G.I32_const 1 ], [ G.I32_const 2 ]) ]) ])
+
+(** The limb of one value at an index.  An index at or above the limb
+    count answers zero, so a caller may read past the shorter operand. *)
+let nat_digit (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.Ref (G.HType r.array); G.I32 ],
+   [ G.Block (Some (G.Ref G.HI31),
+       [ G.Local_get 0; G.Br_on_cast (0, G.HEq, G.HI31);
+         G.Ref_cast (G.HType r.big); G.Struct_get (r.big, 1); G.Local_set 2;
+         G.Local_get 1; G.Local_get 2; G.Array_len; G.I32_lt_u;
+         G.If (Some G.I32,
+           [ G.Local_get 2; G.Local_get 1; G.Array_get r.array ],
+           [ G.I32_const 0 ]); G.Return ]);
+     G.I31_get_u; G.Local_set 3;
+     G.Local_get 1; G.I32_const 0; G.I32_eq;
+     G.If (Some G.I32, low_limb 3,
+       [ G.Local_get 1; G.I32_const 1; G.I32_eq;
+         G.If (Some G.I32,
+           [ G.Local_get 3; G.I32_const radix; G.I32_div_u ],
+           [ G.I32_const 0 ]) ]) ])
+
+(** The limbs of the source from an index up to a bound, written into
+    the fresh destination array.  It answers that array. *)
+let nat_copy (r : nat_runtime) : G.valtype list * G.instr list =
+  ([], [ G.Local_get 2; G.Local_get 3; G.I32_lt_u;
+    G.If (Some (G.Ref (G.HType r.array)),
+      [ G.Local_get 1; G.Local_get 2;
+        G.Local_get 0; G.Local_get 2; G.Array_get r.array; G.Array_set r.array;
+        G.Local_get 0; G.Local_get 1;
+        G.Local_get 2; G.I32_const 1; G.I32_add; G.Local_get 3;
+        G.Return_call r.copy ], [ G.Local_get 1 ]) ])
+
+(** Trim high zeros, then narrow to i31 or copy the live prefix into a
+    final array. Canonical zero is always i31 zero, never a big struct. *)
+let nat_normal (r : nat_runtime) : G.valtype list * G.instr list =
+  ([], [ G.Local_get 1; G.I32_const 0; G.I32_eq;
+    G.If (Some (G.Ref G.HEq), [ G.I32_const 0; G.Ref_i31 ],
+      [ G.Local_get 0; G.Local_get 1; G.I32_const 1; G.I32_sub;
+        G.Array_get r.array; G.I32_const 0; G.I32_eq;
+        G.If (Some (G.Ref G.HEq),
+          [ G.Local_get 0; G.Local_get 1; G.I32_const 1; G.I32_sub;
+            G.Return_call r.normal ],
+          [ G.Local_get 1; G.I32_const 3; G.I32_lt_u;
+            G.If (Some (G.Ref G.HEq),
+              [ G.Local_get 0; G.I32_const 0; G.Array_get r.array;
+                G.Local_get 1; G.I32_const 2; G.I32_eq;
+                G.If (Some G.I32,
+                  [ G.Local_get 0; G.I32_const 1; G.Array_get r.array;
+                    G.I32_const radix; G.I32_mul ], [ G.I32_const 0 ]);
+                G.I32_add; G.Ref_i31 ],
+              [ G.I32_const 1; G.Local_get 0;
+                G.I32_const 0; G.Local_get 1; G.Array_new r.array;
+                G.I32_const 0; G.Local_get 1; G.Call r.copy;
+                G.Struct_new r.big ]) ]) ]) ])
+
+(** Two values compared limb by limb below an index, from the highest
+    limb down.  It answers 0 for equal, 1 for less and 2 for greater. *)
+let nat_compare_digits (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32; G.I32 ],
+   [ G.Local_get 2; G.I32_const 0; G.I32_eq;
+     G.If (Some G.I32, [ G.I32_const 0 ],
+       [ G.Local_get 2; G.I32_const 1; G.I32_sub; G.Local_set 2;
+         G.Local_get 0; G.Local_get 2; G.Call r.digit; G.Local_set 3;
+         G.Local_get 1; G.Local_get 2; G.Call r.digit; G.Local_set 4;
+         G.Local_get 3; G.Local_get 4; G.I32_eq;
+         G.If (Some G.I32,
+           [ G.Local_get 0; G.Local_get 1; G.Local_get 2;
+             G.Return_call r.cmp_digits ],
+           [ G.Local_get 3; G.Local_get 4; G.I32_lt_u;
+             G.If (Some G.I32, [ G.I32_const 1 ], [ G.I32_const 2 ]) ]) ]) ])
+
+(** Two values compared.  The limb counts decide first, which is exact
+    because every value is in the canonical form of [nat_normal].  Equal
+    counts fall through to the limbs.  The three answers are those of
+    [nat_compare_digits]. *)
+let nat_compare (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32; G.I32 ],
+   [ G.Local_get 0; G.Call r.length; G.Local_set 2;
+     G.Local_get 1; G.Call r.length; G.Local_set 3;
+     G.Local_get 2; G.Local_get 3; G.I32_eq;
+     G.If (Some G.I32,
+       [ G.Local_get 0; G.Local_get 1; G.Local_get 2;
+         G.Return_call r.cmp_digits ],
+       [ G.Local_get 2; G.Local_get 3; G.I32_lt_u;
+         G.If (Some G.I32, [ G.I32_const 1 ], [ G.I32_const 2 ]) ]) ])
+
+(** Addition accumulates at most 65535. The extra output limb receives
+    the final carry, then normalization removes any unused high zero. *)
+let nat_add_loop (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32 ],
+   [ G.Local_get 3; G.Local_get 4; G.I32_eq;
+     G.If (Some (G.Ref G.HEq),
+       [ G.Local_get 2; G.Local_get 3; G.Local_get 5; G.Array_set r.array;
+         G.Local_get 2; G.Local_get 4; G.I32_const 1; G.I32_add;
+         G.Return_call r.normal ],
+       [ G.Local_get 0; G.Local_get 3; G.Call r.digit;
+         G.Local_get 1; G.Local_get 3; G.Call r.digit;
+         G.I32_add; G.Local_get 5; G.I32_add; G.Local_set 6;
+         G.Local_get 2; G.Local_get 3 ] @ low_limb 6 @
+       [ G.Array_set r.array; G.Local_get 0; G.Local_get 1; G.Local_get 2;
+         G.Local_get 3; G.I32_const 1; G.I32_add; G.Local_get 4;
+         G.Local_get 6; G.I32_const radix; G.I32_div_u;
+         G.Return_call r.add_loop ]) ])
+
+(** Ordered subtraction has borrow 0 or 1. The subtrahend limb plus
+    borrow is at most radix; adding radix before subtracting avoids
+    unsigned wrap on the borrow path. *)
+let nat_sub_loop (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32; G.I32; G.I32 ],
+   [ G.Local_get 3; G.Local_get 4; G.I32_eq;
+     G.If (Some (G.Ref G.HEq),
+       [ G.Local_get 2; G.Local_get 4; G.Return_call r.normal ],
+       [ G.Local_get 0; G.Local_get 3; G.Call r.digit; G.Local_set 6;
+         G.Local_get 1; G.Local_get 3; G.Call r.digit;
+         G.Local_get 5; G.I32_add; G.Local_set 7;
+         G.Local_get 6; G.Local_get 7; G.I32_lt_u; G.Local_set 5;
+         G.Local_get 5;
+         G.If (Some G.I32,
+           [ G.Local_get 6; G.I32_const radix; G.I32_add;
+             G.Local_get 7; G.I32_sub ],
+           [ G.Local_get 6; G.Local_get 7; G.I32_sub ]); G.Local_set 8;
+         G.Local_get 2; G.Local_get 3; G.Local_get 8; G.Array_set r.array;
+         G.Local_get 0; G.Local_get 1; G.Local_get 2;
+         G.Local_get 3; G.I32_const 1; G.I32_add;
+         G.Local_get 4; G.Local_get 5; G.Return_call r.sub_loop ]) ])
+
+(** Schoolbook multiplication visits one row per first-operand limb.
+    At the row end the carry slot has not been touched by an earlier
+    row. All other slots include the previous row's accumulated digit. *)
+let nat_mul_loop (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32; G.I32; G.I32 ],
+   [ G.Local_get 0; G.Call r.length; G.Local_set 7;
+     G.Local_get 1; G.Call r.length; G.Local_set 8;
+     G.Local_get 3; G.Local_get 7; G.I32_eq;
+     G.If (Some (G.Ref G.HEq),
+       [ G.Local_get 2; G.Local_get 2; G.Array_len; G.Return_call r.normal ],
+       [ G.Local_get 4; G.Local_get 8; G.I32_eq;
+         G.If (Some (G.Ref G.HEq),
+           [ G.Local_get 2; G.Local_get 3; G.Local_get 4; G.I32_add;
+             G.Local_get 5; G.Array_set r.array;
+             G.Local_get 0; G.Local_get 1; G.Local_get 2;
+             G.Local_get 3; G.I32_const 1; G.I32_add;
+             G.I32_const 0; G.I32_const 0; G.Return_call r.mul_loop ],
+           [ G.Local_get 0; G.Local_get 3; G.Call r.digit;
+             G.Local_get 1; G.Local_get 4; G.Call r.digit; G.I32_mul;
+             G.Local_get 2; G.Local_get 3; G.Local_get 4; G.I32_add;
+             G.Array_get r.array; G.I32_add; G.Local_get 5; G.I32_add;
+             G.Local_set 6;
+             G.Local_get 2; G.Local_get 3; G.Local_get 4; G.I32_add ]
+           @ low_limb 6 @
+           [ G.Array_set r.array;
+             G.Local_get 0; G.Local_get 1; G.Local_get 2; G.Local_get 3;
+             G.Local_get 4; G.I32_const 1; G.I32_add;
+             G.Local_get 6; G.I32_const radix; G.I32_div_u;
+             G.Return_call r.mul_loop ]) ]) ])
+
+(** Exact addition of two values of any size.  The fresh array holds
+    the longer operand and one more limb for the final carry. *)
+let nat_slow_add (r : nat_runtime) : G.valtype list * G.instr list =
+  ([ G.I32; G.I32 ],
+   [ G.Local_get 0; G.Call r.length; G.Local_set 2;
+     G.Local_get 1; G.Call r.length; G.Local_set 3;
+     G.Local_get 2; G.Local_get 3; G.I32_lt_u;
+     G.If (None, [ G.Local_get 3; G.Local_set 2 ], []);
+     G.Local_get 0; G.Local_get 1;
+     G.I32_const 0; G.Local_get 2; G.I32_const 1; G.I32_add; G.Array_new r.array;
+     G.I32_const 0; G.Local_get 2; G.I32_const 0; G.Return_call r.add_loop ])
+
+(** Truncated subtraction of two values of any size.  A first operand
+    below the second answers i31 zero, so the loop always subtracts the
+    smaller value and the fresh array holds the first operand. *)
+let nat_slow_sub (r : nat_runtime) : G.valtype list * G.instr list =
+  ([], [ G.Local_get 0; G.Local_get 1; G.Call r.cmp;
+    G.I32_const 1; G.I32_eq;
+    G.If (Some (G.Ref G.HEq), [ G.I32_const 0; G.Ref_i31 ],
+      [ G.Local_get 0; G.Local_get 1;
+        G.I32_const 0; G.Local_get 0; G.Call r.length; G.Array_new r.array;
+        G.I32_const 0; G.Local_get 0; G.Call r.length; G.I32_const 0;
+        G.Return_call r.sub_loop ]) ])
+
+(** Exact multiplication of two values of any size.  The fresh array
+    holds the sum of the two limb counts, which bounds the product. *)
+let nat_slow_mul (r : nat_runtime) : G.valtype list * G.instr list =
+  ([], [ G.Local_get 0; G.Local_get 1;
+    G.I32_const 0; G.Local_get 0; G.Call r.length;
+    G.Local_get 1; G.Call r.length; G.I32_add; G.Array_new r.array;
+    G.I32_const 0; G.I32_const 0; G.I32_const 0;
+    G.Return_call r.mul_loop ])
+
+(** Each primitive first tries both i31 casts. A failed cast takes the
+    same exact slow path as overflowing small addition/multiplication.
+    The multiply guard divides the bound before multiplication, so a
+    wrapped i32 product is never used to decide whether it fits. *)
+let nat_primitive (r : nat_runtime) (p : P.t) :
+    G.valtype list * G.instr list =
+  let args : G.instr list = [ G.Local_get 0; G.Local_get 1 ] in
+  let slow : G.instr list =
+    args @ (match p with
+    | P.Nat_add -> [ G.Return_call r.slow_add ]
+    | P.Nat_sub -> [ G.Return_call r.slow_sub ]
+    | P.Nat_mul -> [ G.Return_call r.slow_mul ] (* SK-M2 site *)
+    | P.Nat_eq -> [ G.Call r.cmp; G.I32_const 0; G.I32_eq; G.Ref_i31; G.Return ]
+    | P.Nat_lt -> [ G.Call r.cmp; G.I32_const 1; G.I32_eq; G.Ref_i31; G.Return ]) in
+  let cast (param : int) (dst : int) : G.instr list =
+    [ G.Block (Some (G.Ref G.HI31),
+        [ G.Local_get param; G.Br_on_cast (0, G.HEq, G.HI31);
+          G.Local_set param ] @ slow);
+      G.I31_get_u; G.Local_set dst ] in
+  let small : G.instr list =
+    match p with
+    | P.Nat_add ->
+        [ G.Local_get 2; G.Local_get 3; G.I32_add; G.Local_set 4;
+          G.Local_get 4; G.I32_const nat_max; G.I32_gt_u;
+          G.If (Some (G.Ref G.HEq), slow, [ G.Local_get 4; G.Ref_i31 ]) ]
+    | P.Nat_sub ->
+        [ G.Local_get 2; G.Local_get 3; G.I32_lt_u;
+          G.If (Some G.I32, [ G.I32_const 0 ],
+            [ G.Local_get 2; G.Local_get 3; G.I32_sub ]); G.Ref_i31 ]
+    | P.Nat_mul ->
+        [ G.Local_get 2; G.I32_const 0; G.I32_eq;
+          G.If (Some (G.Ref G.HEq), [ G.I32_const 0; G.Ref_i31 ],
+            [ G.Local_get 3; G.I32_const nat_max; G.Local_get 2;
+              G.I32_div_u; G.I32_gt_u;
+              G.If (Some (G.Ref G.HEq), slow,
+                [ G.Local_get 2; G.Local_get 3; G.I32_mul; G.Ref_i31 ]) ]) ]
+    | P.Nat_eq -> [ G.Local_get 2; G.Local_get 3; G.I32_eq; G.Ref_i31 ]
+    | P.Nat_lt -> [ G.Local_get 2; G.Local_get 3; G.I32_lt_u; G.Ref_i31 ] in
+  ([ G.I32; G.I32; G.I32 ], cast 0 2 @ cast 1 3 @ small)
+
+(** The body of one runtime function, by its name.  The twelve helpers
+    have their own arms;  every other name is a primitive, and an
+    unknown name is an error. *)
+let runtime_func (l : L.t) (name : string) : (G.func, Err.t) result =
+  let* ft = L.type_index l (L.runtime_ty_key name) in
+  let* r = nat_indices l in
+  let* locals, body =
+    match name with
+    | "length" -> Ok (nat_length r)
+    | "digit" -> Ok (nat_digit r)
+    | "copy" -> Ok (nat_copy r)
+    | "normal" -> Ok (nat_normal r)
+    | "compareDigits" -> Ok (nat_compare_digits r)
+    | "compare" -> Ok (nat_compare r)
+    | "addLoop" -> Ok (nat_add_loop r)
+    | "subLoop" -> Ok (nat_sub_loop r)
+    | "mulLoop" -> Ok (nat_mul_loop r)
+    | "slowAdd" -> Ok (nat_slow_add r)
+    | "slowSub" -> Ok (nat_slow_sub r)
+    | "slowMul" -> Ok (nat_slow_mul r)
+    | _other -> P.of_name name
+        |> Option.to_result ~none:(Err.Unbound ("unknown Nat runtime helper: " ^ name))
+        |> Result.map (nat_primitive r) in
+  Ok { G.ftype = ft; locals; body }
 
 (* ---------- the term walk ---------- *)
 
@@ -194,14 +425,32 @@ let tail_ok (c : ctx) (tail : bool) (r : E.repr) : bool =
        ~error:(fun (_e : Err.t) -> false)
        (coerce c.l r c.res)
 
-let literal (lit : Lit.t) : (G.instr list, Err.t) result =
+(** The instructions of one literal.  A natural at or below [nat_max]
+    takes the small arm.  A larger natural needs three limbs at least,
+    and [B.limbs15] stops on a nonzero limb, so the big form here is
+    already the canonical form that [nat_normal] answers.  A negative
+    forged literal is refused. *)
+let literal (l : L.t) (s : st) (lit : Lit.t) :
+    (G.instr list * st, Err.t) result =
   match lit with
   | Lit.LInt n ->
-      if n >= 0 && n <= nat_max then Ok [ G.I32_const n; G.Ref_i31 ]
-      else
-        Error
-          (Err.Overflow
-             (Printf.sprintf "the literal %d leaves the i31 range of a natural" n))
+      let big (() : unit) : (G.instr list * st, Err.t) result =
+        let* limbs = B.limbs15 n
+          |> Option.to_result ~none:(Err.Mismatch "a Nat literal is negative") in
+        let* ai = L.type_index l L.limb_key in
+        let* bi = L.type_index l L.big_key in
+        let idx, s1 = alloc s (G.Ref (G.HType ai)) in
+        let stores : G.instr list =
+          List.concat (List.mapi
+            (fun (i : int) (limb : int) ->
+              [ G.Local_get idx; G.I32_const i; G.I32_const limb;
+                G.Array_set ai ]) limbs) in (* SK-M4 site *)
+        Ok ([ G.I32_const 0; G.I32_const (List.length limbs);
+              G.Array_new ai; G.Local_set idx ] @ stores
+            @ [ G.I32_const 1; G.Local_get idx; G.Struct_new bi ], s1) in
+      Option.fold ~none:big
+        ~some:(fun (small : int) (() : unit) ->
+          Ok ([ G.I32_const small; G.Ref_i31 ], s)) (B.to_i31 n) ()
   | Lit.LString _s -> Error (Err.Not_yet "a string literal has no wasm form at M0")
 
 let tid_of (r : E.repr) : (string, Err.t) result =
@@ -310,7 +559,7 @@ let rec go (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool) (tm : E.
            ~none:(Error (Err.Unbound (Printf.sprintf "KVar %d is out of scope" i)))
            ~some:(fun (((idx : int), (_r : E.repr)) : int * E.repr) ->
              Ok ([ G.Local_get idx ], s))
-  | E.KLit lit -> Result.map (fun (is : G.instr list) -> (is, s)) (literal lit)
+  | E.KLit lit -> literal c.l s lit
   | E.KGlobal n -> global c s n tail
   | E.KErased -> Ok ([ G.I32_const 0; G.Ref_i31 ], s)
   | E.KLet (_x, v, b) ->
@@ -441,12 +690,12 @@ and prim (c : ctx) (s : st) (env : (int * E.repr) list) (tail : bool) (p : P.t)
   | () ->
       let* ias, s1 = each_list c s env (take 2 args) in
       let* ia = prim_args ias in
-      let base, s2 = alloc_i32s s1 (prim_locals p) in
-      let body : G.instr list = ia @ prim_body p base in
+      let* fi = L.func_index c.l (L.runtime_fkey (P.name p)) in
+      let body : G.instr list = ia @ [ G.Call fi ] in
       let rest : E.ktm list = drop 2 args in
       (match () with
-      | () when Int.equal (List.length rest) 0 -> Ok (body, s2)
-      | () -> steps c s2 env tail body (L.prim_result p) rest)
+      | () when Int.equal (List.length rest) 0 -> Ok (body, s1)
+      | () -> steps c s1 env tail body (L.prim_result p) rest)
 
 and each_list (c : ctx) (s : st) (env : (int * E.repr) list) (xs : E.ktm list) :
     (G.instr list list * st, Err.t) result =
@@ -572,17 +821,9 @@ let prog_func (l : L.t) (f : L.fn) : (G.func, Err.t) result =
 
 let prim_wrapper (l : L.t) (p : P.t) : (G.func, Err.t) result =
   let* ft = L.type_index l (L.fn_key 2) in
-  let pre : G.instr list =
-    [
-      G.Local_get 1; G.Ref_cast G.HI31; G.I31_get_u; G.Local_get 2; G.Ref_cast G.HI31;
-      G.I31_get_u;
-    ]
-  in
-  let body : G.instr list = pre @ prim_body p 3 in
-  let locals : G.valtype list =
-    List.init (prim_locals p) (fun (_i : int) -> G.I32)
-  in
-  Ok { G.ftype = ft; locals; body }
+  let* fi = L.func_index l (L.runtime_fkey (P.name p)) in
+  Ok { G.ftype = ft; locals = [];
+       body = [ G.Local_get 1; G.Local_get 2; G.Return_call fi ] }
 
 (** The generic face of a known function (SD-D2).  It reads the captures
     out of the environment, casts every argument to its typed repr and
@@ -732,10 +973,12 @@ let papw_func (l : L.t) (m : int) (k : int) : (G.func, Err.t) result =
 let entry_func (l : L.t) (export : string) : (G.func, Err.t) result =
   let* ft = L.type_index l L.entry_ty_key in
   let* fi = L.func_index l (L.fun_fkey export) in
-  Ok { G.ftype = ft; locals = []; body = [ G.Call fi; G.I31_get_s ] }
+  Ok { G.ftype = ft; locals = [];
+       body = [ G.Call fi; G.Ref_cast G.HI31; G.I31_get_s ] }
 
 let one_func (l : L.t) (export : string) (spec : L.fspec) : (G.func, Err.t) result =
   match spec with
+  | L.FSRuntime n -> runtime_func l n
   | L.FSProg n ->
       List.assoc_opt n l.L.prog.L.funs
       |> Option.fold
@@ -756,7 +999,7 @@ let check_export (p : L.prog) (export : string) : (unit, Err.t) result =
        ~some:(fun (f : L.fn) ->
          match () with
          | () when not (Int.equal (List.length f.L.params) 0) -> bad
-         | () when not (same f.L.result E.RI31) -> bad
+         | () when not (same f.L.result L.nat_repr) -> bad
          | () -> Ok ())
 
 (** The binary module of a program.  The kernel table rides along for

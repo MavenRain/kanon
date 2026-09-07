@@ -2,8 +2,9 @@
 Copyright (c) 2026 Onyeka Obi.  All rights reserved.
 Released under MIT OR Apache 2.0 license.
 
-The disclosure driver of gate SF-G4.  It prints the axioms that each of
-the four theorems uses, in the order of the brief.  The report is
+The disclosure driver of gate SF-G4 and the conditional initiality bridge.
+It prints the four syntax theorem reports followed by the bridge's public
+eliminator and laws. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
 
@@ -19,3 +20,8 @@ open KanonMeta
 #print axioms bc_ran_spi
 #print axioms bc_lan_scoll
 #print axioms bc_ran_scoll
+
+#print axioms Initiality.projection_fold
+#print axioms Initiality.elim
+#print axioms Initiality.fold_eq_section
+#print axioms Initiality.elim_beta

@@ -18,7 +18,7 @@
       from a sidecar;
     - the answer, [node] on dev/run-node.mjs, compared with that
       expectation.  A literal inside the i31 range is printed;  a larger
-      literal traps, which the runner reports as exit 1 (SD-D7, d10).
+      literal traps, which the runner reports as exit 1 (SK-D4, d10).
 
     Two arguments, the test root and the output directory;  the second
     is optional and defaults to ROOT/_build/wasm-suite, which the suite
@@ -38,9 +38,7 @@ let features : string =
   "--enable-gc --enable-reference-types --enable-tail-call \
    --enable-exception-handling"
 
-(** The largest natural an i31 holds (SD-D7). *)
-let nat_max : int = 1073741823
-
+(** The steps of one fixture stay on the result track. *)
 let ( let* ) = Result.bind
 
 let absolute (path : string) : string =
@@ -96,7 +94,8 @@ let not_a_literal : string = "kernel value not a literal"
 
 (** The value the kernel gives [main], the only source of the
     expectation (SD-D9). *)
-let kernel_value (globals : Kanon_kernel.Global.t) : (int, string) result =
+let kernel_value (globals : Kanon_kernel.Global.t) :
+    (Kanon_kernel.Bignum.t, string) result =
   let* v =
     Kanon_kernel.Eval.eval globals [] (Kanon_kernel.Term.Global "main")
     |> Result.map_error Kanon_kernel.Error.to_string
@@ -158,8 +157,9 @@ let observed (code : int) (printed : string) : string =
 
 (** The answer of the node runner against the expectation.  A literal
     inside the range is printed and the runner exits 0;  a larger
-    literal traps, so the runner exits 1 and prints nothing (SD-D7). *)
-let node_answer (repo : string) (outdir : string) (name : string) (expected : int) :
+    literal traps, so the runner exits 1 and prints nothing (SK-D4). *)
+let node_answer (repo : string) (outdir : string) (name : string)
+    (expected : Kanon_kernel.Bignum.t) :
     (unit, string) result =
   let cmd =
     Printf.sprintf "%s %s %s main > %s 2> %s" node
@@ -174,18 +174,15 @@ let node_answer (repo : string) (outdir : string) (name : string) (expected : in
     |> Result.map_error (fun (m : string) -> "node: " ^ m)
   in
   let printed = String.trim out in
-  match () with
-  | ()
-    when expected <= nat_max && Int.equal code 0
-         && String.equal printed (string_of_int expected) ->
-      Ok ()
-  | () when expected <= nat_max ->
-      Error
-        (Printf.sprintf "node: expected %d got %s" expected (observed code printed))
-  | () when Int.equal code 1 && String.equal printed "" -> Ok ()
-  | () ->
-      Error
-        (Printf.sprintf "node: expected a trap got %s" (observed code printed))
+  Kanon_kernel.Bignum.to_i31 expected
+  |> Option.fold
+       ~none:(if Int.equal code 1 && String.equal printed "" then Ok ()
+         else Error
+           (Printf.sprintf "node: expected a trap got %s" (observed code printed)))
+       ~some:(fun (n : int) ->
+         if Int.equal code 0 && String.equal printed (string_of_int n) then Ok ()
+         else Error
+           (Printf.sprintf "node: expected %d got %s" n (observed code printed)))
 
 (** The five steps for one fixture, in the order of the brief. *)
 let one (root : string) (repo : string) (outdir : string) (name : string)

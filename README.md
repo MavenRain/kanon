@@ -1,5 +1,9 @@
 # kanon
 
+The [foundation audit](dev/FOUNDATION-AUDIT.md) records the current limits of
+the strict Kan-only and Lean-parity claims, the conditional initiality proof,
+and the indexed-vector runtime regression.
+
 Kan extensions are the sole type former: every type in kanon is a left or
 a right Kan extension of a diagram along a shape.
 

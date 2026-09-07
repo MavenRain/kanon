@@ -127,7 +127,7 @@ column gives the name the row writes, either a `tid` or a `fid`.
 | `Auto`, `Sec` and `Out` at `SMu`, every form at `SPar` and at `SNu` | `Error (Not_yet ..)` with the milestone word | none |
 
 A function type takes the repr `func fn<n>`, where n counts the runtime
-points of the whole chain.  `Nat` takes `i31`.  A type that the table
+points of the whole chain.  `Nat` takes the `nat` union repr.  A type that the table
 does not name takes the tid `any`.
 
 Constructor layouts are computed with the family parameters and earlier
@@ -269,12 +269,26 @@ payloads, so passing the large elimination criterion does not make its
 inhabitants definitionally equal.  Such inhabitants use the remaining
 conversion rules.
 
-M1 obligation, recorded here: the literal fast path needs an agreement
-lemma against the unary recursive Nat.
+The Stage K agreement obligation follows the approved ruling of
+2026-09-06 (d).  Five axiom-free unary SMu fixtures check all operand pairs
+from 0 through 32 for `natAdd`, `natSub`, `natMul`, `natEq` and `natLt`:
+1089 typed conversion witnesses each, 5445 total.  Each unary definition
+and its observer avoid the primitive being tested.  A separate Python
+integer oracle supplies 400 full-range cases per primitive, 2000 total,
+including i31, host-integer, multi-limb and 100-digit boundaries.  The
+kernel, Node and Wasmtime must agree with that oracle.  Both sets are
+required finite evidence; they do not constitute a general agreement
+theorem or execution of billion-constructor unary values.  The revised
+finite obligation is discharged by Stage K SK-G5: all 7445 cases pass,
+with the five unary sources in test/agreement and their parser and golden
+checks retained by the dedicated gate.
 
-Quantities are modes at M0.  The mark `One` is read by the surface and is
-counted as `Many` by the checker (SB-D3).  The linear counter arrives at
-M1.
+Stage K distinguishes runtime mode from multiplicity.  `One` requires
+exactly one runtime use on every reachable path.  Sequence adds uses,
+declared argument quantities scale them, and case branches are
+alternatives.  Types, annotations and Zero arguments contribute no
+runtime uses.  Checked kernel entry points enforce the rule, including
+function captures, constructor fields and let aliases (replacing SB-D3).
 
 ## 6 The framework axiom
 
@@ -335,10 +349,9 @@ picks the left former or the right former over it.  The width zero forms
 `sum ()` and `prod ()` are the empty and the unit type;  each takes its
 universe from an annotation and sits at `Univ zero` without one (D-M0-6).
 
-SB-D3.  The binder mark `1` reads as `Quantity.One`.  M0 counts `One`
-with `Many` in every rule, so the mark changes no judgement at this
-milestone;  it is read, carried and printed back, so a Stage C rule can
-separate the two without a change of text.
+SB-D3, replaced at Stage K.  The binder mark `1` reads as `Quantity.One`
+and requires exactly one runtime use on every reachable path.  The
+surface representation and printer preserve all three quantity marks.
 
 SA-D1.  Application by juxtaposition is a surface production and a sugar
 row.  Plan sections 4 and 8 leave it out, and `natAdd` cannot be applied
@@ -364,16 +377,33 @@ growth is visible in a diff of this table.
 | numeric | `i32.const`, `i32.add`, `i32.sub`, `i32.mul`, `i32.div_u`, `i32.eq`, `i32.ne`, `i32.lt_u`, `i32.gt_u` |
 | references | `ref.i31`, `i31.get_s`, `i31.get_u`, `ref.cast`, `ref.func`, `ref.null`, `ref.is_null` |
 | structs | `struct.new`, `struct.get` |
+| arrays | `array.new`, `array.get`, `array.set`, `array.len` |
+
+Stage K adds a mutable i32 array composite (`0x5E`, field mutability
+`0x01`).  The array instruction encodings are `0xFB 0x06` plus type index
+for `array.new`, `0xFB 0x0B` plus type index for `array.get`, `0xFB 0x0E`
+plus type index for `array.set`, and `0xFB 0x0F` for `array.len`.
+Distinct limbs require `array.set` because `array.new` repeats a single
+initializer.  Stores populate fresh result arrays; shared operands are
+never modified.  Struct fields remain immutable.
 
 M0 emits WasmGC core modules only (R-Q4).  There is no linear memory, no
 tag, and no import beyond the gate's export.
 
-The text form of a module is the print of the binary, so it can hold one
-word this table does not list.  The printer writes `drop` around a value
+The text form of a module is the print of the binary, so it can hold
+printer presentation words this table does not list.  The printer writes
+`drop` around a value
 that stays on the stack in front of an `unreachable`, which the case
 dispatch of SD-D5 leaves there when no leg casts.  dev/encoder-subset.sh
 reads that word as the printer's and not as an opcode of
 wasm/gc_encode.ml (SD-D24).
+
+Stage K printer accounting: Binaryen can print an inferred block result
+as `(ref (exact $1))`.  `exact` qualifies the printed reference type;
+it is a structural word in dev/encoder-subset.sh.  The byte encoder has
+no exact-reference form: `Ref h` remains `0x64` followed by the existing
+heap-type encoding, and a defined heap type remains its signed index.
+This printer exemption adds no instruction or binary type encoding.
 
 ### 8.1 The emission table
 
@@ -383,7 +413,7 @@ this table is a refusal, not a guess.
 | shape | erased form | wasm form |
 | --- | --- | --- |
 | a call of a known function | `KTail (KGlobal f) [a; ..]` | `call` of the typed signature, and `return_call` in tail position |
-| a primitive | `KApp (KGlobal natAdd) [a; b]` | `i31.get_u` on each argument, the i32 op, the trap of the range, then `ref.i31` |
+| a primitive | `KApp (KGlobal natAdd) [a; b]` | dispatch on i31 or big Nat, exact arithmetic with promotion and normalization, then a Nat or Bool result |
 | a closure | `KClos f n [c; ..]` | `struct.new` of the closure type with the arity, `ref.func` of the wrapper and the environment |
 | a call of a closure | `KTail (KVar 0) [a; ..]` | `struct.get` of the environment and of the code, `ref.cast` to `fn<n>`, then `call_ref` or `return_call_ref` |
 | an application of an unknown arity | `KApp (KVar 0) [a]` | `call` of the helper `apply<k>` |
@@ -395,8 +425,8 @@ this table is a refusal, not a guess.
 | a tag with a payload | `KTag t k [p]` | `struct.new` of the leg type, the tag first |
 | a case | `KCase t s [{..}]` | the retained tid supplies the leg types; one `block` per leg shape, `br_on_cast` to i31 and to each leg type, then an `i32.eq` chain on the tag |
 | an erased argument | `KErased` | `ref.i31` of zero |
-| a literal | `KLit n` | `i32.const`, then `ref.i31` |
-| the export | the definition the caller names | a function with no parameter that calls the definition and reads the answer with `i31.get_s` |
+| a literal | `KLit n` | `i32.const` and `ref.i31` for small Nat; fresh limb array and immutable big Nat struct otherwise |
+| the export | the definition the caller names | a function with no parameter that calls the definition, casts the answer to i31 and reads it with `i31.get_s` |
 
 The closure (SD-D2).  A closure is a struct of three fields.  The first
 field is the arity as an i32.  The second field is the code as a function
@@ -453,20 +483,29 @@ uses that tid for dispatch and payload binders even when a generic call
 returns the scrutinee as `any`.  An empty case needs no leg type and emits
 `unreachable`.
 
-Naturals (SD-D7).  A natural rides in an i31, so it holds the range 0 to
-1073741823.  A primitive reads each argument with `i31.get_u`, works on
-i32, and tags the answer with `ref.i31`.  `natSub` truncates at zero, as
-lib/prim.ml does.  `natEq` and `natLt` answer the tag of the two leg
-sum, where one is the true leg.  A literal outside the range is a
-refusal.  An answer outside the range is a trap (SD-D23):  `natAdd`
-reads its sum with `i32.gt_u` against the bound, and `natMul` reads its
-product with `i32.div_u` and `i32.ne` for a wrap, then with `i32.gt_u`
-against the bound.  Both traps are `unreachable`.
+Naturals (Stage K replaces SD-D7 and SD-D23).  Check-time integers use
+the total Bignum boundary over Zarith 1.14.  Decimal Nat literals have no
+machine-integer digit ceiling.  Negative forged literals are refused as
+Nat inputs.  Grammar quantities, universes and leg indices retain checked
+bounded conversions.
+
+Runtime Nat is an eq-reference union.  Values from 0 through 1073741823
+use i31; larger values use an immutable struct containing sign 1 and an
+i32 limb array.  Limbs are little-endian base 32768.  Arithmetic removes
+leading zero limbs and normalizes zero and other small answers to i31.
+Fresh output arrays preserve aliased operands.  A schoolbook product
+accumulates at most 1073741823 in each i32 intermediate.  Helpers use
+tail calls, and no host arithmetic import or linear memory is required.
+Small operations promote before overflow.  All five primitives accept
+mixed representations.  `natSub` truncates at zero; `natEq` and `natLt`
+return the two-leg Bool sum with true at leg 1 and false at leg 0.
 
 The export (SD-D8).  The caller names one definition.  That definition
 must be a `Nat` of arity zero.  The module exports a function with no
 parameter and an i32 answer.  That function calls the definition and
-reads the answer with `i31.get_s`.
+casts the answer to i31 and reads it with `i31.get_s`.  Large internal
+values remain exact and may produce a small exported observation.  Only
+an out-of-i31 export traps, with driver exit 4 on every execution host.
 
 ## 9 The surface grammar
 
@@ -517,9 +556,9 @@ closes it.
 
 | obligation | milestone | note |
 | --- | --- | --- |
-| linear counting for `One` | M1 | the mark exists in quantity.ml and in the surface.  The M0 checker counts it as `Many` (SB-D3) |
-| arbitrary precision Nat | M1 | M0 uses the host integer.  `natAdd` and `natMul` give `Error (Overflow ..)` at the boundary and `natSub` truncates at zero (SB-D4).  A bignum library is a dependency the user pins |
-| the agreement lemma of the literal fast path | M1 | the fast path must agree with the unary recursive Nat of the M1 shape.  Section 5 records the same obligation |
+| linear counting for `One` | M1 | discharged by Stage K SK-G3: exact path usage, 27 direct kernel checks and 22 surface path cases, including duplication negatives |
+| arbitrary precision Nat | M1 | discharged by Stage K SK-G4: Zarith 1.14, exact kernel and Wasm arithmetic, both runtime hosts and separate export-boundary checks |
+| finite agreement of the literal fast path | M1 | discharged by Stage K SK-G5 under ruling 2026-09-06 (d): all 5445 unary witnesses and 2000 independent full-range cases described in section 5 pass |
 | subsingleton large elimination | M1 | it arrives with the Prop valued recursive shape.  Section 5 records its criterion and its origin in tot |
 | structural recursion certificate | M1 | the elaborator calls `Totality.guard` before it translates a recursive definition into `Elim`.  M0 holds the entry point and no caller.  discharged at M1 Stage I: surface/elab.ml:1004 calls `Totality.guard_group` and only a certificate reaches `Order.translate` at surface/elab.ml:1029 (SI-D9, SI-D13) |
 | the `any` repr | M1 | a runtime value of a variable type takes the tid `any`.  resolved at Stage D: link.ml maps any to eqref (SD-D6) |

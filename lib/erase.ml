@@ -249,7 +249,7 @@ let branch_arity_word : string =
 let rec repr_of (ec : ectx) (v : Value.t) : (Eterm.repr, Error.t) result =
   let* w = Eval.whnf (globals_of ec) v in
   match form_of w with
-  | FNat -> Ok Eterm.RI31
+  | FNat -> Ok (Eterm.RUnion (Eterm.Tid "nat"))
   | FUniv -> Ok any_repr
   | FOther -> Ok any_repr
   | FRan (s, d) -> ran_repr ec s d
@@ -447,13 +447,9 @@ let rec zip (xs : 'a list) (ys : 'b list) : ('a * 'b) list =
   | _x :: _xr, [] -> []
   | x :: xr, y :: yr -> (x, y) :: zip xr yr
 
-(** The free kernel indices of a term, relative to the scope it stands
-    in, in no particular order and with repeats.  A lifted lambda reads
-    its captures here (SC-D25).  The walk is exhaustive over the thirteen
-    constructors and follows the binder conventions of pp.ml:  the
-    diagram of a point shape is scoped under that shape's binder, a leg
-    body under its own binders, and a motive body under its indices and
-    then under its self name. *)
+(** Candidate kernel indices in value syntax, relative to the enclosing
+    scope, with repeats. Types, shapes and motives have no runtime reads.
+    Leg bodies and let bodies advance depth by their kernel binders. *)
 let rec free_vars (depth : int) (t : Term.t) : int list =
   match t with
   | Term.Var ix -> if ix >= depth then [ ix - depth ] else []
@@ -461,40 +457,18 @@ let rec free_vars (depth : int) (t : Term.t) : int list =
   | Term.Global _ -> []
   | Term.Lit _ -> []
   | Term.Auto -> []
-  | Term.Lan (s, d) -> free_shape depth s @ free_vars (depth + shape_binders s) d
-  | Term.Ran (s, d) -> free_shape depth s @ free_vars (depth + shape_binders s) d
-  | Term.In (s, a, args) ->
-      free_shape depth s @ free_addr depth a
-      @ List.concat_map (free_vars depth) args
-  | Term.Out (s, a, head) ->
-      free_shape depth s @ free_addr depth a @ free_vars depth head
-  | Term.Sec (s, legs) -> free_shape depth s @ List.concat_map (free_leg depth) legs
+  | Term.Lan (_s, _d) -> []
+  | Term.Ran (_s, _d) -> []
+  | Term.In (_s, a, args) -> free_addr depth a @ List.concat_map (free_vars depth) args
+  | Term.Out (_s, a, head) -> free_addr depth a @ free_vars depth head
+  | Term.Sec (_s, legs) -> List.concat_map (free_leg depth) legs
   | Term.Elim e ->
-      free_shape depth e.Term.e_shape
-      @ free_vars depth e.Term.e_scrut
-      @ free_motive depth e.Term.e_motive
+      free_vars depth e.Term.e_scrut
       @ List.concat_map
-          (fun ((a : Term.addr), (lg : Term.leg)) -> free_addr depth a @ free_leg depth lg)
+          (fun ((_a : Term.addr), (lg : Term.leg)) -> free_leg depth lg)
           e.Term.e_branches
-  | Term.Let (_x, ty, def, body) ->
-      free_vars depth ty @ free_vars depth def @ free_vars (depth + 1) body
-  | Term.Ann (tm, ty) -> free_vars depth tm @ free_vars depth ty
-
-and shape_binders (s : Term.t Shape.t) : int =
-  match s with
-  | Shape.SPi (_, _, _) -> 1
-  | Shape.SColl _ -> 0
-  | Shape.SPar (_, _) -> 0
-  | Shape.SMu (_, _) -> 0
-  | Shape.SNu (_, _) -> 0
-
-and free_shape (depth : int) (s : Term.t Shape.t) : int list =
-  match s with
-  | Shape.SPi (_q, _x, dom) -> free_vars depth dom
-  | Shape.SColl _ -> []
-  | Shape.SPar (a, b) -> free_vars depth a @ free_vars depth b
-  | Shape.SMu (_n, ts) -> List.concat_map (free_vars depth) ts
-  | Shape.SNu (_n, ts) -> List.concat_map (free_vars depth) ts
+  | Term.Let (_x, _ty, def, body) -> free_vars depth def @ free_vars (depth + 1) body
+  | Term.Ann (tm, _ty) -> free_vars depth tm
 
 and free_addr (depth : int) (a : Term.addr) : int list =
   Term.as_apt a
@@ -504,13 +478,10 @@ and free_addr (depth : int) (a : Term.addr) : int list =
 and free_leg (depth : int) (lg : Term.leg) : int list =
   free_vars (depth + List.length lg.Term.l_binders) lg.Term.l_body
 
-and free_motive (depth : int) (mo : Term.motive option) : int list =
-  mo
-  |> Option.fold ~none:[] ~some:(fun (m : Term.motive) ->
-         free_vars (depth + List.length m.Term.m_idx + 1) m.Term.m_body)
-
-(** The runtime free variables of a term, as kernel indices, without
-    repeats and in increasing index order. *)
+(** Conservative runtime capture candidates, without type syntax. APt
+    arguments remain candidates regardless of their annotation: the
+    checked function quantity, read by erasure, controls their liveness.
+    The erased-body pass below removes candidates whose positions erase. *)
 let captures_of (ec : ectx) (t : Term.t) : int list =
   List.sort_uniq Int.compare
     (List.filter
@@ -521,15 +492,15 @@ let captures_of (ec : ectx) (t : Term.t) : int list =
          | LOut -> false)
        (free_vars 0 t))
 
-(** Weaken an erased expression under newly introduced runtime parameters.
-    Branch payloads and lets bind locally; closure captures do not. *)
-let rec shift_runtime (by : int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
-  let shift = shift_runtime by depth in
+(** Rewrite free runtime indices. Branch payloads and lets bind locally;
+    closure capture arguments are expressions in the enclosing context. *)
+let rec reindex_runtime (index : int -> int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
+  let shift = reindex_runtime index depth in
   match t with
-  | Eterm.KVar i -> Eterm.KVar (if i >= depth then i + by else i)
+  | Eterm.KVar i -> Eterm.KVar (if i >= depth then depth + index (i - depth) else i)
   | Eterm.KLit _ | Eterm.KGlobal _ | Eterm.KErased -> t
   | Eterm.KLet (x, v, b) ->
-      Eterm.KLet (x, shift v, shift_runtime by (depth + 1) b)
+      Eterm.KLet (x, shift v, reindex_runtime index (depth + 1) b)
   | Eterm.KClos (f, n, cs) -> Eterm.KClos (f, n, List.map shift cs)
   | Eterm.KApp (h, args) -> Eterm.KApp (shift h, List.map shift args)
   | Eterm.KTail (h, args) -> Eterm.KTail (shift h, List.map shift args)
@@ -541,10 +512,47 @@ let rec shift_runtime (by : int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
         ( tid, shift s,
           List.map
             (fun (b : Eterm.kbranch) ->
-              { b with body = shift_runtime by (depth + b.arity) b.body })
+              { b with body = reindex_runtime index (depth + b.arity) b.body })
             bs )
   | Eterm.KDelay (f, cs) -> Eterm.KDelay (f, List.map shift cs)
   | Eterm.KForce x -> Eterm.KForce (shift x)
+
+let shift_runtime (by : int) (depth : int) (t : Eterm.ktm) : Eterm.ktm =
+  reindex_runtime (fun (i : int) -> i + by) depth t
+
+(** Actual reads after quantity and proof erasure, including the reads
+    used to construct nested closure environments. *)
+let rec runtime_vars (depth : int) (t : Eterm.ktm) : int list =
+  let walk = runtime_vars depth in
+  match t with
+  | Eterm.KVar i -> if i >= depth then [ i - depth ] else []
+  | Eterm.KLit _ | Eterm.KGlobal _ | Eterm.KErased -> []
+  | Eterm.KLet (_x, v, b) -> walk v @ runtime_vars (depth + 1) b
+  | Eterm.KClos (_, _, cs) | Eterm.KDelay (_, cs) -> List.concat_map walk cs
+  | Eterm.KApp (h, args) | Eterm.KTail (h, args) -> walk h @ List.concat_map walk args
+  | Eterm.KStruct (_, fs) | Eterm.KTag (_, _, fs) -> List.concat_map walk fs
+  | Eterm.KProj (_, _, x) | Eterm.KForce x -> walk x
+  | Eterm.KCase (_tid, s, bs) ->
+      walk s @ List.concat_map
+        (fun (b : Eterm.kbranch) -> runtime_vars (depth + b.arity) b.body) bs
+
+(** Captures precede ordinary parameters in a lifted signature. Keep
+    their declaration order and compress only those outer indices that
+    disappeared during erasure. This is applied after nested lifting. *)
+let prune_captures (ps : Eterm.repr list) (args : Eterm.ktm list) (params : int)
+    (body : Eterm.ktm) : Eterm.repr list * Eterm.ktm list * Eterm.ktm =
+  let count = List.length ps in
+  let live = List.sort_uniq Int.compare
+    (List.filter_map
+       (fun (i : int) -> if i >= params && i < params + count then Some (i - params)
+         else None) (runtime_vars 0 body)) in
+  let keep (i : int) : bool = List.mem (count - i - 1) live in
+  let index (i : int) : int =
+    if i < params then i
+    else params + List.length (List.filter (fun (j : int) -> j < i - params) live) in
+  (List.filteri (fun (i : int) (_r : Eterm.repr) -> keep i) ps,
+   List.filteri (fun (i : int) (_arg : Eterm.ktm) -> keep i) args,
+   reindex_runtime index 0 body)
 
 (** A shape past M0 never reaches erasure, because the checker refused it
     first.  The arm is total and reads its word from rules.ml, so no
@@ -743,6 +751,8 @@ and lift_arm (ec : ectx) (ac : acc) ~(ty : Value.t) (t : Term.t) :
   let fid = Eterm.Fid (Printf.sprintf "%s$%d" ec.self ac.next) in
   let ec0 = { ec with slots = frame ec.slots caps } in
   let* params, ret, body, ac1 = chain ec0 { ac with next = ac.next + 1 } [] ~ty t in
+  let cap_reprs, cap_args, body =
+    prune_captures cap_reprs cap_args (List.length params) body in
   let decl = Eterm.KFun (fid, cap_reprs @ params, ret, body) in
   Ok
     ( Eterm.KClos (fid, List.length params, cap_args),
@@ -1138,24 +1148,35 @@ and function_result (ec : ectx) (ty : Value.t) : (bool, Error.t) result =
     leaves no hole.  A call with no runtime argument preserves the head
     while source parameters remain; otherwise it invokes the nullary
     function.  The result type, rather than the head's runtime arity,
-    distinguishes those cases. *)
+    distinguishes those cases. Quantities and domains come from the
+    checked function type, never from the shape or APt annotations. *)
 and app_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t) (t : Term.t) :
     (Eterm.ktm * acc, Error.t) result =
   let head, args = spine t [] in
   match args with
   | [] -> Error (Error.Mismatch "an application at a point shape with no point address")
   | _ :: _ ->
-      let* jobs =
+      let* head_ty = Check.infer ec.c Quantity.Many head in
+      let* jobs, _result_ty =
         List.fold_left
-          (fun (r : ((Value.t option * Term.t) list, Error.t) result)
-               ((q : Quantity.t), (dom : Term.t), (arg : Term.t)) ->
-            let* js = r in
-            let* dom_v = Eval.eval (globals_of ec) (env_of ec) dom in
+          (fun (r : ((Value.t option * Term.t) list * Value.t, Error.t) result)
+               ((_qa : Quantity.t), (_dom : Term.t), (arg : Term.t)) ->
+            let* js, fn_ty = r in
+            let* w = Eval.whnf (globals_of ec) fn_ty in
+            let bad = Error (Error.Mismatch "an application needs a point function type") in
+            let* q, dom_v, d =
+              match form_of w with
+              | FRan (s, d) -> (match point_of s with
+                  | PPoint (q, _x, dom_v) -> Ok (q, dom_v, d)
+                  | PColl _ | POther -> bad)
+              | FLan (_, _) | FUniv | FNat | FOther -> bad in
             let* keep = point_runtime ec q dom_v in
-            Ok (if keep then js @ [ (Some dom_v, arg) ] else js))
-          (Ok []) args
+            let* av = Eval.eval (globals_of ec) (env_of ec) arg in
+            let* result_ty = Rules.open_closure (Eval.ev (globals_of ec)) d [ av ] in
+            Ok ((if keep then js @ [ (Some dom_v, arg) ] else js), result_ty))
+          (Ok ([], head_ty)) args
       in
-      let* head', ac1 = term ec ac ~tail:false ~expected:None head in
+      let* head', ac1 = term ec ac ~tail:false ~expected:(Some head_ty) head in
       let* args', ac2 = erase_fold ec ac1 jobs in
       let* bare =
         if List.is_empty args' then

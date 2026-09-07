@@ -219,7 +219,7 @@ let rec elab (c : Check.ctx) ~(expected : Value.t option) (s : Syntax.t) :
            {
              Term.e_shape = Shape.SColl 0;
              e_scrut = scrut;
-             e_scrut_q = Quantity.Many;
+             e_scrut_q = Quantity.One;
              e_motive = None;
              e_branches = [];
            })
@@ -356,7 +356,7 @@ and elab_pair_proj (c : Check.ctx) (scrut : Term.t) (vs : Value.t Shape.t)
        {
          Term.e_shape = Shape.SPi (q, x, dom_t);
          e_scrut = scrut;
-         e_scrut_q = Quantity.Many;
+         e_scrut_q = Quantity.One;
          e_motive =
            Some { Term.m_ind = None; m_idx = []; m_self = "self"; m_body };
          e_branches = Rules.proj_branch q which;
@@ -566,7 +566,7 @@ and elab_coll_case (c : Check.ctx) ~(expected : Value.t option) (scrut' : Term.t
        {
          Term.e_shape = Shape.SColl n;
          e_scrut = scrut';
-         e_scrut_q = Quantity.Many;
+         e_scrut_q = Quantity.One;
          e_motive = motive;
          e_branches = branches;
        })
@@ -653,7 +653,7 @@ and elab_mu_case (c : Check.ctx) ~(expected : Value.t option) (scrut' : Term.t)
        {
          Term.e_shape = Shape.SMu (n, ix);
          e_scrut = scrut';
-         e_scrut_q = Quantity.Many;
+         e_scrut_q = Quantity.One;
          e_motive = motive;
          e_branches = branches;
        })

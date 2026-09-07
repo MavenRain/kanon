@@ -73,7 +73,7 @@ let fid_text (f : fid) : string =
 let literal_text (l : Literal.t) : string =
   match l with
   | Literal.LString s -> "\"" ^ String.escaped s ^ "\""
-  | Literal.LInt n -> string_of_int n
+  | Literal.LInt n -> Bignum.to_string n
 
 let print_repr (r : repr) : string =
   match r with

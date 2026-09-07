@@ -1,2 +1,2 @@
-rec []
-fun main () : i31 := KTail (KGlobal natAdd) [KLit 1073741823; KLit 1]
+rec [nat]
+fun main () : union nat := KTail (KGlobal natAdd) [KLit 1073741823; KLit 1]

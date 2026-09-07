@@ -73,22 +73,23 @@ let rec span (p : char -> bool) (loc : Token.loc) (cs : char list) :
       (c :: taken, loc', rest')
   | ([] | _ :: _) as rest -> ([], loc, rest)
 
-(* mirrors kan-lang-tot-pin/surface/lexer.ml:53-54 *)
-let nat_of_digits (digits : char list) : int =
-  List.fold_left (fun acc c -> (acc * 10) + (Char.code c - Char.code '0')) 0 digits
+(* SK-D3 replaces the bounded fold of kan-lang-tot-pin/surface/lexer.ml:53-54. *)
+let nat_of_digits (loc : Token.loc) (digits : char list) : (Bignum.t, Error.t) result =
+  List.to_seq digits |> String.of_seq |> Bignum.of_decimal
+  |> Option.to_result ~none:(Error.Parse ("invalid natural literal", loc.Token.line, loc.Token.col))
 
 (** SA-D16.  A dot with a digit run after it.  The run "1" is the first
     pair projection and the run "2" is the second;  any other run is the
     collection projection, which the parser reads as [Dot] and a number,
     so ".10" is leg ten and never leg one followed by zero. *)
-let dot_tokens (loc : Token.loc) (digits : char list) : Token.t list =
-  let n = nat_of_digits digits in
+let dot_tokens (loc : Token.loc) (digits : char list) : (Token.t list, Error.t) result =
   match digits with
-  | [] -> [ { Token.kind = Token.Dot; loc } ]
-  | [ '1' ] -> [ { Token.kind = Token.Dot1; loc } ]
-  | [ '2' ] -> [ { Token.kind = Token.Dot2; loc } ]
+  | [] -> Ok [ { Token.kind = Token.Dot; loc } ]
+  | [ '1' ] -> Ok [ { Token.kind = Token.Dot1; loc } ]
+  | [ '2' ] -> Ok [ { Token.kind = Token.Dot2; loc } ]
   | _first :: _rest ->
-      [ { Token.kind = Token.Dot; loc }; { Token.kind = Token.Nat n; loc = Token.next_col loc } ]
+      nat_of_digits loc digits |> Result.map (fun n ->
+        [ { Token.kind = Token.Dot; loc }; { Token.kind = Token.Nat n; loc = Token.next_col loc } ])
 
 (* mirrors kan-lang-tot-pin/surface/lexer.ml:85-135, arm by arm *)
 let rec go (loc : Token.loc) (cs : char list) (acc : Token.t list) :
@@ -114,13 +115,13 @@ let rec go (loc : Token.loc) (cs : char list) (acc : Token.t list) :
   | '|' :: rest -> go (Token.next_col loc) rest ({ Token.kind = Token.Pipe; loc } :: acc)
   | '.' :: rest ->
       let digits, loc', rest' = span is_digit (Token.next_col loc) rest in
-      go loc' rest' (List.rev_append (dot_tokens loc digits) acc)
+      Result.bind (dot_tokens loc digits) (fun tokens ->
+        go loc' rest' (List.rev_append tokens acc))
   | c :: rest when is_digit c ->
       let taken, loc', rest' = span is_digit (Token.next_col loc) rest in
       let digits = c :: taken in
-      (* eighteen digits always fit a 63-bit int;  a longer run would wrap *)
-      if List.length digits > 18 then lex_err loc "numeric literal too long"
-      else go loc' rest' ({ Token.kind = Token.Nat (nat_of_digits digits); loc } :: acc)
+      Result.bind (nat_of_digits loc digits) (fun n ->
+        go loc' rest' ({ Token.kind = Token.Nat n; loc } :: acc))
   | c :: rest when is_ident_start c ->
       let taken, loc', rest' = span is_ident_char (Token.next_col loc) rest in
       let s = List.to_seq (c :: taken) |> String.of_seq in

@@ -98,7 +98,7 @@ and rec_def = {
 
 and t =
   | SVar of string
-  | SNat of int
+  | SNat of Kanon_kernel.Bignum.t
   | SProp
   | SType of int
   | SPrim of prim
@@ -221,7 +221,7 @@ and ind_text (mo : motive) : string =
 and raw (s : t) : string =
   match s with
   | SVar x -> x
-  | SNat n -> string_of_int n
+  | SNat n -> Kanon_kernel.Bignum.to_string n
   | SProp -> "Prop"
   | SType n -> "Type " ^ string_of_int n
   | SPrim p -> prim_name p

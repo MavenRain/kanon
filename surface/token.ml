@@ -78,7 +78,7 @@ type kind =
   | KNatEq
   | KNatLt
   | Ident of string
-  | Nat of int
+  | Nat of Kanon_kernel.Bignum.t
   | Eof
 
 type t = {
@@ -130,5 +130,5 @@ let describe (k : kind) : string =
   | KNatEq -> "'natEq'"
   | KNatLt -> "'natLt'"
   | Ident s -> Printf.sprintf "identifier %s" s
-  | Nat n -> Printf.sprintf "number %d" n
+  | Nat n -> "number " ^ Kanon_kernel.Bignum.to_string n
   | Eof -> "end of input"

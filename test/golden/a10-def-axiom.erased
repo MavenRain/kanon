@@ -1,6 +1,6 @@
 erased Nat
-axiom zero : i31
+axiom zero : union nat
 axiom Eq : func fn<2>
-rec []
-fun start () : i31 := KGlobal zero
+rec [nat]
+fun start () : union nat := KGlobal zero
 erased eqOfStart

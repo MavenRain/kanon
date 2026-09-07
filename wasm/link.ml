@@ -196,6 +196,34 @@ let fn_key (n : int) : string = Printf.sprintf "fn<%d>" n
 let apply_ty_key (k : int) : string = Printf.sprintf "applyfn<%d>" k
 let pap_key (m : int) (k : int) : string = Printf.sprintf "pap<%d,%d>" m k
 let entry_ty_key : string = "entryfn"
+let nat_repr : E.repr = E.RUnion (E.Tid "nat")
+let limb_key : string = "nat-limbs"
+let big_key : string = "nat-big"
+let runtime_ty_key (n : string) : string = "nat-sig:" ^ n
+let runtime_fkey (n : string) : string = "nat-runtime:" ^ n
+
+(** Private helper signatures: n is an eq reference, a is a limb array,
+    and i is i32. The linker owns both signature and function indices. *)
+let runtime_sigs : (string * string list * string) list =
+  [
+    ("length", [ "n" ], "i");
+    ("digit", [ "n"; "i" ], "i");
+    ("copy", [ "a"; "a"; "i"; "i" ], "a");
+    ("normal", [ "a"; "i" ], "n");
+    ("compareDigits", [ "n"; "n"; "i" ], "i");
+    ("compare", [ "n"; "n" ], "i");
+    ("addLoop", [ "n"; "n"; "a"; "i"; "i"; "i" ], "n");
+    ("subLoop", [ "n"; "n"; "a"; "i"; "i"; "i" ], "n");
+    ("mulLoop", [ "n"; "n"; "a"; "i"; "i"; "i" ], "n");
+    ("slowAdd", [ "n"; "n" ], "n");
+    ("slowSub", [ "n"; "n" ], "n");
+    ("slowMul", [ "n"; "n" ], "n");
+    ("natAdd", [ "n"; "n" ], "n");
+    ("natSub", [ "n"; "n" ], "n");
+    ("natMul", [ "n"; "n" ], "n");
+    ("natEq", [ "n"; "n" ], "n");
+    ("natLt", [ "n"; "n" ], "n");
+  ]
 
 let leg_key (rs : E.repr list) : string =
   "leg<" ^ String.concat "," (List.map E.print_repr rs) ^ ">"
@@ -313,13 +341,13 @@ let program_table (rows : (string * Kanon_kernel.Erase.entry) list) : prog =
     sum of the unit type, which is what a boolean is at M0. *)
 let prim_result (p : P.t) : E.repr =
   match p with
-  | P.Nat_add -> E.RI31
-  | P.Nat_sub -> E.RI31
-  | P.Nat_mul -> E.RI31
+  | P.Nat_add -> nat_repr
+  | P.Nat_sub -> nat_repr
+  | P.Nat_mul -> nat_repr
   | P.Nat_eq -> E.RUnion (E.Tid "sum<unit|unit>")
   | P.Nat_lt -> E.RUnion (E.Tid "sum<unit|unit>")
 
-let prim_params : E.repr list = [ E.RI31; E.RI31 ]
+let prim_params : E.repr list = [ nat_repr; nat_repr ]
 
 (** What a head of an application is.  A global with a known arity calls
     through its typed signature;  anything else is a closure value. *)
@@ -456,7 +484,7 @@ let rec infer (p : prog) (env : E.repr list) (tm : E.ktm) : (E.repr, Err.t) resu
       |> Option.fold
            ~none:(Error (Err.Unbound (Printf.sprintf "KVar %d is out of scope" i)))
            ~some:(fun (r : E.repr) -> Ok r)
-  | E.KLit _l -> Ok E.RI31
+  | E.KLit _l -> Ok nat_repr
   | E.KGlobal n -> global_repr p n
   | E.KErased -> Ok any_repr
   | E.KLet (_x, v, b) ->
@@ -516,6 +544,9 @@ and after_head (m : int) (res : E.repr) (k : int) : (E.repr, Err.t) result =
 (* ---------- the keys the program needs ---------- *)
 
 type tspec =
+  | TSLimbs
+  | TSBigNat
+  | TSRuntime of string list * string
   | TSClos
   | TSFn of int
   | TSStruct of E.repr list
@@ -526,6 +557,7 @@ type tspec =
   | TSEntry
 
 type fspec =
+  | FSRuntime of string
   | FSProg of string
   | FSWrap of string * int
   | FSApply of int
@@ -545,10 +577,24 @@ let fn_key_of (k : string) (s : fspec) : keys = { tys = []; fns = [ (k, s) ] }
 let clos_keys : keys = ty_key clos_key TSClos
 let fnty_keys (n : int) : keys = merge clos_keys (ty_key (fn_key n) (TSFn n))
 
+let nat_data_keys : keys =
+  merge (ty_key limb_key TSLimbs) (ty_key big_key TSBigNat)
+
+let nat_runtime_keys : keys =
+  merge nat_data_keys
+    (merge_all
+       (List.map
+          (fun (((n : string), (ps : string list), (r : string)) :
+                 string * string list * string) ->
+            merge (ty_key (runtime_ty_key n) (TSRuntime (ps, r)))
+              (fn_key_of (runtime_fkey n) (FSRuntime n)))
+          runtime_sigs))
+
 let rec need_repr (r : E.repr) : (keys, Err.t) result =
   match r with
   | E.RI31 -> Ok no_keys
-  | E.RUnion _t -> Ok no_keys
+  | E.RUnion (E.Tid t) ->
+      Ok (if String.equal t "nat" then nat_data_keys else no_keys)
   | E.RStruct (E.Tid t) -> need_struct t
   | E.RFunc (E.Tid t) ->
       let* n = arity_of_fn t in
@@ -609,7 +655,8 @@ let need_wrap (p : prog) (n : string) : (keys, Err.t) result =
              rr;
            ])
   | HPrim _pr ->
-      Ok (merge (fnty_keys 2) (fn_key_of (wrap_fkey n 0) (FSWrap (n, 0))))
+      Ok (merge_all [ nat_runtime_keys; fnty_keys 2;
+        fn_key_of (wrap_fkey n 0) (FSWrap (n, 0)) ])
   | HValue -> Result.map (fun (_r : E.repr) -> no_keys) (global_repr p n)
 
 (** The walk that collects every key.  Lets use expression inference;
@@ -617,7 +664,7 @@ let need_wrap (p : prog) (n : string) : (keys, Err.t) result =
 let rec walk (p : prog) (env : E.repr list) (tm : E.ktm) : (keys, Err.t) result =
   match tm with
   | E.KVar _i -> Ok no_keys
-  | E.KLit _l -> Ok no_keys
+  | E.KLit _l -> Ok nat_data_keys
   | E.KErased -> Ok no_keys
   | E.KGlobal n -> (
       match head_kind p (E.KGlobal n) with
@@ -706,7 +753,10 @@ and walk_app (p : prog) (env : E.repr list) (h : E.ktm) (args : E.ktm list) :
     | HFun (n, f) ->
         let m : int = List.length f.params in
         if k >= m then saturated m f.result else under n m
-    | HPrim pr -> if k >= 2 then saturated 2 (prim_result pr) else under (P.name pr) 2
+    | HPrim pr ->
+        let* kp =
+          if k >= 2 then saturated 2 (prim_result pr) else under (P.name pr) 2 in
+        Ok (merge nat_runtime_keys kp)
     | HValue ->
         let* kh = walk p env h in
         let* hr = infer p env h in
@@ -811,6 +861,9 @@ let helper_keys (a : int list) (k : int list) : keys =
     by nesting depth, then the shapes built here. *)
 let trank (s : tspec) : int =
   match s with
+  | TSLimbs -> -2
+  | TSBigNat -> -1
+  | TSRuntime (_ps, _r) -> 5
   | TSClos -> 0
   | TSFn _n -> 1
   | TSStruct _rs -> 2
@@ -822,6 +875,7 @@ let trank (s : tspec) : int =
 
 let frank (s : fspec) : int =
   match s with
+  | FSRuntime _n -> 4
   | FSProg _n -> 0
   | FSWrap (_n, _c) -> 1
   | FSApply _k -> 2
@@ -988,7 +1042,8 @@ let arity_keys (tys : (string * tspec) list) : int list =
        (fun (((_k : string), (s : tspec)) : string * tspec) ->
          match s with
          | TSFn n -> Some n
-         | TSClos | TSStruct _ | TSLeg _ | TSPap _ | TSSig _ | TSApply _ | TSEntry ->
+         | TSLimbs | TSBigNat | TSRuntime _ | TSClos | TSStruct _ | TSLeg _
+         | TSPap _ | TSSig _ | TSApply _ | TSEntry ->
              None)
        tys)
 
@@ -998,7 +1053,8 @@ let call_keys (tys : (string * tspec) list) : int list =
        (fun (((_k : string), (s : tspec)) : string * tspec) ->
          match s with
          | TSApply n -> Some n
-         | TSClos | TSFn _ | TSStruct _ | TSLeg _ | TSPap _ | TSSig _ | TSEntry -> None)
+         | TSLimbs | TSBigNat | TSRuntime _ | TSClos | TSFn _ | TSStruct _
+         | TSLeg _ | TSPap _ | TSSig _ | TSEntry -> None)
        tys)
 
 let build (rows : (string * Kanon_kernel.Erase.entry) list) : (t, Err.t) result =
@@ -1036,7 +1092,7 @@ let build (rows : (string * Kanon_kernel.Erase.entry) list) : (t, Err.t) result 
             match s with
             | FSWrap (_n, _c) -> List.assoc_opt key fmap
             | FSPapw (_m, _kk) -> List.assoc_opt key fmap
-            | FSProg _ | FSApply _ | FSEntry -> None)
+            | FSRuntime _ | FSProg _ | FSApply _ | FSEntry -> None)
           funcs;
     }
 
@@ -1065,6 +1121,13 @@ let valtype_of (l : t) (r : E.repr) : (G.valtype, Err.t) result =
 
 let eqs (n : int) : G.valtype list = List.init n (fun (_i : int) -> G.Ref G.HEq)
 
+let runtime_valtype (l : t) (s : string) : (G.valtype, Err.t) result =
+  match s with
+  | "i" -> Ok G.I32
+  | "n" -> Ok (G.Ref G.HEq)
+  | "a" -> Result.map (fun (i : int) -> G.Ref (G.HType i)) (type_index l limb_key)
+  | _other -> Error (Err.Mismatch ("unknown natural runtime value type: " ^ s))
+
 (** Aggregate storage is uniform across type instantiations.  A pair of
     any values and a pair of naturals have identical final struct types,
     so an erased type argument cannot change their layout.  Reads cast
@@ -1072,6 +1135,14 @@ let eqs (n : int) : G.valtype list = List.init n (fun (_i : int) -> G.Ref G.HEq)
 let comptype_of (l : t) (((_key : string), (s : tspec)) : string * tspec) :
     (G.comptype, Err.t) result =
   match s with
+  | TSLimbs -> Ok (G.CArray G.I32)
+  | TSBigNat ->
+      let* ai = type_index l limb_key in
+      Ok (G.CStruct [ G.I32; G.Ref (G.HType ai) ])
+  | TSRuntime (ps, r) ->
+      let* vs = seq (List.map (runtime_valtype l) ps) in
+      let* v = runtime_valtype l r in
+      Ok (G.CFunc (vs, [ v ]))
   | TSClos -> Ok (G.CStruct [ G.I32; G.Ref G.HFunc; G.Ref G.HEq ])
   | TSFn n -> Ok (G.CFunc (eqs (n + 1), [ G.Ref G.HEq ]))
   | TSStruct rs -> Ok (G.CStruct (eqs (List.length rs)))

@@ -4,7 +4,7 @@
 #   zsh /Users/oobi/Documents/kanon/dev/encoder-subset.sh /Users/oobi/Documents/kanon
 #
 # The allowlist is read from SPEC.md section 8:  every backticked token of
-# the six instruction rows, and nothing else.  The reading is every word
+# the seven instruction rows, and nothing else.  The reading is every word
 # after an opening parenthesis of every test/golden/*.wat, less the words
 # that build a module rather than run in it.  A word outside the
 # allowlist fails the gate, so a new opcode is visible in a diff of the
@@ -38,17 +38,19 @@ fi
 # "drop" around a value that stays on the stack in front of an
 # "unreachable".  The case dispatch of SD-D5 leaves the scrutinee there
 # when no leg casts, so the word is the printer's, not the encoder's.
+# Stage K: Binaryen prints inferred reference types as (ref (exact $N)).
+# "exact" is a printer type qualifier; gc_encode.ml adds no encoding for it.
 structural=(
   module type rec struct field func param result local export elem declare
   ref mut sub final then else i32 i64 eq i31 any none nofunc null extern array
-  drop
+  drop exact
 )
 
 work=${TMPDIR:-/tmp}/kanon-encoder-subset.$$
 mkdir -p $work
 
-# The allowlist: the backticked tokens of the six instruction rows.
-rg -N '^\| (control|calls|locals|numeric|references|structs) \|' -- $spec \
+# The allowlist includes the Stage K array row and its stores.
+rg -N '^\| (control|calls|locals|numeric|references|structs|arrays) \|' -- $spec \
   | rg -o '`[^`]+`' \
   | tr -d '`' \
   | sort -u > $work/allow.txt

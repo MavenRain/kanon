@@ -447,3 +447,43 @@ the copy, which are the ROOT numbers before the edit.
 The baseline was freshly built from the original staged tree.  The deletion
 mutation ran only in a scratch copy.  Both new language fixtures and all
 six associated goldens are part of the normal kernel and Wasm suites.
+
+## M1 Stage K: Nat runtime and exact One mutations (2026-09-06)
+
+Status: all four required semantic mutations are killed.  All eleven
+Stage K gates pass after the user-approved M0 spine correction, as
+recorded in the Stage K build section.  No mutation touches ROOT or the
+active implementation in place.
+
+PREP is `/Users/oobi/Documents/gpt4/kanon-stage-k`.  Each semantic mutant
+starts from a separate fresh copy excluding .git, _build, .gatework and
+meta/.lake.  Every mutant builds through its copied dev/dunecho.sh with
+zero errors and warnings.  Compiler errors are not counted as kills.
+
+| Id | Mutation and passing control | Killing observation and evidence |
+| --- | --- | --- |
+| SK-M1 | Check.bind stores One as Many in PREP/one-mutation/work.  The unmutated one-used-twice fixture rejects with its exact Quantity diagnostic. | The mutant accepts the fixture, exit 0 instead of 1.  Its One path runner exits 1, with only 15/27 direct checks passing.  PREP/one-mutation contains control.json, mutation.diff, build.log, mutant-negative.log, mutant-paths.log and results.json. |
+| SK-M2 | Replace the natMul slow dispatch in wasm/emit.ml with Unreachable in PREP/mutations/sk-m2.  The unmutated nat-big source returns 7 after multiplying 35184372088833 by 35184372088837, then consuming the big result. | Node, Wasmtime and both trap instead of returning 7.  The kernel control remains 7, proving that the mutation affects runtime arithmetic.  The focused runtime assertion runner exits 1.  PREP/mutations/sk-m2.diff, sk-m2-build.log and runtime-mutations.json retain exact commands and outputs. |
+| SK-M3 | In PREP/mutations/sk-m3, change the first unary natAdd expectation from natAdd 0 0 to natAdd 0 1, keeping the actual unary witness unchanged.  The original gate passes 7445/7445. | The typed constructor-index comparison rejects the altered witness.  The complete gate reports 6356/7445 and exits 1; the same fixture remains selected.  After the byte-identical move into test/agreement, the unary gate again exits 1 at 4356/5445.  PREP/mutations/sk-m3-source.json, sk-m3.diff, sk-m3-build.log, sk-m3-evidence/results.json and sk-m3-final-evidence/unary-results.json retain the source delta, clean build and behavioral failures. |
+| SK-M4 | Replace literal limb-store index i by i*0 in PREP/mutations/sk-m4.  The heterogeneous subtraction observation compares natSub 1073807363 1073807358 with 5 and returns 1 unmutated. | Node, Wasmtime and both return 0 after the malformed stores.  The kernel remains 1.  The focused runtime assertion runner exits 1.  PREP/mutations/sk-m4.diff, sk-m4-build.log and runtime-mutations.json retain exact evidence. |
+
+Runtime controls comprise eight unmutated observations, six mutated host
+failures, two failed assertion runners and two clean fresh builds.
+PREP/mutations/final-erasure-reuse.json establishes that the final erasure
+repairs leave the two mutation fixtures' erased inputs byte-identical
+and their source and runtime emitter hashes unchanged.  The final runtime
+control rerun is PREP/check-review/nat-runtime-final.log, 20/20 PASS.
+PREP/one-final-validation.json records unchanged checker hashes for SK-M1.
+
+The subset reader has an additional negative control, separate from the
+four semantic mutations.  A real Binaryen WAT containing the structural
+exact qualifier passes.  Appending an unlisted i32.and makes the reader
+exit 1 and print ENCODER-SUBSET FAIL.  The final actual goldens also pass.
+Evidence: PREP/mutations/subset-final/checks.json.  No opcode allowlist,
+timer, expected value or denominator is weakened to obtain these kills.
+
+The parser helper also has a negative control: invalid source reports
+ROUNDTRIP FAIL with a precise parse error and exit 1.  All five actual
+unary files pass the same source/print/source tree-equality assertion
+previously run by the ordinary kernel suite.  Evidence:
+PREP/agreement-roundtrip-evidence.json.

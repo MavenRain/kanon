@@ -180,48 +180,8 @@ let rec spine (t : Term.t) (args : Term.t list) (shapes : Term.t Shape.t list) :
     exhaustive over the thirteen arms of term.ml:46-59, so a body that
     only carries the keyword is told from one that calls itself, and the
     guard answers [Ok None] for the first (brief 3.3). *)
-let rec mentions (group : string list) (t : Term.t) : bool =
-  match t with
-  | Term.Var _ -> false
-  | Term.Univ _ -> false
-  | Term.Lit _ -> false
-  | Term.Auto -> false
-  | Term.Global g -> member group g
-  | Term.Lan (s, d) -> mentions_shape group s || mentions group d
-  | Term.Ran (s, d) -> mentions_shape group s || mentions group d
-  | Term.In (s, a, args) ->
-      mentions_shape group s || mentions_addr group a
-      || List.exists (mentions group) args
-  | Term.Out (s, a, head) ->
-      mentions_shape group s || mentions_addr group a || mentions group head
-  | Term.Sec (s, legs) -> mentions_shape group s || mentions_legs group legs
-  | Term.Elim e ->
-      mentions_shape group e.Term.e_shape
-      || mentions group e.Term.e_scrut
-      || mentions_motive group e.Term.e_motive
-      || List.exists
-           (fun (((a : Term.addr), (lg : Term.leg)) : Term.addr * Term.leg) ->
-             mentions_addr group a || mentions group lg.Term.l_body)
-           e.Term.e_branches
-  | Term.Let (_x, ty, def, b) ->
-      mentions group ty || mentions group def || mentions group b
-  | Term.Ann (tm, ty) -> mentions group tm || mentions group ty
-
-and mentions_shape (group : string list) (s : Term.t Shape.t) : bool =
-  List.exists (mentions group) (Shape.payload s)
-
-and mentions_addr (group : string list) (a : Term.addr) : bool =
-  Term.as_apt a
-  |> Option.fold ~none:false ~some:(fun ((_q : Quantity.t), (arg : Term.t)) ->
-         mentions group arg)
-
-and mentions_motive (group : string list) (mo : Term.motive option) : bool =
-  mo
-  |> Option.fold ~none:false ~some:(fun (m : Term.motive) ->
-         mentions group m.Term.m_body)
-
-and mentions_legs (group : string list) (legs : Term.leg list) : bool =
-  List.exists (fun (lg : Term.leg) -> mentions group lg.Term.l_body) legs
+let mentions (group : string list) (t : Term.t) : bool =
+  Term.exists_name ~include_families:false group t
 
 (** Read one binder status through a total combinator
     (kan-lang-tot-pin/lib/totality.ml:77).  The spelling the pin uses is

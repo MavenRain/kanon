@@ -245,9 +245,10 @@ def idNat : (x : Nat) -> Nat := id Nat
 def erasedPoly : Nat := natAdd (id Nat 3) (idNat 4)
 
 def linear : (1 x : Nat) -> Nat :=
-  fun (1 x : Nat) => natAdd x 1
+  fun (1 x : Nat) => x
 
-def linearValue : Nat := linear 8
+-- Stage K: natAdd consumes unrestricted arguments; the identity uses x once.
+def linearValue : Nat := natAdd (linear 8) 1
 
 -- A nested let with a case inside it, and the annotation form.
 
