@@ -66,3 +66,53 @@ commands and results.  `runtime/terminal-before.tap` records the failing
 controls, with passing focused and full results beside it.  `example/`
 holds the built application and direct/runtime observations.  `house.log`
 and `trusted-lines.log` record the static checks.
+
+## Full-buffer append (2026-09-07)
+
+This increment starts at fdd52f0a039f120b65a2af21c472e4dcbd5e8b07.
+The shared `bytesAppend` helper consumed one Wasm call frame per left
+element, so it could not process a full 65536-byte reactor read answer.
+It now uses `bytesReverseOnto` for two structurally recursive tail-call
+passes.  The public append type and the sixteen host exports stay the
+same.  The result preserves byte order and shares the right list.
+Wasm stack use is constant; time and allocation are linear in the left
+length, with two list nodes allocated per left element.
+
+The reactor suite constructs large inputs through the compiled module's
+ABI.  It checks empty operands, binary suffixes, a full read buffer on
+either side, two full buffers, preservation of the left input, and a
+second append onto each result.  The
+compiled realpath state machine also consumes full-buffer answers on
+both its success and error paths, appends a newline, and completes after
+the output acknowledgement.
+
+An initial run of the unchanged runtime suite exposed a readiness race:
+test 8 sent SIGINT after 150 ms even if the Node child had not published
+its PID, then failed with ENOENT when reading that PID.  The test now
+signals only after the child atomically publishes the complete marker.
+The 1000 ms process deadline, signal-status oracle and process-reaping
+assertion remain; additional assertions require one spawn and a valid
+PID.  No runtime implementation or gate bound changed.
+
+| Check | Result |
+| --- | --- |
+| REACTOR under its existing 30-second watchdog | 103 checks passed. |
+| Original append with the same new tests | Failed with `RangeError: Maximum call stack size exceeded`. |
+| RUNTIME after the readiness fix, existing 30-second watchdog | 20 tests passed, zero failures or skips. |
+| HOUSE | Passed. |
+| TRUSTED-LINES | Kernel 3997/4000, encoder 246/600, passed. |
+| Independent source review | No findings; test deadlines and gate oracles preserved. |
+
+The README status records Stage L implementation as complete and full
+validation as open.  dev/gates.sh holds 21 leg invocations, the last two
+being REACTOR and RUNTIME.  The recorded battery in M1-BUILD-LOG.md holds
+19 leg rows and no row for those two legs.  It also ran on a source
+snapshot that predates the compiler commits in HEAD.  M1 exit ratification
+remains open.  Compiler, kernel, Lean and gate sources did not change;
+the full milestone and performance batteries were not repeated.
+
+Evidence root: /Users/oobi/Documents/gpt4/kanon-reactor-buffer/evidence.
+`captures/run-xpzvm5` holds REACTOR, `negative-control/run-cAvBad` holds
+the original helper's failure, `scoped-gates/run-enKipZ` holds the initial
+runtime failure and passing static checks, and `runtime-fixed/run-K3nhin`
+holds the final passing runtime suite.  All are kanon-exec artifacts.

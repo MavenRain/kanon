@@ -104,13 +104,12 @@ and never reaches the state machine as an answer. It also defines
 `bytesAppend : Bytes -> Bytes -> Bytes` for building response text. Compile
 this source before an application that uses these definitions. The helper
 is available inside the module and need not be exported to the host.
-`bytesAppend` recurses once per element of its left list, so the emitted
-module spends one Wasm call frame per element of that list. It is safe for
-a few thousand bytes only. A left list of about 4096 bytes still appends,
-and one of about 8192 bytes overflows the call stack, which ends the run
-with the `kanon reactor:` line and exit 2. An application that produces
-more output writes it in chunks, and never appends a whole 65536-byte
-answer from operation 2.
+`bytesAppend` traverses its left list twice using structural tail calls,
+so the emitted module uses constant Wasm call-stack space. It allocates
+two list nodes per left element and shares the right list. This permits
+appending a full 65536-byte answer from operation 2 without growing the
+call stack with the answer length. Time and allocation remain linear in
+the left list's length.
 
 | Operation | Arguments | Result |
 | --- | --- | --- |

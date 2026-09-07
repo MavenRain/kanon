@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir, constants } from 'node:os';
@@ -114,19 +115,21 @@ test('signal callback errors reject normally after killing and reaping the child
 
 test('active interruption returns signal status and reaps the process', { skip: process.platform === 'win32' }, async t => {
   const s = await sandbox(t);
-  const interrupted = { signal: null };
-  const timer = setTimeout(() => { interrupted.signal = 'SIGINT'; }, 150);
-  try {
-    const response = fields(await executeProcess(command(s, '1000', `
-      require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, String(process.pid));
-      setInterval(() => {}, 1000);
-    `), interrupted));
-    assert.deepEqual(response.slice(0, 4), ['130', String(constants.signals.SIGINT), '0', '1']);
-    const pid = Number(await readFile(s.marker, 'utf8'));
-    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
-  } finally {
-    clearTimeout(timer);
-  }
+  const started = spawns.started;
+  // Publish the complete PID before the runtime's poll can interrupt the
+  // child. Readiness depends on child progress, not Node startup timing.
+  const interrupted = { get signal() { return existsSync(s.marker) ? 'SIGINT' : null; } };
+  const response = fields(await executeProcess(command(s, '1000', `
+    const fs = require('node:fs');
+    fs.writeFileSync(${JSON.stringify(`${s.marker}.pending`)}, String(process.pid));
+    fs.renameSync(${JSON.stringify(`${s.marker}.pending`)}, ${JSON.stringify(s.marker)});
+    setInterval(() => {}, 1000);
+  `), interrupted));
+  assert.equal(spawns.started, started + 1);
+  assert.deepEqual(response.slice(0, 4), ['130', String(constants.signals.SIGINT), '0', '1']);
+  const pid = Number(await readFile(s.marker, 'utf8'));
+  assert.ok(Number.isInteger(pid) && pid > 0);
+  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
 });
 
 test('escalation callback errors are caught and cleanup retries the kill', { skip: process.platform === 'win32' }, async t => {

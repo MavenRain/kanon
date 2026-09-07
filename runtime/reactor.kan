@@ -39,12 +39,15 @@ def wordsTail : Words -> Words := fun (words : Words) =>
   | wordsNil => wordsNil
   | wordsCons head tail => tail
 
--- This recursion is structural, not tail recursion, so it spends one Wasm
--- call frame per element of the left list.  It is safe for a few thousand
--- bytes only: about 4096 bytes append, about 8192 bytes overflow the call
--- stack and end the run with exit 2.  Write larger output in chunks.
-def rec bytesAppend : Bytes -> Bytes -> Bytes :=
+-- Consume the first list structurally, accumulating through tail calls.
+def rec bytesReverseOnto : Bytes -> Bytes -> Bytes :=
+  fun (bytes : Bytes) (suffix : Bytes) =>
+    case bytes as value in Bytes return Bytes with
+    | bytesNil => suffix
+    | bytesCons head tail => bytesReverseOnto tail (bytesCons head suffix)
+
+-- Reverse the left list twice to preserve its order without growing the
+-- Wasm call stack.  The right list is shared by the resulting list.
+def bytesAppend : Bytes -> Bytes -> Bytes :=
   fun (left : Bytes) (right : Bytes) =>
-    case left as value in Bytes return Bytes with
-    | bytesNil => right
-    | bytesCons head tail => bytesCons head (bytesAppend tail right)
+    bytesReverseOnto (bytesReverseOnto left bytesNil) right

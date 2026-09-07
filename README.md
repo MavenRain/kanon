@@ -8,13 +8,15 @@ supplies external Lean models for nullary/unary indexed signatures,
 including vectors.  Connecting those models to checked `SMu` declarations
 and proving compiler preservation and full Lean parity remain open.
 
-Status: M1 Stage L implementation with final validation still open;
-M1 exit is not ratified.  The checker, elaborator, erasure, WasmGC emitter
-and execution driver support strictly positive indexed and mutual `mu`
-families, dependent matching, structural recursion, arbitrary precision
-`Nat` arithmetic and exact-use `1` binders.  `auto`, `nu`, level variables
-and the deferred equality shape remain later work.  The
-[build log](dev/M1-BUILD-LOG.md) records validation results and open gates.
+Status: M1 Stage L implementation complete; full validation stays open.
+The recorded battery predates the two reactor gate legs and the current
+compiler commits.  M1 exit is not ratified.  The checker, elaborator,
+erasure, WasmGC emitter and execution driver support strictly positive
+indexed and mutual `mu` families, dependent matching, structural
+recursion, arbitrary precision `Nat` arithmetic and exact-use `1` binders.
+`auto`, `nu`, level variables and the deferred equality shape remain later
+work.  The [build log](dev/M1-BUILD-LOG.md) records validation results and
+open gates.
 The [reactor build log](dev/REACTOR-BUILD-LOG.md) records the validation of
 the reactor host runtime, its CLI and the realpath example.
 

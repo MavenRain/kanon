@@ -75,12 +75,52 @@ try {
   const { instance: old } = await WebAssembly.instantiate(readFileSync(output));
   verify(() => assert.equal(old.exports.main(), 4));
 
+  // Append must preserve byte order at the host's full read-buffer size.
+  // Construct inputs through the ABI so the compiler never evaluates a
+  // large literal in place of exercising the emitted recursion.
+  const shared = join(root, 'runtime/reactor.kan');
+  const helpers = join(scratch, 'bytes.wasm');
+  const helperExports = ['emptyBytes', 'consBytes', 'bytesEmpty', 'bytesHead', 'bytesTail', 'bytesAppend'];
+  const helperBuild = run(['build', shared, '-o', helpers,
+    ...helperExports.flatMap(name => ['--export', name])]);
+  verify(() => assert.equal(helperBuild.status, 0, helperBuild.stderr));
+  const { instance: helperInstance } = await WebAssembly.instantiate(readFileSync(helpers));
+  const bytesApi = helperInstance.exports;
+  const encodeBytes = (api, bytes) => bytes.reduceRight((tail, byte) => api.consBytes(byte, tail), api.emptyBytes());
+  const decodeBytes = (api, list, length) => {
+    const result = [];
+    while (!api.bytesEmpty(list)) {
+      assert.ok(result.length < length, 'byte list exceeds expected length');
+      result.push(api.bytesHead(list));
+      list = api.bytesTail(list);
+    }
+    return result;
+  };
+  const fullBuffer = Array.from({ length: 65536 }, (_, i) => (i * 73 + 19) % 256);
+  const suffix = [255, 0, 10, 195, 169];
+  // The chain operand appends onto a result of the emitted recursion, so the
+  // left operand of the second append is a list the module itself built.
+  const chain = [7, 200];
+  const chainList = encodeBytes(bytesApi, chain);
+  for (const [left, right] of [[[], []], [[], suffix], [suffix, []],
+    [[65, 0, 255], suffix], [fullBuffer, []], [fullBuffer, suffix], [suffix, fullBuffer],
+    [fullBuffer, fullBuffer]]) {
+    const leftList = encodeBytes(bytesApi, left);
+    const rightList = encodeBytes(bytesApi, right);
+    const appended = bytesApi.bytesAppend(leftList, rightList);
+    verify(() => assert.deepEqual(decodeBytes(bytesApi, appended, left.length + right.length), [...left, ...right]));
+    verify(() => assert.deepEqual(decodeBytes(bytesApi, leftList, left.length), left));
+    const chained = bytesApi.bytesAppend(appended, chainList);
+    verify(() => assert.deepEqual(decodeBytes(bytesApi, chained, left.length + right.length + chain.length),
+      [...left, ...right, ...chain]));
+  }
+
   // Exercise a real compiled state machine through the same CLI a user runs.
   const reactorExports = ['emptyBytes', 'consBytes', 'bytesEmpty', 'bytesHead', 'bytesTail',
     'emptyWords', 'consWords', 'wordsEmpty', 'wordsHead', 'wordsTail',
     'init', 'resume', 'requestCode', 'requestArgs', 'requestBody', 'exitCode'];
   const application = join(scratch, 'realpath.wasm');
-  const applicationBuild = run(['build', join(root, 'runtime/reactor.kan'),
+  const applicationBuild = run(['build', shared,
     join(root, 'examples/reactor-realpath.kan'), '-o', application,
     ...reactorExports.flatMap(name => ['--export', name])]);
   verify(() => assert.equal(applicationBuild.status, 0, applicationBuild.stderr));
@@ -104,6 +144,14 @@ try {
   const writeFailure = app.resume(reporting, 1, app.emptyBytes());
   verify(() => assert.equal(app.requestCode(writeFailure), 0));
   verify(() => assert.equal(app.exitCode(writeFailure), 1));
+  for (const status of [0, 1]) {
+    const longAnswer = app.resume(pending, status, toBytes(fullBuffer));
+    verify(() => assert.equal(app.requestCode(longAnswer), status === 0 ? 6 : 7));
+    verify(() => assert.deepEqual(decodeBytes(app, app.requestBody(longAnswer), fullBuffer.length + 1), [...fullBuffer, 10]));
+    const completed = app.resume(longAnswer, 0, app.emptyBytes());
+    verify(() => assert.equal(app.requestCode(completed), 0));
+    verify(() => assert.equal(app.exitCode(completed), status));
+  }
   const directory = join(scratch, 'caf\u00e9 path');
   mkdirSync(directory);
   const success = runModule([application, 'caf\u00e9 path']);
