@@ -83,6 +83,7 @@ type kind =
   | KNatLt
   | Ident of string
   | Nat of Kanon_kernel.Bignum.t
+  | Bytes of int list
   | Eof
 
 type t = {
@@ -138,4 +139,5 @@ let describe (k : kind) : string =
   | KNatLt -> "'natLt'"
   | Ident s -> Printf.sprintf "identifier %s" s
   | Nat n -> "number " ^ Kanon_kernel.Bignum.to_string n
+  | Bytes _s -> "byte literal"
   | Eof -> "end of input"

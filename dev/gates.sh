@@ -336,6 +336,12 @@ leg SUITE POSITIVITY SELF zsh $SELF --leg positivity
 leg SLOW M1-CORPUS SELF zsh $SELF --leg corpus
 leg SUITE M1-SUITE SELF zsh $SELF --leg m1-suite
 leg SUITE AGREEMENT SELF zsh $SELF --leg agreement
+# The reactor slice legs.  REACTOR builds the reactor fixtures through the
+# normal CLI and checks the module in Node.  RUNTIME runs the host runtime
+# suite.  Both fit the MED tier, at about 2 s and about 3 s.
+leg MED REACTOR '^reactor: [0-9]+ checks passed$' \
+  node $ROOT/dev/reactor-test.mjs $ROOT/_build/default/bin/kanon.exe
+leg MED RUNTIME '^# fail 0$' node --test --test-reporter=tap $ROOT/dev/runtime-test.mjs
 
 print -r -- ""
 cat $MEASURE_FILE

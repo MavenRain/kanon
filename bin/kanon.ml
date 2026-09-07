@@ -24,7 +24,7 @@ let usage () : unit =
   prerr_endline
     "usage: kanon check [--print|--erased] FILE | axioms FILE | emit FILE -o \
      OUT.wasm --export NAME | run FILE --export NAME [--host \
-     node|wasmtime|kernel|both] | spec-count"
+     node|wasmtime|kernel|both] | build FILE... -o OUT.wasm --export NAME... | spec-count"
 
 let read_file (path : string) : string =
   if Sys.file_exists path then In_channel.with_open_bin path In_channel.input_all
@@ -111,6 +111,42 @@ let dispatch_emit (args : string list) : unit =
   | [] | _ :: _ ->
       usage ();
       exit 64
+
+(** Multi-file builds check declarations in source order in one global
+    environment, then export reusable ordinary functions. *)
+let run_build (paths : string list) (out : string) (exports : string list) : unit =
+  if Sys.file_exists (Filename.dirname out) then ()
+  else (prerr_endline ("kanon: cannot write " ^ out); exit 64);
+  let source = String.concat "\n" (List.map read_file paths) in
+  Result.bind (Kanon_surface.Elab.check_in Kanon_kernel.Global.initial source)
+    (fun (globals, rows) -> Kanon_kernel.Erase.program globals rows)
+  |> Result.fold
+       ~error:(fun e -> prerr_endline (Kanon_kernel.Error.to_string e); exit 1)
+       ~ok:(fun rows ->
+         Kanon_wasm.Emit.reactor rows ~exports
+         |> Result.fold
+              ~error:(fun e ->
+                prerr_endline ("kanon: build: " ^ Kanon_kernel.Error.to_string e); exit 2)
+              ~ok:(fun bytes ->
+                Out_channel.with_open_bin out (fun oc -> Out_channel.output_string oc bytes)))
+
+let dispatch_build (args : string list) : unit =
+  let bad () = usage (); exit 64 in
+  let rec flags paths out exports args =
+    match args with
+    | [] ->
+        if paths = [] || exports = [] then bad ()
+        else Option.fold ~none:(fun () -> bad ())
+          ~some:(fun output () -> run_build (List.rev paths) output (List.rev exports)) out ()
+    | "-o" :: output :: rest ->
+        if Option.is_some out then bad () else flags paths (Some output) exports rest
+    | "--export" :: name :: rest -> flags paths out (name :: exports) rest
+    | ("-o" | "--export") :: [] -> bad ()
+    | path :: rest ->
+        if String.starts_with ~prefix:"-" path then bad ()
+        else flags (path :: paths) out exports rest
+  in
+  flags [] None [] args
 
 (** "run FILE --export NAME [--host node|wasmtime|kernel|both]" (3.1).
     One host answers alone;  [both] runs node and then wasmtime and
@@ -290,6 +326,7 @@ let dispatch (cmd : string) (args : string list) : unit =
   | "check" -> dispatch_check args
   | "axioms" -> dispatch_axioms args
   | "emit" -> dispatch_emit args
+  | "build" -> dispatch_build args
   | "run" -> dispatch_run args
   | _unknown ->
       usage ();

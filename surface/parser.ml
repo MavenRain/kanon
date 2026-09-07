@@ -40,7 +40,7 @@ let expected (what : string) (ts : Token.t list) : ('a, Error.t) result =
 (* mirrors kan-lang-tot-pin/surface/parser.ml:51-69 *)
 let kind_starts_atom (k : Token.kind) : bool =
   match k with
-  | Token.Ident _ | Token.Nat _ | Token.LParen | Token.Unit | Token.KProp | Token.KType
+  | Token.Ident _ | Token.Nat _ | Token.Bytes _ | Token.LParen | Token.Unit | Token.KProp | Token.KType
   | Token.KAuto | Token.KTuple | Token.KSum | Token.KProd | Token.KNatAdd
   | Token.KNatSub | Token.KNatMul | Token.KNatEq | Token.KNatLt | Token.KNu ->
       true
@@ -367,6 +367,15 @@ and parse_atom_head (ts : Token.t list) : (Syntax.t * Token.t list, Error.t) res
   match ts with
   | { Token.kind = Token.Ident x; loc = _ } :: rest -> Ok (Syntax.SVar x, rest)
   | { Token.kind = Token.Nat n; loc = _ } :: rest -> Ok (Syntax.SNat n, rest)
+  | { Token.kind = Token.Bytes bytes; loc = _ } :: rest ->
+      let term =
+        List.fold_left
+          (fun (tail : Syntax.t) (b : int) ->
+            Syntax.SApp
+              (Syntax.SApp (Syntax.SVar "bytesCons", Syntax.SNat (Bignum.of_int b)), tail))
+          (Syntax.SVar "bytesNil") (List.rev bytes)
+      in
+      Ok (term, rest)
   | { Token.kind = Token.KProp; loc = _ } :: rest -> Ok (Syntax.SProp, rest)
   | { Token.kind = Token.KType; loc = _ } :: { Token.kind = Token.Nat n; loc } :: rest ->
       let* n = bounded_nat loc n in

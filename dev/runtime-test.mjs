@@ -1,0 +1,274 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { mkdtemp, readFile, rm, access } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir, constants } from 'node:os';
+import { setTimeout as delay } from 'node:timers/promises';
+import { executeProcess, osString, runReactor, spawns } from '../runtime/reactor.mjs';
+
+const sandbox = async t => {
+  const path = await mkdtemp(join(tmpdir(), 'kanon-runtime-'));
+  t.after(() => rm(path, { recursive: true, force: true }));
+  return { path, out: join(path, 'stdout'), err: join(path, 'stderr'), marker: join(path, 'marker') };
+};
+const command = (s, deadline, source) => [s.out, s.err, s.path, deadline, process.execPath, '-e', source];
+const fields = response => response.toString().split('\0');
+const absent = async path => assert.rejects(access(path), { code: 'ENOENT' });
+const sideEffect = s => `require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, 'ran')`;
+
+test('rejects invalid process inputs before opening files or spawning', async t => {
+  for (const deadline of ['bad', '-1', '2147483648', '9007199254740992']) {
+    const s = await sandbox(t);
+    await assert.rejects(executeProcess(command(s, deadline, sideEffect(s)), { signal: null }), RangeError);
+    await absent(s.out);
+    await absent(s.err);
+    await absent(s.marker);
+  }
+  const s = await sandbox(t);
+  await assert.rejects(executeProcess([s.out, s.err, s.path, '0', ''], { signal: null }), /executable/);
+  await assert.rejects(executeProcess([s.out, s.err, s.path, '0', 'bad\0argv'], { signal: null }), /NUL-free/);
+  await absent(s.out);
+});
+
+test('prior interruption creates empty captures and never starts a command', async t => {
+  const s = await sandbox(t);
+  const response = await executeProcess(command(s, '0', sideEffect(s)), { signal: 'SIGINT' });
+  assert.deepEqual(fields(response), ['130', String(constants.signals.SIGINT), '0', '1', '']);
+  assert.equal((await readFile(s.out)).length, 0);
+  assert.equal((await readFile(s.err)).length, 0);
+  await absent(s.marker);
+});
+
+test('interruption delivered while captures open prevents spawning', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const interrupted = { signal: null };
+  const started = spawns.started;
+  // The counter answers the property in the title on its own: only the
+  // synchronous guard can keep it at its old value. The shell payload
+  // writes its marker within a few milliseconds of exec, so a spawned
+  // command leaves the marker behind long before the 25 ms poll.
+  const running = executeProcess([s.out, s.err, s.path, '0', '/bin/sh', '-c',
+    `printf ran > ${JSON.stringify(s.marker)}`], interrupted);
+  queueMicrotask(() => { interrupted.signal = 'SIGTERM'; });
+  assert.deepEqual(fields(await running), ['143', String(constants.signals.SIGTERM), '0', '1', '']);
+  assert.equal(spawns.started, started);
+  await delay(200);
+  assert.equal((await readFile(s.out)).length, 0);
+  assert.equal((await readFile(s.err)).length, 0);
+  await absent(s.marker);
+});
+
+test('captures binary stdout and stderr with exact exit status', async t => {
+  const s = await sandbox(t);
+  const response = await executeProcess(command(s, '1000', `
+    const fs = require('node:fs');
+    fs.writeSync(1, Buffer.from([0, 255, 65]));
+    fs.writeSync(2, Buffer.from([10, 0, 66]));
+    process.exitCode = 7;
+  `), { signal: null });
+  assert.deepEqual(fields(response), ['7', '0', '0', '0', '']);
+  assert.deepEqual(await readFile(s.out), Buffer.from([0, 255, 65]));
+  assert.deepEqual(await readFile(s.err), Buffer.from([10, 0, 66]));
+});
+
+test('reports spawn errors through the response and closes captures', async t => {
+  const s = await sandbox(t);
+  const response = fields(await executeProcess([s.out, s.err, s.path, '1000', join(s.path, 'missing-command')], { signal: null }));
+  assert.deepEqual(response.slice(0, 4), ['127', '0', '0', '0']);
+  assert.match(response[4], /^ENOENT:/);
+  assert.equal((await readFile(s.out)).length, 0);
+  assert.equal((await readFile(s.err)).length, 0);
+});
+
+test('timeout escalates for a child that ignores SIGTERM', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const response = fields(await executeProcess(command(s, '150', `
+    process.on('SIGTERM', () => {});
+    require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, String(process.pid));
+    setInterval(() => {}, 1000);
+  `), { signal: null }));
+  assert.deepEqual(response.slice(0, 4), ['124', String(constants.signals.SIGKILL), '1', '0']);
+  const pid = Number(await readFile(s.marker, 'utf8'));
+  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+});
+
+test('signal callback errors reject normally after killing and reaping the child', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const originalKill = process.kill;
+  const injected = Object.assign(new Error('injected signal failure'), { code: 'EIO' });
+  process.kill = (pid, signal) => {
+    if (signal === 'SIGTERM') throw injected;
+    return originalKill.call(process, pid, signal);
+  };
+  try {
+    await assert.rejects(executeProcess(command(s, '150', `
+      require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, String(process.pid));
+      setInterval(() => {}, 1000);
+    `), { signal: null }), error => error === injected);
+    const pid = Number(await readFile(s.marker, 'utf8'));
+    assert.throws(() => originalKill.call(process, pid, 0), { code: 'ESRCH' });
+  } finally {
+    process.kill = originalKill;
+  }
+});
+
+test('active interruption returns signal status and reaps the process', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const interrupted = { signal: null };
+  const timer = setTimeout(() => { interrupted.signal = 'SIGINT'; }, 150);
+  try {
+    const response = fields(await executeProcess(command(s, '1000', `
+      require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, String(process.pid));
+      setInterval(() => {}, 1000);
+    `), interrupted));
+    assert.deepEqual(response.slice(0, 4), ['130', String(constants.signals.SIGINT), '0', '1']);
+    const pid = Number(await readFile(s.marker, 'utf8'));
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+test('escalation callback errors are caught and cleanup retries the kill', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const originalKill = process.kill;
+  const injected = Object.assign(new Error('injected escalation failure'), { code: 'EIO' });
+  let failedOnce = false;
+  process.kill = (pid, signal) => {
+    if (signal === 'SIGKILL' && !failedOnce) {
+      failedOnce = true;
+      throw injected;
+    }
+    return originalKill.call(process, pid, signal);
+  };
+  try {
+    await assert.rejects(executeProcess(command(s, '150', `
+      process.on('SIGTERM', () => {});
+      require('node:fs').writeFileSync(${JSON.stringify(s.marker)}, String(process.pid));
+      setInterval(() => {}, 1000);
+    `), { signal: null }), error => error === injected);
+    const pid = Number(await readFile(s.marker, 'utf8'));
+    assert.throws(() => originalKill.call(process, pid, 0), { code: 'ESRCH' });
+  } finally {
+    process.kill = originalKill;
+  }
+});
+
+test('unexpected descendant wait errors kill the remaining process group', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const originalKill = process.kill;
+  const injected = Object.assign(new Error('injected group probe failure'), { code: 'EIO' });
+  process.kill = (pid, signal) => {
+    if (signal === 0 && pid < 0) throw injected;
+    return originalKill.call(process, pid, signal);
+  };
+  const descendant = `setTimeout(() => { ${sideEffect(s)}; }, 500);`;
+  try {
+    await assert.rejects(executeProcess(command(s, '0', `
+      const child = require('node:child_process').spawn(process.execPath,
+        ['-e', ${JSON.stringify(descendant)}], { stdio: 'inherit' });
+      child.unref();
+    `), { signal: null }), error => error === injected);
+    await delay(650);
+    await absent(s.marker);
+  } finally {
+    process.kill = originalKill;
+  }
+});
+
+test('a lingering group member cannot hold a deadline of zero open', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const start = Date.now();
+  const response = fields(await executeProcess([s.out, s.err, s.path, '0', '/bin/sh', '-c',
+    `sleep 30 & printf ran > ${JSON.stringify(s.marker)}`], { signal: null }));
+  const elapsed = Date.now() - start;
+  assert.deepEqual(response, ['0', '0', '0', '0', '']);
+  assert.ok(elapsed < 3000, `group drain took ${elapsed} ms`);
+  assert.equal(await readFile(s.marker, 'utf8'), 'ran');
+});
+
+test('a leader that exits before its deadline keeps its own status', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  // The deadline falls between the end of the group drain and the end of
+  // the escalation, so a timer left armed would fire after the leader has
+  // already closed with status 0.
+  const response = fields(await executeProcess([s.out, s.err, s.path, '400', '/bin/sh', '-c',
+    'sleep 5 & echo hi'], { signal: null }));
+  assert.deepEqual(response, ['0', '0', '0', '0', '']);
+  assert.equal(await readFile(s.out, 'utf8'), 'hi\n');
+});
+
+test('an OS string argument keeps its bytes or is rejected', () => {
+  assert.throws(() => osString(Buffer.from([0xe9, 0x41])), /non-UTF-8/);
+  assert.throws(() => osString(Buffer.from([0x41, 0x00])), /NUL/);
+  assert.equal(osString(Buffer.from([0xc3, 0xa9, 0x41])), 'éA');
+});
+
+// A list is a plain array here, so a fake module can drive the loop
+// without a WebAssembly build. Empty predicates answer 1 or 0.
+const lists = {
+  emptyBytes: () => [], consBytes: (b, l) => [b, ...l],
+  bytesEmpty: l => Number(l.length === 0), bytesHead: l => l[0], bytesTail: l => l.slice(1),
+  emptyWords: () => [], consWords: (w, l) => [w, ...l],
+  wordsEmpty: l => Number(l.length === 0), wordsHead: l => l[0], wordsTail: l => l.slice(1),
+};
+
+test('a signal between requests ends the loop with 128 plus the signal number', { skip: process.platform === 'win32' }, async t => {
+  const guard = () => {};
+  const engine = globalThis.WebAssembly;
+  process.on('SIGINT', guard);
+  t.after(() => { process.removeListener('SIGINT', guard); globalThis.WebAssembly = engine; });
+  const word = text => [...Buffer.from(text)];
+  let resumes = 0;
+  const api = {
+    ...lists,
+    init: () => 100,
+    requestCode: state => state > 0 ? 2 : 0,
+    requestArgs: () => [word(process.execPath), word('0'), word('4')],
+    requestBody: () => [],
+    resume: state => {
+      resumes += 1;
+      // The third read has returned, so the loop is running and the
+      // handler is installed. Operation 2 is not operation 4.
+      if (resumes === 3) process.kill(process.pid, 'SIGINT');
+      return state - 1;
+    },
+    exitCode: () => 0,
+  };
+  globalThis.WebAssembly = { instantiate: async () => ({ instance: { exports: api } }) };
+  // The fake module ignores the bytes, so any small existing file serves.
+  const status = await runReactor(new URL('../runtime/reactor.mjs', import.meta.url), []);
+  assert.equal(status, 128 + constants.signals.SIGINT);
+  assert.ok(resumes < 100, `loop ran ${resumes} requests after the signal`);
+});
+
+test('an interruption reported by operation 4 earns one shutdown request', { skip: process.platform === 'win32' }, async t => {
+  const s = await sandbox(t);
+  const guard = () => {};
+  const engine = globalThis.WebAssembly;
+  process.on('SIGINT', guard);
+  t.after(() => { process.removeListener('SIGINT', guard); globalThis.WebAssembly = engine; });
+  const word = text => [...Buffer.from(text)];
+  const performed = [];
+  const api = {
+    ...lists,
+    init: () => 0,
+    requestCode: state => state === 0 ? 4 : state === 1 ? 3 : 0,
+    // State 0 runs a command long enough to be interrupted. State 1 is the
+    // shutdown request: operation 3 leaves a file the assertions can read.
+    requestArgs: state => state === 0
+      ? [word(s.out), word(s.err), word(s.path), word('0'), word('/bin/sh'), word('-c'), word('sleep 5')]
+      : [word(s.marker)],
+    requestBody: state => state === 1 ? word('summary') : [],
+    resume: (state, status) => { performed.push(`${state}:${status}`); return state + 1; },
+    exitCode: () => 0,
+  };
+  globalThis.WebAssembly = { instantiate: async () => ({ instance: { exports: api } }) };
+  // The handler is installed by the time the command is running, and the
+  // command outlives this delay by seconds.
+  setTimeout(() => process.kill(process.pid, 'SIGINT'), 150).unref();
+  const status = await runReactor(new URL('../runtime/reactor.mjs', import.meta.url), []);
+  assert.equal(status, 128 + constants.signals.SIGINT);
+  assert.deepEqual(performed, ['0:0', '1:0']);
+  assert.equal(await readFile(s.marker, 'utf8'), 'summary');
+});
