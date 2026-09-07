@@ -233,7 +233,7 @@ let position (x : string) (xs : string list) : int option =
          ( i + 1,
            lazy_fold found
              ~none:(fun (() : unit) ->
-               match String.equal x y with true -> Some i | false -> None)
+               if String.equal x y then Some i else None)
              ~some:(fun (j : int) -> Some j) ))
        (0, None) xs)
 
@@ -1005,7 +1005,11 @@ and mu_fields (ec : ectx) (ac : acc) (env : Value.t list)
       let* v = Eval.eval (globals_of ec) (env_of ec) arg in
       let* more, ac2 = mu_fields ec ac1 (v :: env) tele' args' layout' in
       Ok (here @ more, ac2)
-  | _tele, _args, _layout -> Error (Error.Mismatch branch_arity_word)
+  | ([], [], _ :: _)
+  | ([], _ :: _, _)
+  | (_ :: _, [], _)
+  | (_ :: _, _ :: _, []) ->
+      Error (Error.Mismatch branch_arity_word)
 
 (** Brief 3.1 and the row of M1-PLAN.md:104.  An elimination at a family
     becomes [KCase] over the same dispatch [case_elim] below writes, with
@@ -1123,7 +1127,11 @@ and mu_binders (ec : ectx) (st : Value.t list * Value.t list * int)
       mu_binders ec'
         (v :: env, v :: vals, (if keep then arity + 1 else arity))
         tele' binders' layout'
-  | _tele, _binders, _layout -> Error (Error.Missing_branch branch_arity_word)
+  | ([], [], _ :: _)
+  | ([], _ :: _, _)
+  | (_ :: _, [], _)
+  | (_ :: _, _ :: _, []) ->
+      Error (Error.Missing_branch branch_arity_word)
 
 and out_arm (ec : ectx) (ac : acc) ~(tail : bool) ~(ty : Value.t)
     (s : Term.t Shape.t) (a : Term.addr) (head : Term.t) (t : Term.t) :

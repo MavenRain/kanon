@@ -1,17 +1,20 @@
 # kanon
 
-The [foundation audit](dev/FOUNDATION-AUDIT.md) records the current limits of
-the strict Kan-only and Lean-parity claims, the conditional initiality proof,
-and the indexed-vector runtime regression.
+Kanon's type grammar uses left and right Kan extensions along shapes.
+The [foundation audit](dev/FOUNDATION-AUDIT.md) records the remaining
+obligation to derive the implemented inductive rules from their universal
+properties.  The [indexed construction](dev/INDEXED-CONSTRUCTION.md)
+supplies external Lean models for nullary/unary indexed signatures,
+including vectors.  Connecting those models to checked `SMu` declarations
+and proving compiler preservation and full Lean parity remain open.
 
-Kan extensions are the sole type former: every type in kanon is a left or
-a right Kan extension of a diagram along a shape.
-
-Status: M0 Stage E.  The skeleton, the closed term grammar, the carried
-kernel leaves, the R0 counts, the lexer, the parser, the surface printer,
-the evaluator, conversion, the checker, the elaborator, erasure, the
-totality entry point, WasmGC emission and the `kanon run` driver are
-built.
+Status: M1 Stage L implementation with final validation still open;
+M1 exit is not ratified.  The checker, elaborator, erasure, WasmGC emitter
+and execution driver support strictly positive indexed and mutual `mu`
+families, dependent matching, structural recursion, arbitrary precision
+`Nat` arithmetic and exact-use `1` binders.  `auto`, `nu`, level variables
+and the deferred equality shape remain later work.  The
+[build log](dev/M1-BUILD-LOG.md) records validation results and open gates.
 
 ## Checking a file
 
@@ -28,6 +31,12 @@ declaration order, and prints nothing for a file that postulates
 nothing, so the trust base of a checked file is one command away.  A
 missing file and an unknown command exit 64, which a caller tells from
 the exit 1 of a file that does not check.
+
+A `(1 x : T)` binder requires exactly one runtime use on every reachable
+path.  Sequential uses add, argument quantities scale uses, and case
+branches are alternatives.  Types, annotations and erased arguments
+contribute no runtime uses.  The checker also tracks closure captures,
+constructor fields and let aliases.
 
 ## Erasing a file
 
@@ -53,17 +62,20 @@ definition and reads the answer out of its i31.  The command prints
 nothing and exits 0 on success.  A file that does not check exits 1, as
 `kanon check` does.  A form the emitter refuses prints one
 `kanon: emit: MESSAGE` line on stderr and exits 2;  the refusals are a
-postulate with no body, a literal outside the range 0 to 1073741823, an
-export that is not a `Nat` of arity zero, and the delayed forms that
-arrive at M2.  A usage error and a directory that does not exist exit
-64.
+postulate with no body, an export that is not a `Nat` of arity zero, and
+unsupported forms such as strings and the delayed forms that arrive at
+M2.  A usage error and a directory that does not exist exit 64.
 
 `node dev/run-node.mjs OUT.wasm NAME` runs the module with no import and
 prints the answer in decimal.  It exits 0 with the answer, 1 with a
 `trap: MESSAGE` line when the module traps, 2 with an `invalid: MESSAGE`
 line when the engine refuses the module, and 64 on a usage error.  A
-natural rides in an i31, so an answer above 1073741823 is a trap and not
-a wrapped number.
+natural uses an i31 through 1073741823 and a big-natural struct with
+base-32768 limbs above it.  All five primitives compute exactly, promoting
+before overflow and normalizing small results back to i31; `natSub`
+truncates at zero.  Large decimal literals are accepted.  The export ABI
+still requires an i31 answer, so exporting a larger final value traps.
+Large intermediate values may produce a small exported observation.
 
 ```
 _build/default/bin/kanon.exe emit test/fixtures/d01-lit-prims.kan \
@@ -118,10 +130,23 @@ The exit codes are these.  0 is an answer, and the hosts that ran agree
 on it.  1 is a file that does not check.  2 is an emission the wasm back
 end refuses, or a host that refuses the module.  3 is two hosts that
 disagree.  4 is a trap, on one host, on both hosts, or in the kernel,
-where a value outside the i31 range is the trap that the module raises.
+where an exported value outside the i31 range raises a trap.
 64 is a usage error, a missing file or a missing runner.
 
-## The spine
+## The spines
+
+`examples/m1-spine.kan` extends the M0 coverage with direct, mutual and
+indexed recursion, dependent matching, restricted large elimination from
+`Prop`, exact-use binders, large natural intermediates and small unary
+agreement witnesses.  It has no postulates and its expected `main` is
+`599`.  The mandatory M1 suite checks that answer on the kernel and both
+Wasm hosts.
+
+```sh
+kanon axioms examples/m1-spine.kan
+kanon run examples/m1-spine.kan --export main --host kernel
+kanon run examples/m1-spine.kan --export main --host both
+```
 
 `examples/m0-spine.kan` is the M0 spine.  It postulates nothing, so
 `kanon axioms examples/m0-spine.kan` prints nothing and exits 0.  Its
@@ -148,11 +173,9 @@ let with a case inside it;  the annotation form;  the literals;  and a
 function over the empty sum, which carries the `unreachable` row without
 a trap, because `main` never calls it.
 
-It holds every production of the surface grammar of SPEC.md section 9
-that M0 accepts.  The `(1 x : Nat)` binder is its own first witness,
-because no fixture writes one.  The three words `auto`, `mu` and `nu`
-are refusals at M0, so the spine omits them.  A comment block at the top
-of the file names the row and the production of every definition, and
+It retains the surface forms accepted at M0, including a `(1 x : Nat)`
+identity adapted to the exact-use rule.  Recursive declarations appear
+in the M1 spine.  Comments name the rows and productions exercised, and
 the line `-- main is 521` is the promise that the M0-E2E leg reads.
 
 ## The closure ABI
@@ -192,10 +215,12 @@ surface/            library kanon_surface
 wasm/               library kanon_wasm: gc_encode.ml, link.ml, emit.ml
 bin/kanon.ml        driver: check | emit | run | axioms | spec-count
 bin/host.ml         the three hosts that kanon run reaches
-examples/           m0-spine.kan, the M0 spine
-test/               main.ml, wasm.ml, sys_io.ml, fixtures/*.kan,
-                    golden/*.checked, golden/*.erased, golden/*.wat,
-                    neg/*.kan
+examples/           m0-spine.kan and m1-spine.kan
+meta/               Lean metatheory, constructions and regression proofs
+test/               main.ml, wasm.ml, sl_surface.ml, sys_io.ml,
+                    fixtures/*.kan, golden/*.checked, golden/*.erased,
+                    golden/*.wat, neg/*.kan, corpus/m1-corpus.kan,
+                    agreement/*.kan
 dev/                the runners, the gate scripts and the logs
 ```
 
@@ -211,7 +236,8 @@ zsh dev/dune.sh clean             # remove _build
 zsh dev/carry-check.sh            # the carried files match the pin
 zsh dev/r0-count.sh               # spec-count agrees with SPEC.md
 zsh dev/encoder-subset.sh         # the goldens hold no opcode past SPEC.md
-zsh dev/house.sh                  # the house rules over lib, bin, test, wasm
+zsh dev/house.sh                  # the house rules over lib, surface, bin,
+                                  # test, wasm and dev
 zsh dev/r0-audit.sh               # no shape name outside its four files
 zsh dev/trusted-lines.sh          # the kernel and the encoder line bounds
 zsh dev/gates.sh                  # the whole gate battery, every leg
@@ -224,12 +250,13 @@ tree builds and checks itself.
 
 ## Gates
 
-`zsh dev/gates.sh` runs the whole M0 battery.  Every leg prints one
+`zsh dev/gates.sh` runs the M1 battery, including the carried M0 legs.
+Every leg prints one
 `PASS LEG` line, or one `FAIL LEG` line and then the output that the leg
 captured.  BUILD is the one leg that ends the run when it fails, because
 every later leg reads the build it makes.  Every other leg runs even
 when an earlier leg failed, so one run names every failing leg.  The
-fifteen legs, in order:
+nineteen legs, in order:
 
 ```
 BUILD            dev/dunecho.sh build prints 0 errors, 0 warnings
@@ -242,15 +269,20 @@ ENCODER-SUBSET   the goldens hold no opcode past SPEC.md section 8
 AXIOMS           b08 discloses Bit and the spine discloses nothing
 M0-E2E           check, emit, wasm-opt, kernel and both hosts on the spine
 M0-TIME          the median of the spine's run stays under the bound
-M0-RATIO         this kernel suite against tot's warm kernel suite
+M0-RATIO         corpus check time per line against tot's frozen baseline
 TRUSTED-LINES    the kernel eight and the encoder stay under their bounds
 DENOMINATORS     dev/denominators.json matches its sha256 row
-HOUSE            the house rules over lib, surface, bin, test and wasm
+HOUSE            the house rules over lib, surface, bin, test, wasm and dev
 PIN              PIN, vendor/tot and the pin worktree name one sha
+POSITIVITY       all positive mu fixtures and the nonpositive rejection
+M1-CORPUS        the 1000-line corpus, through check and all runtime hosts
+M1-SUITE         feature ledger, negative twins, One, Nat and surface cases
+AGREEMENT        5445 unary witnesses and 2000 independent full-range cases
 ```
 
-Three legs carry a value in the verdict line:  `PASS M0-E2E main=521`,
-`PASS M0-TIME median_ms=X bound_ms=150` and `PASS M0-RATIO ratio=R`.
+Several verdict lines include observations, such as `main=521`, timing
+samples, the normalized ratio or agreement case counts.  Agreement is
+finite test evidence, not a general arithmetic or compiler theorem.
 
 After the last leg the script prints the MEASURE block, one line per leg
 in the same order:
@@ -259,20 +291,22 @@ in the same order:
 MEASURE BUILD tier=SLOW elapsed_ms=159.862 exit=0
 ```
 
-The tier is the hang ceiling that the leg runs under, one of FAST, MED,
-SLOW and SUITE, and `elapsed_ms` comes from the zsh clock, which
+The tier is the hang ceiling that the leg runs under: FAST is 10 seconds,
+MED 30, SLOW 120 and SUITE 300.  `elapsed_ms` comes from the zsh clock, which
 resolves microseconds.  The script then prints `GATES-OK` and exits 0,
 or `GATES-FAIL` and exits 1.
 
-The M0-TIME bound is 150 ms.  The variable `M0_TIME_MS` near the top of
-dev/gates.sh holds it.  The timed command is the driver's whole run path
-over the spine, that is check, erase, emit, node and wasmtime;  wasm-opt
-is a step of M0-E2E and stays outside the timing.
+The M0-TIME bound is 150 ms, applied to the median of three five-run
+medians.  The timed command is the driver's whole run path over the M0
+spine: check, erase, emit, node and wasmtime.  `wasm-opt` remains outside
+that timing.  M1-CORPUS separately times the complete corpus path,
+including module validation, against 713 ms.
 
-M0-RATIO is informational at M0.  It divides the median of this tree's
-kernel suite by the median of tot's warm kernel suite, which
-dev/denominators.json holds at 103.662 ms.  The leg fails on a bench
-error or on a denominator it cannot read, never on the value.
+M0-RATIO is binding at M1 with a bound of 2.000.  It compares the median
+of five checks of the 1000-line corpus, per line, with the frozen tot
+baseline of 103.662 ms over 8138 lines.  The original timing is in
+dev/denominators.json and the dated normalization in
+dev/denominators-m1.json.  These bounds are fixed in dev/gates.sh.
 
 Work files live under `.gatework/gates/`, which .gitignore holds.
 

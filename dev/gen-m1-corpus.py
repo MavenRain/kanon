@@ -3,10 +3,17 @@
 Run from any directory with python3 -P dev/gen-m1-corpus.py.  Each grid
 cell and indexed vector contributes to main.  Code is split at spaces to
 meet the fixed line count without adding dead definitions or blank lines.
+The --out option writes the same bytes to another path, so SL-D31 can be
+rechecked without touching the tracked corpus.
 """
+import argparse
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
+parser = argparse.ArgumentParser(description="Regenerate the M1 benchmark corpus.")
+parser.add_argument("--out", type=Path, default=root / "test/corpus/m1-corpus.kan",
+                    help="destination file, by default the tracked corpus")
+args = parser.parse_args()
 spine = (root / "examples/m1-spine.kan").read_text()
 
 # The corpus includes the complete spine and a reproducible arithmetic grid.
@@ -50,7 +57,7 @@ while len(lines) < 1000:
     lines[index:index+1] = [line[:cut], " " * (indent + 2) + line[cut+1:].lstrip()]
 if len(lines) != 1000:
     raise SystemExit("corpus source exceeds the required 1000 lines")
-target = root / "test/corpus/m1-corpus.kan"
+target = args.out
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text("\n".join(lines)+"\n")
 print(f"M1-CORPUS generated lines={len(lines)} main={expected}")

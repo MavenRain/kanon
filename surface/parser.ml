@@ -556,8 +556,8 @@ and parse_mutual_group (ts : Token.t list) (acc : Syntax.fam list) :
       parse_mutual_group rest2 (fm :: acc)
   | { Token.kind = Token.KEnd; loc } :: rest -> (
       match acc with
-      | [] -> parse_err loc "a mutual group needs at least two mu declarations"
-      | [ _one ] -> parse_err loc "a mutual group needs at least two mu declarations"
+      | [] | [ _ ] ->
+          parse_err loc "a mutual group needs at least two mu declarations"
       | _first :: _second :: _remaining -> Ok (List.rev acc, rest))
   | ({ Token.kind = _; loc = _ } :: _ | []) -> expected "'mu' or 'end' in a mutual group" ts
 

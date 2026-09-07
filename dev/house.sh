@@ -20,9 +20,24 @@ root=${1:-${0:A:h:h}}
 fail=0
 
 emdash=$'\u2014'
+newline=$'\n'
 pat_house='raise |failwith|assert |exception |List\.nth|\.\('
 pat_state='\bref\b|\bmutable\b|Array\.|Hashtbl|Buffer\.'
 pat_bool='true ->|false ->'
+
+# SL round 2026-09-07: dev/*.ml is policed too.  The dev tree also holds
+# python and zsh files, so the second call is limited to OCaml sources
+# and its output is joined to the first without a blank line.  Legs 1, 3
+# and 4 use this helper.  Leg 2 names its own roots, because its rule
+# covers the kernel and the encoder only.
+scan () {
+  local pattern=$1
+  shift
+  local main dev
+  main=$(rg -n -- $pattern "$@")
+  dev=$(rg -n --glob '*.ml' --glob '*.mli' -- $pattern $root/dev)
+  print -r -- "${main}${main:+${dev:+$newline}}${dev}"
+}
 
 report_empty () {
   local name=$1 out=$2
@@ -38,19 +53,21 @@ report_empty () {
 # Leg 1: no exception, unapproved catch-all, List.nth or unsafe index.
 # SL-D16: allow entries identify a function and exact arm, so line shifts
 # cannot authorize another catch-all or invalidate the two ruled sites.
-leg1=$(rg -n -- $pat_house $root/lib $root/surface $root/bin $root/test $root/wasm)
+leg1=$(scan $pat_house $root/lib $root/surface $root/bin $root/test $root/wasm)
 named=$(python3 -P $root/dev/house-catchalls.py $root 2>&1)
 named_code=$?
 if [[ $named_code -ne 0 && -z $named ]]; then
   named="named catch-all scan failed with exit=$named_code"
 fi
 if [[ -n $named ]]; then
-  leg1="${leg1}${leg1:+$'\n'}${named}"
+  leg1="${leg1}${leg1:+$newline}${named}"
 fi
 report_empty "no-exception" "$leg1"
 
 # Leg 2:  no mutable state in the kernel or the encoder, except the one
-# disclosed SD-D18 buffer site inside wasm/gc_encode.ml.
+# disclosed SD-D18 buffer site inside wasm/gc_encode.ml.  The rule states
+# the kernel and the encoder, so the leg reads lib and wasm alone and a
+# dev harness stays outside it.
 leg2=$(rg -n -- $pat_state $root/lib $root/wasm)
 marker=$(rg -n -- 'SD-D18\.' $root/wasm/gc_encode.ml | head -1 | awk -F: '{print $1}')
 if [[ -z $leg2 ]]; then
@@ -62,7 +79,7 @@ fi
 report_empty "no-mutable-state" "$leg2_bad"
 
 # Leg 3:  exactly one catch site in the repository (SD-D14).
-leg3=$(rg -n -- '\btry\b' $root/lib $root/surface $root/bin $root/test $root/wasm)
+leg3=$(scan '\btry\b' $root/lib $root/surface $root/bin $root/test $root/wasm)
 leg3_n=$(print -r -- "$leg3" | rg -c -- '.' || true)
 if [[ $leg3_n == 1 ]]; then
   print -r -- "HOUSE one-catch-site OK"
@@ -74,7 +91,7 @@ else
 fi
 
 # Leg 4:  no bool match.
-leg4=$(rg -n -- $pat_bool $root/wasm $root/test $root/bin)
+leg4=$(scan $pat_bool $root/lib $root/surface $root/wasm $root/test $root/bin)
 report_empty "no-bool-match" "$leg4"
 
 # Leg 5:  no em-dash outside the vendor tree and the build tree.

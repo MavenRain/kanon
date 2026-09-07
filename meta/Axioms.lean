@@ -38,11 +38,26 @@ open KanonMeta
 #print axioms ChainColimit.cocone
 #print axioms ChainColimit.isColimit
 #print axioms ChainColimit.initialOfPreserves
+#print axioms ChainColimit.respects
+#print axioms ChainColimit.descend_on_leg
 
 #print axioms NatConstruction.natPreserves
 #print axioms NatConstruction.recursiveInitial
+#print axioms NatConstruction.map_zero
+#print axioms NatConstruction.zero_node
+#print axioms NatConstruction.succ_node
+#print axioms NatConstruction.zero_legs
 
 #print axioms LinearConstruction.preserves
 #print axioms LinearConstruction.recursiveInitial
+#print axioms LinearConstruction.nullary_node
+#print axioms LinearConstruction.unary_node
+#print axioms LinearConstruction.map_nullary
+#print axioms LinearConstruction.fibre_factor
+#print axioms LinearConstruction.fibre_unique
+#print axioms LinearConstruction.nullary_legs
+
 #print axioms VectorConstruction.recursiveInitial
 #print axioms VectorConstruction.copy_eq
+#print axioms VectorConstruction.copy_nil
+#print axioms VectorConstruction.copy_cons

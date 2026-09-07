@@ -515,3 +515,30 @@ three required mutations without replacing any one of them.
 
 Stage L validation remains pending M0-TIME, M0-RATIO and complete
 AGREEMENT execution.  No failed baseline was waived.
+
+## Stage L follow-up controls (2026-09-07)
+
+Evidence lives under
+/Users/oobi/Documents/gpt4/kanon-stage-l-followup/evidence.  These controls
+supplement the existing Stage L mutations and do not discharge timing or
+agreement execution failures.
+
+| control group | actual result |
+| --- | --- |
+| HOUSE baseline and allowed syntax | The two-site baseline and seven list-cons, constructor and boolean controls passed the catch-all scanner. Boolean matching remains a separate HOUSE check. |
+| HOUSE forbidden patterns | Fourteen named, wildcard, typed, tuple and or-pattern controls, including multiline forms under dev, were rejected. |
+| HOUSE allowance expansion | A third path/function allowance was rejected. The intermediate subset check had accepted this control; exact-set equality fixes that defect. |
+| One runner exits | OCaml exit 23 propagated without running Python. Python exit 31 propagated after OCaml success. Both successful commands returned zero. |
+| Agreement report failures | An invalid manifest reset a previous full PASS. A filtered failure reset only the selected report. A terminated worker subprocess left FAIL on disk. |
+| Agreement report successes | Stubbed full and filtered workers preserved deterministic row order and report isolation. Synthetic case counts are reporting evidence only. |
+| Zarith runtime loading | Real round-trip execution returned ROUNDTRIP OK with CAML_LD_LIBRARY_PATH absent and with an inherited extra path. Both runner scripts prepended the switch stub directory and preserved inherited entries. |
+
+HOUSE and exit-propagation controls passed 26/26, recorded in
+house-controls/results.json.  The five report controls are in
+agreement-controls/report-controls.json and their reusable script.
+Shell syntax and runtime-path checks are in
+agreement-controls/shell-controls.json.  A full final-source agreement
+attempt is recorded separately in agreement-final-run.json and
+agreement-final/results.json.  That final-source execution passed all
+7,445 cases in 290.166 seconds under the unchanged 300-second watchdog,
+exit zero.  Timing gates remain open.

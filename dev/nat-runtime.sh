@@ -10,6 +10,13 @@ evidence=${2:-$root/.gatework/nat-runtime}
 driver=$root/_build/default/bin/kanon.exe
 mkdir -p "$evidence" || exit 1
 
+# SL round 2026-09-07: the validator comes from PATH, the way
+# dev/m1-gates.py resolves it.  A missing binary is one clear line.
+if ! command -v wasm-opt > /dev/null 2>&1; then
+  print -r -- "NAT-RUNTIME FAIL wasm-opt is not on PATH"
+  exit 1
+fi
+
 cases=(nat-big:7 nat-runtime-edges:32 nat-runtime-capture:19 nat-runtime-mu:23 nat-runtime-export:trap)
 hosts=(kernel node wasmtime both)
 passed=0
@@ -27,7 +34,7 @@ for item in $cases; do
     failed=1
     continue
   fi
-  /opt/homebrew/bin/wasm-opt "$wasm" -S -o "$evidence/$fixture.wat" \
+  wasm-opt "$wasm" -S -o "$evidence/$fixture.wat" \
     --enable-gc --enable-reference-types --enable-tail-call --enable-exception-handling \
     > "$evidence/$fixture.validate.out" 2> "$evidence/$fixture.validate.err"
   code=$?

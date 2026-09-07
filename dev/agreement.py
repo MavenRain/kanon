@@ -2,6 +2,7 @@
 """Permanent finite agreement evidence, approved 2026-09-06 (d)."""
 
 import argparse
+import concurrent.futures as futures
 import hashlib
 import json
 from pathlib import Path
@@ -128,61 +129,88 @@ def command(argv, log, timeout=300, input_text=None):
     return row
 
 
+def one_row(root, kanon, mutation, out, entry):
+    """Check one kind of one primitive and return its report row."""
+    kind, primitive, path, src, count = entry
+    row = {"kind": kind, "primitive": primitive, "cases": count, "commands": []}
+    source_ok = path.is_file() and path.read_text() == src
+    # Mutation mode still executes the checker on the selected altered source.
+    if not path.is_file() or (not source_ok and not mutation):
+        row["error"] = "missing or changed source matrix"
+        row["pass"] = False
+        return row
+    roundtrip_ok = True
+    if kind == "unary":
+        parsed = command(["zsh", HERE / "agreement-roundtrip.sh", root],
+                         row["commands"], input_text=path.read_text())
+        roundtrip_ok = parsed["exit"] == 0 and parsed["stdout"].strip() == "ROUNDTRIP OK"
+    check = command([kanon, "check", "--print", path], row["commands"])
+    axioms = command([kanon, "axioms", path], row["commands"])
+    ok = roundtrip_ok and check["exit"] == 0 and axioms["exit"] == 0 and axioms["stdout"].strip() == ""
+    if kind == "unary" and ok:
+        checked = root / "test" / "golden" / (path.stem + ".checked")
+        erased = root / "test" / "golden" / (path.stem + ".erased")
+        erased_result = command([kanon, "check", "--erased", path], row["commands"])
+        ok = (checked.is_file() and checked.read_text() == check["stdout"]
+              and erased.is_file() and erased_result["exit"] == 0
+              and erased.read_text() == erased_result["stdout"])
+    for i, result in enumerate(row["commands"]):
+        if len(result.get("stdout", "")) > 4096:
+            capture = out / f"{kind}-{primitive}-{i}.stdout"
+            capture.write_text(result["stdout"])
+            result["stdout_path"] = str(capture)
+            result["stdout"] = ""
+    # The three hosts stay one after another inside this row.
+    if kind == "full-range" and ok:
+        for host in ("kernel", "node", "wasmtime"):
+            observed = command([kanon, "run", path, "--export", "main", "--host", host], row["commands"])
+            ok = observed["exit"] == 0 and observed["stdout"].strip() == str(count) and ok
+    row["pass"] = ok and (source_ok or mutation)
+    return row
+
+
+def primitive_rows(root, kanon, mutation, out, only, primitive):
+    """Every selected row of one primitive, in the reference file order."""
+    return [one_row(root, kanon, mutation, out, entry)
+            for entry in expected_files(root)
+            if entry[1] == primitive and not (only and entry[0] != only)]
+
+
 def verify(root, only, mutation, out):
     report = {"ruling": "2026-09-06 (d)", "status": "FAIL", "rows": []}
     out.mkdir(exist_ok=True, parents=True)
+    filename = "results.json" if not only else only + "-results.json"
+    # Clear an earlier verdict before validation or the outer watchdog can
+    # stop this run. Filtered runs own only their selected report.
+    (out / filename).write_text(json.dumps(report, indent=2) + "\n")
     actual_manifest = json.loads((DATA / "agreement-reference.json").read_text())
     if actual_manifest != manifest(root):
         raise ValueError("reference manifest changed or has incomplete coverage")
     kanon = root / "_build" / "default" / "bin" / "kanon.exe"
-    passed = 0
-    selected = 0
-    for kind, primitive, path, src, count in expected_files(root):
-        if only and kind != only:
-            continue
-        selected += count
-        row = {"kind": kind, "primitive": primitive, "cases": count, "commands": []}
-        report["rows"].append(row)
-        source_ok = path.is_file() and path.read_text() == src
-        # Mutation mode still executes the checker on the selected altered source.
-        if not path.is_file() or (not source_ok and not mutation):
-            row["error"] = "missing or changed source matrix"
-            row["pass"] = False
-        else:
-            roundtrip_ok = True
-            if kind == "unary":
-                parsed = command(["zsh", HERE / "agreement-roundtrip.sh", root],
-                                 row["commands"], input_text=path.read_text())
-                roundtrip_ok = parsed["exit"] == 0 and parsed["stdout"].strip() == "ROUNDTRIP OK"
-            check = command([kanon, "check", "--print", path], row["commands"])
-            axioms = command([kanon, "axioms", path], row["commands"])
-            ok = roundtrip_ok and check["exit"] == 0 and axioms["exit"] == 0 and axioms["stdout"].strip() == ""
-            if kind == "unary" and ok:
-                checked = root / "test" / "golden" / (path.stem + ".checked")
-                erased = root / "test" / "golden" / (path.stem + ".erased")
-                erased_result = command([kanon, "check", "--erased", path], row["commands"])
-                ok = (checked.is_file() and checked.read_text() == check["stdout"]
-                      and erased.is_file() and erased_result["exit"] == 0
-                      and erased.read_text() == erased_result["stdout"])
-            for i, result in enumerate(row["commands"]):
-                if len(result.get("stdout", "")) > 4096:
-                    capture = out / f"{kind}-{primitive}-{i}.stdout"
-                    capture.write_text(result["stdout"])
-                    result["stdout_path"] = str(capture)
-                    result["stdout"] = ""
-            if kind == "full-range" and ok:
-                for host in ("kernel", "node", "wasmtime"):
-                    observed = command([kanon, "run", path, "--export", "main", "--host", host], row["commands"])
-                    ok = observed["exit"] == 0 and observed["stdout"].strip() == str(count) and ok
-            row["pass"] = ok and (source_ok or mutation)
-        if row["pass"]:
-            passed += count
-        print(f"AGREEMENT {kind} {primitive} {count if row['pass'] else 0}/{count} "
-              f"{'OK' if row['pass'] else 'FAIL'}", flush=True)
-        (out / "results.json").write_text(json.dumps(report, indent=2) + "\n")
+    order = {(kind, primitive): index for index, (kind, primitive, _, _, _)
+             in enumerate(expected_files(root))}
+    # SL round 2026-09-07: one worker per primitive.  The five primitives
+    # are independent, so the leg finishes in about the time of the
+    # slowest one instead of the sum.  Every subprocess timeout stays.
+    # Follow-up round: every finished primitive prints its rows and rewrites
+    # the report at once, so a kill at the outer watchdog leaves the rows
+    # that did finish on stdout and on disk.  as_completed hands the results
+    # to this one thread, so the shared list needs no lock.
+    with futures.ThreadPoolExecutor(max_workers=len(OPS)) as pool:
+        pending = [pool.submit(primitive_rows, root, kanon, mutation, out, only, primitive)
+                   for primitive in OPS]
+        for done in futures.as_completed(pending):
+            for row in done.result():
+                report["rows"].append(row)
+                print(f"AGREEMENT {row['kind']} {row['primitive']} "
+                      f"{row['cases'] if row['pass'] else 0}/{row['cases']} "
+                      f"{'OK' if row['pass'] else 'FAIL'}", flush=True)
+            (out / filename).write_text(json.dumps(report, indent=2) + "\n")
+    report["rows"].sort(key=lambda row: order[(row["kind"], row["primitive"])])
+    passed = sum(row["cases"] for row in report["rows"] if row["pass"])
+    selected = sum(row["cases"] for row in report["rows"])
     complete = not only and selected == 7445 and passed == selected
     report.update(passed=passed, selected=selected, status="PASS" if complete else "FAIL")
-    filename = "results.json" if not only else only + "-results.json"
     (out / filename).write_text(json.dumps(report, indent=2) + "\n")
     print(f"AGREEMENT {'OK' if complete else 'PARTIAL' if only and passed == selected else 'FAIL'} {passed}/{selected}", flush=True)
     return 0 if passed == selected and (complete or only) else 1

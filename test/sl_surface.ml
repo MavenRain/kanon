@@ -5,14 +5,17 @@ open Kanon_surface
 
 let ( let* ) = Result.bind
 
+(** Parse one source text and render any parser error as a string. *)
 let parse (source : string) : (Syntax.decl list, string) result =
   Parser.parse source |> Result.map_error Error.to_string
 
+(** Check that printing a parsed tree and parsing it again gives the same tree. *)
 let round_trip (source : string) : (unit, string) result =
   let* first = parse source in
   let* second = parse (Syntax.print first) in
   if first = second then Ok () else Error "printed tree changed"
 
+(** Check that a source is refused with exactly the given error message. *)
 let parse_refusal (source : string) (message : string) : (unit, string) result =
   Parser.parse source
   |> Result.fold
@@ -21,34 +24,44 @@ let parse_refusal (source : string) (message : string) : (unit, string) result =
          if String.equal (Error.message e) message then Ok ()
          else Error (Error.to_string e))
 
+(** Check that two sources parse to the same family tree. *)
 let same_tree (first : string) (second : string) : (unit, string) result =
   let* a = parse first in
   let* b = parse second in
   if a = b then Ok () else Error "sugar changed the family tree"
 
+(** Elaborate one source and return its checked form. *)
 let checked (source : string) : (string, string) result =
   Elab.check_text Global.initial source
   |> Result.map Elab.checked_form |> Result.map_error Error.to_string
 
+(** Check that two sources elaborate to the same checked form. *)
 let same_checked (first : string) (second : string) : (unit, string) result =
   let* a = checked first in
   let* b = checked second in
   if String.equal a b then Ok () else Error "match changed checked elimination"
 
+(** The Stage L constructor field sugar for the natural number family. *)
 let family = "mu N : Type 0 := | zero : N | succ (n : N) : N\n"
 
+(** The same family in the legacy arrow form, without field sugar. *)
 let legacy_family = "mu N : Type 0 with | zero : N | succ : (n : N) -> N\n"
 
+(** A predecessor definition written with the match sugar. *)
 let matched = family ^
   "def pred : N -> N := fun (n : N) => match n as x in N return N with | zero => zero | succ (p : N) => p"
 
+(** The same predecessor definition written with case over the legacy family. *)
 let cased = legacy_family ^
   "def pred : N -> N := fun (n : N) => case n as x in N return N with | zero => zero | succ p => p"
 
+(** Two families in one explicit mutual group closed by end. *)
 let mutual = "mutual mu A : Type 0 := | a (b : B) : A mu B : Type 0 := | b : B end"
 
+(** The same two families in the legacy and chained form. *)
 let legacy_mutual = "mu A : Type 0 with | a : (b : B) -> A and B : Type 0 with | b : B"
 
+(** Every named case of this suite, each returning unit or one error message. *)
 let cases : (string * (unit -> (unit, string) result)) list =
   [ "constructor-sugar", (fun () -> same_tree family legacy_family);
     "mutual-sugar", (fun () -> same_tree mutual legacy_mutual);

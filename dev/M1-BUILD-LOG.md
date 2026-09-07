@@ -2019,3 +2019,179 @@ Record their actual results before claiming Stage L PASS.  M1-EXIT still
 requires the user commits, a green committed-tree battery and the user's
 ratification.  F3 is closed for mu by the new spine; auto and nu remain
 M2 work.  The optional Lean agreement theorem was not part of this stage.
+
+## Stage L follow-up (2026-09-07)
+
+### Scope and fixes
+
+Continued from b6a5af67d5e06243bbcbead246cb6a8921d42726, preserving the ten
+existing uncommitted files.  The user requested continued development and
+staging of all changes.  Validation used the isolated source snapshot at
+/Users/oobi/Documents/gpt4/kanon-stage-l-followup/work.
+
+- AGREEMENT runs the five independent primitives concurrently, retaining
+  every witness, golden comparison, axiom check and host comparison.
+  Rows retain deterministic order and every watchdog stays unchanged.
+- A run writes its selected report as FAIL before manifest validation or
+  worker startup.  Invalid or interrupted reruns cannot retain an old
+  PASS.  Filtered runs write only their selected report.
+- The agreement round-trip runner locates the named OCaml switch and its
+  Zarith stub library.  Both bytecode runners prepend that path while
+  preserving inherited CAML_LD_LIBRARY_PATH entries.  Without that variable,
+  the original round-trip runner failed to load dllzarith; the fix succeeds.
+- HOUSE covers OCaml helpers under dev and tuple/or-pattern catch-alls.
+  Review restored exactly the two D-M1-10 allowances: the intermediate
+  subset check incorrectly allowed a third site.  Erasure's explicit
+  list-shape error cases and the mutual-parser cleanup preserve behavior.
+- Nat runtime validation resolves wasm-opt on PATH.  Corpus generation
+  accepts --out.  Surface helpers gained documentation.  Axioms.lean
+  discloses fourteen additional existing declarations.  README describes
+  the implemented M1 surface, Nat representation, One usage and gates.
+
+### Validation
+
+The OCaml build passed with zero errors and warnings.  The complete kernel
+and Wasm suites, encoder subset, axiom disclosure, M0 end-to-end spine,
+positivity and denominator checks passed.  M1-SUITE passed sixteen feature
+rows, 49 focused One cases, twenty Nat runtime cases and twenty surface
+cases.  After its path fix, the One runner passed again: 27 direct and 22
+surface cases.  Corpus regeneration via --out was byte-identical to the
+tracked 1,000-line source returning 814.
+
+The first battery's CARRY and PIN failures came from a copied relative
+submodule Git pointer.  Repairing only the scratch pointer to the original
+read-only Git directory made both checks pass.  Final HOUSE passed.
+TRUSTED-LINES remains kernel=3997/4000 and encoder=246/600.
+
+The full default Lean build, including all four regression roots, passed
+with zero errors, incomplete proofs and warnings.  Axioms.lean completed:
+its declarations depend on no axioms or exactly Quot.sound.  Existing
+pinned dependency and build caches were copied into the snapshot; no
+dependency revision changed.  This is additional disclosure, not a new
+semantic theorem or compiler-preservation claim.
+
+Independent HOUSE, One exit-propagation, agreement-report and library-path
+controls passed.  The report harness uses stubbed workers; its synthetic
+7,445-case result tests reporting only, not arithmetic agreement.  Final
+static review found no remaining correctness or gate-weakening defect.
+All ten generated agreement source matrices and the reference manifest
+also matched exactly, preserving the 7,445-case workload.
+
+### Performance and remaining gates
+
+The first battery returned GATES-FAIL.  M0-TIME measured 1984.861 ms against
+150 ms at load1=404.541.  M0-RATIO measured 25.097466 against 2.000 at
+load1=405.378.  M1-CORPUS returned the correct value but took 7612.941 ms
+against 713 ms at load1=405.964.  These are failed measurements on the
+loaded host, not a quiet-host performance verdict.  No constants,
+denominators, trusted-line bounds or workload sizes were relaxed.
+
+The first agreement run reached its unchanged watchdog at 300.420 seconds,
+exit 124, with its report still FAIL.  The separate final-source attempt
+passed all 7,445 cases in 290.166 seconds under the same 300-second limit:
+5,445 unary witnesses and 2,000 full-range cases, including kernel, Node
+and Wasmtime comparisons for each primitive.  It exited zero and wrote
+PASS with all ten rows successful.  Load1 was 212.873 before and 109.970
+after.  AGREEMENT is now verified; M0-TIME, M0-RATIO and M1-CORPUS need
+passing measurements.  M1-EXIT remains open and no ratification is written.
+
+### Evidence
+
+Evidence root: /Users/oobi/Documents/gpt4/kanon-stage-l-followup/evidence.
+The full battery is battery-1.log.  Scoped results are carry-final.log,
+pin-final.log, house-final.log, trusted-lines-final.log and one-final.log.
+lean-build.json and lean-axioms.log hold the Lean results.  house-controls
+and agreement-controls contain reproducible scripts, hashes and results.
+The final agreement attempt uses agreement-final.log,
+agreement-final-run.json and agreement-final/results.json.
+
+### Review round 2026-09-07 (follow-up)
+
+This block records the follow-up review of the 2026-09-07 fix round on
+top of Stage L commit b6a5af6.  Seven findings were fixed, no finding
+was ruled out this round, and six items were dropped as merged or
+refuted into the kept findings below.
+
+| id | severity | file:line | defect | verdict |
+|----|----------|-----------|--------|---------|
+| A-1 | medium | dev/agreement.py:199 | AGREEMENT emitted no per-row line and no incremental results.json, so a watchdog kill left zero row evidence | fixed |
+| B-1 | medium | dev/house-catchalls.py:35 | Catch-all scanner missed as-pattern, nested-tuple and typed-tuple arms, so HOUSE stayed green on three unapproved catch-alls | fixed |
+| D-3 | low | dev/house.sh:67 | The shared scan helper extended the no-mutable-state leg to dev, past the rule it states, with no exemption path | fixed |
+| C-1 | low | README.md:273 | Two README HOUSE scope rows contradicted the dev/*.ml coverage this batch added | fixed |
+| B-2 | low | dev/house-catchalls.py:43 | A boolean `\|\|` inside an arm guard was reported as a catch-all, so legal guarded code could not satisfy HOUSE leg 1 | fixed |
+| C-2 | low | README.md:220 | Layout tree omitted test/sl_surface.ml, test/corpus and test/agreement, all load bearing elsewhere in the same README | fixed |
+| ND-1-1 | medium | dev/house-catchalls.py:16 | New defect from the fixes: SELECTIVE missed a polymorphic variant tag, so a backtick-tagged arm passed HOUSE uncaught | fixed |
+
+Refuted and dropped items, with reasons carried verbatim from the
+review ruling.
+
+A-3, dev/M1-BUILD-LOG.md:2036: REFUTED on the merits.  The code
+behaviour is real, but the finding is filed as a false sentence in
+dev/M1-BUILD-LOG.md and the sentence is not false in its paragraph.
+The three-sentence unit at 2035-2037 establishes the selected report
+as its subject and discloses the same residual the finding describes,
+so no reader is told a filtered rerun overwrites an unfiltered
+results.json.  dev/agreement.py:183-184 states the same scoping.
+dev/gates.sh:197 and 201 keep the permanent battery unfiltered, so the
+gate cannot reach the scenario either.  Not a finding.
+
+D-1: merged into A-1.  Same file dev/agreement.py, same line 199, same
+defect.  A-1 kept as the clearer statement; D-1's synthetic kill
+control and citations are folded into A-1's detail.
+
+A-2: merged into C-1.  Same file README.md, same two rows, same
+defect.  C-1 states it most completely.  A-2's claim that leg 2 routes
+through scan() is correct in the staged file, contrary to its own
+verify note; that point is tracked separately as D-3.
+
+B-4: merged into C-1.  Same file README.md, same line 273, same stale
+HOUSE scope row.  Adds nothing beyond C-1.
+
+D-2: merged into C-1.  Same file README.md, same line 273, same stale
+HOUSE scope row.  Its severity downgrade to low is adopted for the
+merged C-1, since the defect is doc-only with no gate, bound, script
+or runtime effect.
+
+B-3: merged into D-3.  Same file dev/house.sh, same line 67, same
+defect.  D-3 kept as the fuller statement because it also cites the
+leg's own contradicting comment at lines 65-66 and the
+gc_encode.ml-keyed exemption window at 72-73.
+
+### Gate results, review round 2026-09-07 (follow-up)
+
+Verdict GATES-OK.  Load: load1=10.323 (M0-TIME, M0-RATIO), load1=11.098
+(M1-CORPUS); uptime before the battery load averages 6.58 10.29 14.18,
+after the battery load averages 9.44 10.17 13.59.  AGREEMENT completed
+7,445 of 7,445 cases (unary 5,445, full-range 2,000), no watchdog exit.
+TRUSTED-LINES read kernel 3,997 of 4,000 and encoder 246 of 600.
+
+| leg | status | note |
+|-----|--------|------|
+| BUILD | PASS | dune build via gates.sh |
+| CARRY | PASS | |
+| R0-COUNT | PASS | |
+| R0-AUDIT | PASS | |
+| SUITE-KERNEL | PASS | |
+| SUITE-WASM | PASS | |
+| ENCODER-SUBSET | PASS | |
+| AXIOMS | PASS | |
+| M0-E2E | PASS | main=521 |
+| M0-TIME | PASS | median_ms=113.150 bound_ms=150 load1=10.323 samples=3x5 |
+| M0-RATIO | PASS | ratio=1.400924 bound=2.000 load1=10.323 |
+| TRUSTED-LINES | PASS | kernel=3997/4000 encoder=246/600 |
+| DENOMINATORS | PASS | |
+| HOUSE | PASS | |
+| PIN | PASS | sha=8cf0b8b |
+| POSITIVITY | PASS | fixtures=22 negative=mu-nonpositive |
+| M1-CORPUS | PASS | elapsed_ms=222.064 bound_ms=713 lines=1000 main=814 load1=11.098 |
+| M1-SUITE | PASS | ledger=16 focused-one=49 nat-runtime=20 surface=OK |
+| AGREEMENT | PASS | cases=7445 unary=5445 full-range=2000, completed 7445/7445, no watchdog exit |
+| dunecho build (ladder item 2) | PASS | OK build: 0 errors, 0 warnings; exit 0 (required env -u OPAM_SWITCH_PREFIX -u CAML_LD_LIBRARY_PATH, and same env unset for the battery nohup launch after a first attempt failed with Library zarith not found) |
+| house.sh (ladder item 3) | PASS | HOUSE OK |
+| trusted-lines.sh (ladder item 4) | PASS | kernel=3997/4000 encoder=246/600 OK |
+| sl_surface.exe (ladder item 5) | PASS | SL-SURFACE-OK 20/20, SL-SURFACE OK, exit 0 |
+| lean (ladder item 8) | not run | git diff --stat -- meta/ is empty this round, no meta/ path changed |
+| porcelain (ladder item 9) | PASS | MM README.md, dev/agreement.py, dev/house-catchalls.py, dev/house.sh (index+worktree changes); M rows for dev/M1-BUILD-LOG.md, dev/M1-MUTATION-LOG.md, dev/agreement-roundtrip.sh, dev/gen-m1-corpus.py, dev/nat-runtime.sh, dev/one-paths.sh, lib/erase.ml, meta/Axioms.lean, surface/parser.ml, test/sl_surface.ml; no meta/.lake, .gatework or _build rows; no untracked ?? rows |
+
+All timed legs (M0-TIME, M0-RATIO, M1-CORPUS) read PASS this round, so
+the VALIDATION PENDING sentence for red timed legs does not apply.

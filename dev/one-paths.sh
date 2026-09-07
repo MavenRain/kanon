@@ -4,8 +4,17 @@ chpwd_functions=()
 unfunction chpwd 2>/dev/null || true
 prep=${0:A:h}
 root=${1:-$prep/..}
-export PATH=/Users/oobi/.opam/zxcaml-p1/bin:$PATH
-ocaml -I /Users/oobi/.opam/zxcaml-p1/lib/zarith \
+# SL round 2026-09-07: the switch is asked for by name, so no absolute
+# path of one machine is written here.  The recorded location stays as
+# the fallback when opam is absent or answers nothing.
+switch_lib=$(opam var --switch zxcaml-p1 lib 2>/dev/null || true)
+[[ -d $switch_lib ]] || switch_lib=/Users/oobi/.opam/zxcaml-p1/lib
+export PATH=${switch_lib:h}/bin:$PATH
+# The bytecode toplevel loads the zarith stub library by name.  The switch
+# holds it beside its libraries, and ld.conf does not list that directory,
+# so the search path comes from the same answer as the include above.
+export CAML_LD_LIBRARY_PATH=$switch_lib/stublibs${CAML_LD_LIBRARY_PATH:+:$CAML_LD_LIBRARY_PATH}
+ocaml -I "$switch_lib/zarith" \
   -I "$root/_build/default/lib/.kanon_kernel.objs/byte" \
   -I "$root/_build/default/lib" zarith.cma kanon_kernel.cma "$prep/one-paths.ml"
 python3 -P - "$root" <<'PY'
