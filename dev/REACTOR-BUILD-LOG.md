@@ -103,11 +103,14 @@ PID.  No runtime implementation or gate bound changed.
 | TRUSTED-LINES | Kernel 3997/4000, encoder 246/600, passed. |
 | Independent source review | No findings; test deadlines and gate oracles preserved. |
 
-The README status records Stage L implementation as complete and full
-validation as open.  dev/gates.sh holds 21 leg invocations, the last two
-being REACTOR and RUNTIME.  The recorded battery in M1-BUILD-LOG.md holds
+At the time of this record the README status recorded Stage L
+implementation as complete and full validation as open.  dev/gates.sh
+holds 21 leg invocations, the last two being REACTOR and RUNTIME.  At
+the time of this record the recorded battery in M1-BUILD-LOG.md held
 19 leg rows and no row for those two legs.  It also ran on a source
-snapshot that predates the compiler commits in HEAD.  M1 exit ratification
+snapshot that predates the compiler commits in HEAD.  The later record
+M1-BUILD-LOG.md `## Current compiler validation (2026-09-07)` holds 21
+leg rows, including REACTOR and RUNTIME, on commit 8603482.  M1 exit ratification
 remains open.  Compiler, kernel, Lean and gate sources did not change;
 the full milestone and performance batteries were not repeated.
 

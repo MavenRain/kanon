@@ -8,9 +8,11 @@ supplies external Lean models for nullary/unary indexed signatures,
 including vectors.  Connecting those models to checked `SMu` declarations
 and proving compiler preservation and full Lean parity remain open.
 
-Status: M1 Stage L implementation complete; full validation stays open.
-The recorded battery predates the two reactor gate legs and the current
-compiler commits.  M1 exit is not ratified.  The checker, elaborator,
+Status: M1 Stage L implementation complete. The current compiler passed
+all 21 gate legs, including REACTOR, RUNTIME and the binding performance
+checks, on 2026-09-07. The [validation record](dev/M1-BUILD-LOG.md#current-compiler-validation-2026-09-07)
+retains the source revision, complete output and measurements.
+M1 exit is not ratified. The checker, elaborator,
 erasure, WasmGC emitter and execution driver support strictly positive
 indexed and mutual `mu` families, dependent matching, structural
 recursion, arbitrary precision `Nat` arithmetic and exact-use `1` binders.

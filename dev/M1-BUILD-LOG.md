@@ -2195,3 +2195,114 @@ TRUSTED-LINES read kernel 3,997 of 4,000 and encoder 246 of 600.
 
 All timed legs (M0-TIME, M0-RATIO, M1-CORPUS) read PASS this round, so
 the VALIDATION PENDING sentence for red timed legs does not apply.
+
+## Current compiler validation (2026-09-07)
+
+The complete 21-leg battery passed on commit
+`8603482c2d6a4493837aeb011971d4a62ac13306`, tree
+`c316289b26baa47d00d7766722a0ed4d23920b7e`. This includes the reactor
+compiler, CLI and full-buffer append changes that followed the previous
+19-leg record. The command was `zsh dev/gates.sh`, with exit 0 and final
+verdict `GATES-OK`. No gate, watchdog, performance bound or test selection
+was changed. No compiler or runtime correction was needed.
+
+Validation ran in the initially clean source snapshot at
+`/Users/oobi/Documents/gpt4/kanon-current-validation/work`. Its tracked
+files and index matched that commit. BUILD took 162.122 ms (gates.log
+`MEASURE BUILD`), so the compiler build was incremental, not a cold-build
+benchmark. All repository changes in this increment are validation
+records and documentation.
+
+The complete stdout is retained in
+[validation/2026-09-07/gates.log](validation/2026-09-07/gates.log), with
+the command, source identity and transcript SHA-256 in
+[gates.json](validation/2026-09-07/gates.json). Stderr was empty. The
+table transcribes the final MEASURE block; every exit code was zero.
+
+| leg | status | tier | elapsed ms |
+| --- | --- | --- | ---: |
+| BUILD | PASS | SLOW | 162.122 |
+| CARRY | PASS | MED | 353.131 |
+| R0-COUNT | PASS | FAST | 392.862 |
+| R0-AUDIT | PASS | FAST | 25.184 |
+| SUITE-KERNEL | PASS | SUITE | 484.476 |
+| SUITE-WASM | PASS | SUITE | 3129.863 |
+| ENCODER-SUBSET | PASS | FAST | 62.608 |
+| AXIOMS | PASS | MED | 25.721 |
+| M0-E2E | PASS | SLOW | 233.095 |
+| M0-TIME | PASS | SLOW | 2169.394 |
+| M0-RATIO | PASS | SLOW | 211.868 |
+| TRUSTED-LINES | PASS | FAST | 26.478 |
+| DENOMINATORS | PASS | MED | 35.924 |
+| HOUSE | PASS | MED | 331.371 |
+| PIN | PASS | FAST | 63.851 |
+| POSITIVITY | PASS | SUITE | 245.691 |
+| M1-CORPUS | PASS | SLOW | 341.810 |
+| M1-SUITE | PASS | SUITE | 4564.117 |
+| AGREEMENT | PASS | SUITE | 23902.809 |
+| REACTOR | PASS | MED | 613.469 |
+| RUNTIME | PASS | MED | 3809.039 |
+
+The binding observations differ from the whole-leg elapsed times above:
+M0-TIME was 98.640 ms against 150 ms, with load1 9.808 and three
+five-run medians. M0-RATIO was 1.174986 against 2.000, with a 14.967 ms
+median check and load1 10.864. M1-CORPUS completed in 256.020 ms against
+713 ms on a 1000-line corpus that returned main=814, at load1 10.864.
+All passed on
+the first complete run. AGREEMENT completed all 7445 cases, comprising
+5445 unary witnesses and 2000 independent full-range cases. M1-SUITE
+passed its 16 feature rows, 49 focused One checks, 20 Nat runtime checks
+and surface suite. These remain finite validation evidence.
+
+The current Lean package also passed its default build, including all
+four regression roots: 51 jobs, zero errors and warnings, with
+`leanprover/lean4:v4.33.0-rc1`. The reused `.olean` cache came from the
+Stage L follow-up tree recorded in lean.json `cache.source`. Its cache
+source files were byte-identical to this snapshot, both dependency
+revisions matched the manifest, and the dependency working trees had no
+tracked changes. Its 52 hashes were checked before and after the copy.
+A second candidate tree was rejected because `Axioms.lean` differed
+(lean.log). This was an incremental build.
+`Axioms.lean` printed 39 reports: ten declarations had no axioms and
+29 depended only on `Quot.sound`. The default build also reported the
+test declaration `erasure_not_hom` depending on `propext` and
+`Quot.sound` (lean.log line 21). Both names are inside lean.json
+`axioms.admissible_names`. The four Stage F syntax theorems
+remained axiom-free. A separate package requiring this snapshot built
+through the public `KanonMeta` import, including a concrete two-element
+vector copy theorem, with 48 jobs and zero errors or warnings. The
+first client setup printed a Lake manifest warning about a changed
+packages directory. The record resolves it with the default
+`.lake/packages` and a verified dependency symlink. The reported run is
+the one after that change (lean.json `external_client.initial_setup_warning`,
+evidence `lean/client-initial.stderr`). The
+source audit covered 16 first-party Lean files and 20 tactic blocks,
+all using `kan_rfl`, with no forbidden proof tokens and no source changes.
+Exact commands, source hashes, the external client and audit results are
+retained in [lean.json](validation/2026-09-07/lean.json); the combined
+output is in [lean.log](validation/2026-09-07/lean.log). The full cache
+manifest remains in the external evidence directory, identified by its
+path and SHA-256 in that record.
+
+Evidence root: /Users/oobi/Documents/gpt4/kanon-current-validation/evidence.
+`captures/run-8EZU4I` holds the battery stdout and stderr; `lean/` holds
+build.log, axioms.log, client/, audit.py, check_cache.py and
+cache-provenance.json.
+
+The mutation ledger was audited against all 29 required stage ids:
+SF-M1..M4, SG-M1..M5, SH-M1..M6, SI-M1..M3, SJ-M1..M4, SK-M1..M4
+and SL-M1..M3. Each has a recorded killing observation; the plan's
+SH-M1b is logged as SH-M6. This audit reuses historical mutation evidence
+and does not claim a new execution of those mutants. SH-M4, SI-M1 and
+SI-M3 were killed by exact-diagnostic differences. SJ-M1 and SJ-M4 were
+killed by Wasm goldens, while the validator accepted those mutants.
+SG-M5 covers the historical interim erasure refusal removed at Stage J.
+SL-M2's original bound mutation ran while its baseline also failed under
+load; subsequent baseline passes do not alter that original experiment.
+The ledger retains these qualifications. SPEC's six obligation rows
+remain discharged within their stated implementation and finite-test
+scope; the external semantic models do not establish compiler preservation.
+
+M1 exit ratification remains open. This record does not fill the user's
+M1-EXIT stamp or claim full Lean parity, general arithmetic agreement,
+or source-to-Wasm preservation.

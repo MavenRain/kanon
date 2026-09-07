@@ -1,0 +1,111 @@
+CHECK build
+COMMAND /Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir /Users/oobi/Documents/gpt4/kanon-current-validation/work/meta build
+CWD /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean
+EXIT 0
+ℹ [48/51] Replayed test.Initiality
+info: test/Initiality.lean:117:0: 'KanonMeta.Initiality.Tests.natInitial' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:118:0: 'KanonMeta.Initiality.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:119:0: 'KanonMeta.Initiality.Tests.nat_projection' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:120:0: 'KanonMeta.Initiality.Tests.junkFold' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:121:0: 'KanonMeta.Initiality.Tests.junk_not_initial' does not depend on any axioms
+info: test/Initiality.lean:122:0: 'KanonMeta.Initiality.Tests.junk_no_section' does not depend on any axioms
+ℹ [49/51] Replayed test.InitialChain
+info: test/InitialChain.lean:91:0: 'KanonMeta.InitialChain.Tests.observe_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:92:0: 'KanonMeta.InitialChain.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:93:0: 'KanonMeta.InitialChain.Tests.collapse_not_hom' depends on axioms: [Quot.sound]
+ℹ [50/51] Replayed test.VectorConstruction
+info: test/VectorConstruction.lean:119:0: 'KanonMeta.VectorConstruction.Tests.total_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:120:0: 'KanonMeta.VectorConstruction.Tests.count_values' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:121:0: 'KanonMeta.VectorConstruction.Tests.count_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:122:0: 'KanonMeta.VectorConstruction.Tests.singleton_payload_ne' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:123:0: 'KanonMeta.VectorConstruction.Tests.erasure_not_hom' depends on axioms: [propext, Quot.sound]
+Build completed successfully (51 jobs).
+
+CHECK axioms
+COMMAND /Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir /Users/oobi/Documents/gpt4/kanon-current-validation/work/meta env lean /Users/oobi/Documents/gpt4/kanon-current-validation/work/meta/Axioms.lean
+CWD /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean
+EXIT 0
+'KanonMeta.bc_lan_spi' does not depend on any axioms
+'KanonMeta.bc_ran_spi' does not depend on any axioms
+'KanonMeta.bc_lan_scoll' does not depend on any axioms
+'KanonMeta.bc_ran_scoll' does not depend on any axioms
+'KanonMeta.Initiality.projection_fold' does not depend on any axioms
+'KanonMeta.Initiality.elim' does not depend on any axioms
+'KanonMeta.Initiality.fold_eq_section' does not depend on any axioms
+'KanonMeta.Initiality.elim_beta' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.polyMap_id' does not depend on any axioms
+'KanonMeta.InitialChain.polyMap_comp' does not depend on any axioms
+'KanonMeta.InitialChain.roll_on_leg' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.fold_comm' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.hom_on_leg' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.chainInitial' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.chainElim' depends on axioms: [Quot.sound]
+'KanonMeta.InitialChain.chainElim_beta' depends on axioms: [Quot.sound]
+'KanonMeta.ChainColimit.cocone' depends on axioms: [Quot.sound]
+'KanonMeta.ChainColimit.isColimit' depends on axioms: [Quot.sound]
+'KanonMeta.ChainColimit.initialOfPreserves' depends on axioms: [Quot.sound]
+'KanonMeta.ChainColimit.respects' does not depend on any axioms
+'KanonMeta.ChainColimit.descend_on_leg' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.natPreserves' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.recursiveInitial' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.map_zero' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.zero_node' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.succ_node' depends on axioms: [Quot.sound]
+'KanonMeta.NatConstruction.zero_legs' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.preserves' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.recursiveInitial' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.nullary_node' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.unary_node' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.map_nullary' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.fibre_factor' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.fibre_unique' depends on axioms: [Quot.sound]
+'KanonMeta.LinearConstruction.nullary_legs' depends on axioms: [Quot.sound]
+'KanonMeta.VectorConstruction.recursiveInitial' depends on axioms: [Quot.sound]
+'KanonMeta.VectorConstruction.copy_eq' depends on axioms: [Quot.sound]
+'KanonMeta.VectorConstruction.copy_nil' depends on axioms: [Quot.sound]
+'KanonMeta.VectorConstruction.copy_cons' depends on axioms: [Quot.sound]
+
+CHECK client
+COMMAND /Users/oobi/.elan/bin/lake +leanprover/lean4:v4.33.0-rc1 --dir /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/client build
+CWD /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean
+EXIT 0
+ℹ [47/48] Replayed Client
+info: Client.lean:5:0: KanonMeta.bc_lan_spi (sigma : Subst) (A : Term) (q : Quantity) (x : String) (dom : Term) :
+  subst sigma (Term.lan (Shape.SPi q x dom) A) = Term.lan (Shape.SPi q x (subst sigma dom)) (subst (up sigma) A)
+info: Client.lean:6:0: KanonMeta.bc_ran_spi (sigma : Subst) (A : Term) (q : Quantity) (x : String) (dom : Term) :
+  subst sigma (Term.ran (Shape.SPi q x dom) A) = Term.ran (Shape.SPi q x (subst sigma dom)) (subst (up sigma) A)
+info: Client.lean:7:0: KanonMeta.bc_lan_scoll (sigma : Subst) (A : Term) (n : Nat) :
+  subst sigma (Term.lan (Shape.SColl n) A) = Term.lan (Shape.SColl n) (subst sigma A)
+info: Client.lean:8:0: KanonMeta.bc_ran_scoll (sigma : Subst) (A : Term) (n : Nat) :
+  subst sigma (Term.ran (Shape.SColl n) A) = Term.ran (Shape.SColl n) (subst sigma A)
+info: Client.lean:9:0: KanonMeta.Initiality.elim_beta.{u, s, p, a} {Index : Type u} {P : Initiality.Polynomial Index}
+  {A : Initiality.Algebra P} (h : Initiality.Initial A) (D : Initiality.Displayed A) {i : Index} (shape : P.Shape i)
+  (xs : (pos : P.Position shape) → A.Carrier (P.child shape pos)) :
+  Initiality.elim h D (A.roll shape xs) = D.step shape xs fun pos => Initiality.elim h D (xs pos)
+info: Client.lean:10:0: KanonMeta.InitialChain.chainInitial.{u} {Index : Type u} {P : Initiality.Polynomial Index}
+  {L : InitialChain.Family Index} (c : InitialChain.Cocone (InitialChain.initialSequence P) L)
+  (preserved : InitialChain.Colimit (InitialChain.mappedCocone P c)) (colim : InitialChain.Colimit c) :
+  Initiality.Initial (InitialChain.chainAlgebra c preserved)
+info: Client.lean:11:0: KanonMeta.ChainColimit.initialOfPreserves.{u} {Index : Type u} (P : Initiality.Polynomial Index)
+  (preserved :
+    InitialChain.Colimit (InitialChain.mappedCocone P (ChainColimit.cocone (InitialChain.initialSequence P)))) :
+  Initiality.Initial (InitialChain.chainAlgebra (ChainColimit.cocone (InitialChain.initialSequence P)) preserved)
+info: Client.lean:12:0: KanonMeta.NatConstruction.recursiveInitial : Initiality.Initial NatConstruction.recursive
+info: Client.lean:13:0: KanonMeta.LinearConstruction.recursiveInitial.{u} {Index : Type u} (Q : LinearConstruction.Signature Index) :
+  Initiality.Initial (LinearConstruction.recursive Q)
+info: Client.lean:14:0: KanonMeta.VectorConstruction.recursiveInitial (A : Type) : Initiality.Initial (VectorConstruction.recursive A)
+info: Client.lean:22:0: 'copy_preserves_values' depends on axioms: [Quot.sound]
+Build completed successfully (48 jobs).
+
+CHECK source-audit
+COMMAND python3 /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/audit.py
+CWD /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean
+EXIT 0
+{"files": 16, "forbidden_tokens": 0, "proof_blocks": 20, "tactics": ["kan_rfl"], "unexpected_proof_blocks": [], "changed_sources": [], "pass": true}
+
+CHECK cache-check
+COMMAND python3 /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/check_cache.py
+CWD /Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean
+EXIT 0
+{"path": "/Users/oobi/Documents/gpt15/kanon-work/meta", "source_differences": ["Axioms.lean"], "dependency_revisions_clean": true, "olean_count": 52, "reusable": false}
+{"path": "/Users/oobi/Documents/gpt4/kanon-stage-l-followup/work/meta", "source_differences": [], "dependency_revisions_clean": true, "olean_count": 52, "reusable": true}

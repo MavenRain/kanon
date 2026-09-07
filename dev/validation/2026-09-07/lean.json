@@ -1,0 +1,584 @@
+{
+  "status": "PASS",
+  "source_head": "8603482",
+  "scope": "/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta",
+  "toolchain": "leanprover/lean4:v4.33.0-rc1",
+  "default_build": {
+    "exit_code": 0,
+    "jobs": 51,
+    "cache_reused": true,
+    "test_root_olean_sha256": {
+      "test.Regression": "0f53a6dbac10a577f55a444c35c689d896b96dd9660ff9298f797fe9b603c1c5",
+      "test.Initiality": "ab624615b577b45775120cdc2b3233034c6a86be0ae4eb005c95fd80e9f9734c",
+      "test.InitialChain": "64e2197edcf748125dddae1a00c798e3acb6108f793f865cf6970f32ae2f335d",
+      "test.VectorConstruction": "1d44fce5f47729529ee08350b8078003e71e6d5f07b536e9f3b2da12294c5e61"
+    }
+  },
+  "axioms": {
+    "exit_code": 0,
+    "reports": 39,
+    "no_axioms": 10,
+    "observed_names": [
+      "Quot.sound"
+    ],
+    "admissible_names": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "declarations": [
+      {
+        "declaration": "KanonMeta.bc_lan_spi",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.bc_ran_spi",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.bc_lan_scoll",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.bc_ran_scoll",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.Initiality.projection_fold",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.Initiality.elim",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.Initiality.fold_eq_section",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.Initiality.elim_beta",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.polyMap_id",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.polyMap_comp",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.roll_on_leg",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.fold_comm",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.hom_on_leg",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.chainInitial",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.chainElim",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.InitialChain.chainElim_beta",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.ChainColimit.cocone",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.ChainColimit.isColimit",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.ChainColimit.initialOfPreserves",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.ChainColimit.respects",
+        "axioms": []
+      },
+      {
+        "declaration": "KanonMeta.ChainColimit.descend_on_leg",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.natPreserves",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.recursiveInitial",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.map_zero",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.zero_node",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.succ_node",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.NatConstruction.zero_legs",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.preserves",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.recursiveInitial",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.nullary_node",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.unary_node",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.map_nullary",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.fibre_factor",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.fibre_unique",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.LinearConstruction.nullary_legs",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.VectorConstruction.recursiveInitial",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.VectorConstruction.copy_eq",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.VectorConstruction.copy_nil",
+        "axioms": [
+          "Quot.sound"
+        ]
+      },
+      {
+        "declaration": "KanonMeta.VectorConstruction.copy_cons",
+        "axioms": [
+          "Quot.sound"
+        ]
+      }
+    ]
+  },
+  "external_client": {
+    "exit_code": 0,
+    "jobs": 48,
+    "public_import": "KanonMeta",
+    "require": "/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta",
+    "theorem": "copy_preserves_values",
+    "initial_setup_warning": "Resolved packagesDir mismatch by using default .lake/packages with verified dependency symlink.",
+    "Client.lean": "import KanonMeta\n\nopen KanonMeta\n\n#check bc_lan_spi\n#check bc_ran_spi\n#check bc_lan_scoll\n#check bc_ran_scoll\n#check Initiality.elim_beta\n#check InitialChain.chainInitial\n#check ChainColimit.initialOfPreserves\n#check NatConstruction.recursiveInitial\n#check LinearConstruction.recursiveInitial\n#check VectorConstruction.recursiveInitial\n\ndef values : (VectorConstruction.recursive Nat).Carrier 2 :=\n  VectorConstruction.cons 17 (VectorConstruction.cons 25 VectorConstruction.nil)\n\ntheorem copy_preserves_values : VectorConstruction.copy values = values :=\n  VectorConstruction.copy_eq values\n\n#print axioms copy_preserves_values\n",
+    "lakefile.lean": "import Lake\nopen Lake DSL\n\npackage KanonPublicClient where\n  leanOptions := #[\u27e8`autoImplicit, false\u27e9]\n\nrequire \u00abkanon-meta\u00bb from \"/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta\"\n\n@[default_target]\nlean_lib Client\n",
+    "lean-toolchain": "leanprover/lean4:v4.33.0-rc1\n",
+    "lake-manifest.json": "{\n  \"version\": \"1.2.0\",\n  \"packagesDir\": \".lake/packages\",\n  \"packages\": [\n    {\n      \"type\": \"path\",\n      \"scope\": \"\",\n      \"name\": \"\\u00abkanon-meta\\u00bb\",\n      \"manifestFile\": \"lake-manifest.json\",\n      \"inherited\": false,\n      \"dir\": \"/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta\",\n      \"configFile\": \"lakefile.lean\"\n    },\n    {\n      \"url\": \"/Users/oobi/Documents/kan-tactics\",\n      \"type\": \"git\",\n      \"subDir\": null,\n      \"scope\": \"\",\n      \"rev\": \"3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac\",\n      \"name\": \"\\u00abkan-tactics\\u00bb\",\n      \"manifestFile\": \"lake-manifest.json\",\n      \"inputRev\": \"3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac\",\n      \"inherited\": true,\n      \"configFile\": \"lakefile.lean\"\n    },\n    {\n      \"url\": \"https://github.com/MavenRain/comp-cat-theory.git\",\n      \"type\": \"git\",\n      \"subDir\": null,\n      \"scope\": \"\",\n      \"rev\": \"cc6ced1086a3b5b14c43bd58b5ecbabef09ab201\",\n      \"name\": \"\\u00abcomp-cat-theory\\u00bb\",\n      \"manifestFile\": \"lake-manifest.json\",\n      \"inputRev\": \"cc6ced1\",\n      \"inherited\": true,\n      \"configFile\": \"lakefile.lean\"\n    }\n  ],\n  \"name\": \"KanonPublicClient\",\n  \"lakeDir\": \".lake\",\n  \"fixedToolchain\": false\n}\n"
+  },
+  "source_audit": {
+    "files": [
+      {
+        "path": "Axioms.lean",
+        "sha256": "7e93cb8ea6262119beed4de3923556f73a9969fc5757aec50c86663d444de763"
+      },
+      {
+        "path": "KanonMeta/BeckChevalley.lean",
+        "sha256": "e0acc48c37a43370f8e7e26548000aac97096b315d80d2f9be46d4750dc32769"
+      },
+      {
+        "path": "KanonMeta/ChainColimit.lean",
+        "sha256": "faa3ac6e9c3f3d67e4d37ff8a9942a27b5a450f9128868aba80cd90072b5462a"
+      },
+      {
+        "path": "KanonMeta/InitialChain.lean",
+        "sha256": "7ce1dcfea3d67e9dad862aa63df57fc97c8903625858c29e52f8d5a93a648bc7"
+      },
+      {
+        "path": "KanonMeta/Initiality.lean",
+        "sha256": "acbb58441316d33bbe7c1afd2169e37d66cbbb36710628f7829f43a8247f3405"
+      },
+      {
+        "path": "KanonMeta/LinearConstruction.lean",
+        "sha256": "b97450f42cc80371202550455a3ace83eae70701789aae6b9e8402b21b86f75b"
+      },
+      {
+        "path": "KanonMeta/NatConstruction.lean",
+        "sha256": "53e8f82bcc1fb6fb2d2f21eac80fce95fda7afa9d9f0707ab99a90a36e42b13d"
+      },
+      {
+        "path": "KanonMeta/Subst.lean",
+        "sha256": "9ffee50b9944ba318805b00dca956589364416aed738aedf28fab16e3fbade6b"
+      },
+      {
+        "path": "KanonMeta/Syntax.lean",
+        "sha256": "5f8a42df745a3df8a9713e914cf9b88c779c82e924e30e5ada2dd68e55360cd6"
+      },
+      {
+        "path": "KanonMeta/VectorConstruction.lean",
+        "sha256": "41f51f080be151e36ebe720229e5bea5e72410cf1c72c30e114f70a93265af03"
+      },
+      {
+        "path": "KanonMeta.lean",
+        "sha256": "db899b59dde8179b482465bcfc9f2d0799e914cd790f2aa3aa8d76e0f901f0e2"
+      },
+      {
+        "path": "lakefile.lean",
+        "sha256": "c7c44e96a843bde3dfcccd7ba8a8ec0f5bd91f8aaed58d80a5fc26d2f6b5eed0"
+      },
+      {
+        "path": "test/InitialChain.lean",
+        "sha256": "987e2c7d144bffa424b9ade0f0940656cb238e483300b8614b24621fe4fca8a0"
+      },
+      {
+        "path": "test/Initiality.lean",
+        "sha256": "2a55dfed862c6baa351d73c90ad67e8eb0423ceb61d855d7bec54ebbd2d14750"
+      },
+      {
+        "path": "test/Regression.lean",
+        "sha256": "e510d9bcedd089275e3eda6263bb3662414ce3da82408916cfdf986539f59377"
+      },
+      {
+        "path": "test/VectorConstruction.lean",
+        "sha256": "020c17e84932bc5acffb0e2a62a3c5045b02df3e575a1e9454de89f902853aaf"
+      }
+    ],
+    "proof_blocks": [
+      {
+        "file": "KanonMeta/BeckChevalley.lean",
+        "line": 29,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "KanonMeta/BeckChevalley.lean",
+        "line": 36,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "KanonMeta/BeckChevalley.lean",
+        "line": 45,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "KanonMeta/BeckChevalley.lean",
+        "line": 52,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 21,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 25,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 30,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 34,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 42,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 49,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 57,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 62,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 66,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 70,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 75,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 79,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 84,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 88,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 98,
+        "body": "kan_rfl"
+      },
+      {
+        "file": "test/Regression.lean",
+        "line": 105,
+        "body": "kan_rfl"
+      }
+    ],
+    "tactics": [
+      "kan_rfl"
+    ],
+    "forbidden_tokens": 0,
+    "sources_unchanged": true,
+    "forbidden_token_set": [
+      "sorry",
+      "sorryAx",
+      "axiom",
+      "unsafe",
+      "partial",
+      "native_decide",
+      "throw",
+      "panic",
+      "unreachable"
+    ],
+    "method": "Comments and strings removed, forbidden tokens scanned; every by block checked as a single kan_rfl line."
+  },
+  "cache": {
+    "source": "/Users/oobi/Documents/gpt4/kanon-stage-l-followup/work/meta",
+    "source_differences": [],
+    "olean_hashes_verified_before_copy_and_after_copy": 52,
+    "dependencies": [
+      {
+        "name": "kan-tactics",
+        "head": "3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac",
+        "expected_revision": "3317f7ac5a22ca0d85b90a3286b8fe0c36cea8ac",
+        "revision_matches": true,
+        "status": "?? .lake/\n",
+        "source_clean": true
+      },
+      {
+        "name": "comp-cat-theory",
+        "head": "cc6ced1086a3b5b14c43bd58b5ecbabef09ab201",
+        "expected_revision": "cc6ced1086a3b5b14c43bd58b5ecbabef09ab201",
+        "revision_matches": true,
+        "status": "",
+        "source_clean": true
+      }
+    ],
+    "full_provenance": {
+      "path": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/cache-provenance.json",
+      "sha256": "79bf5b21c48da5c24be8b7ec7443fe82f130f9495f95aae5f141e11dbe0f741d"
+    }
+  },
+  "commands": {
+    "build": {
+      "argv": [
+        "/Users/oobi/.elan/bin/lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta",
+        "build"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean",
+      "exit_code": 0,
+      "counts": {
+        "stdout_bytes": 1784,
+        "stderr_bytes": 0,
+        "stdout_lines": 18,
+        "stderr_lines": 0,
+        "error_lines": 0,
+        "warning_lines": 0
+      },
+      "capture": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/.kanon-exec/run-zG3x2a",
+      "stdout_sha256": "bba1ad37b5d74fa1febacb71af1274092d92ba6a7705100a73309c5946706832",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "axioms": {
+      "argv": [
+        "/Users/oobi/.elan/bin/lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/work/meta/Axioms.lean"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean",
+      "exit_code": 0,
+      "counts": {
+        "stdout_bytes": 2698,
+        "stderr_bytes": 0,
+        "stdout_lines": 39,
+        "stderr_lines": 0,
+        "error_lines": 0,
+        "warning_lines": 0
+      },
+      "capture": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/.kanon-exec/run-Mw0X7Y",
+      "stdout_sha256": "3bdd5208b2409d3139d0f3a0a624b81bc1c5ef1a335148d9e6a36f1b0a4e2647",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "client": {
+      "argv": [
+        "/Users/oobi/.elan/bin/lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/client",
+        "build"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean",
+      "exit_code": 0,
+      "counts": {
+        "stdout_bytes": 2522,
+        "stderr_bytes": 0,
+        "stdout_lines": 27,
+        "stderr_lines": 0,
+        "error_lines": 0,
+        "warning_lines": 0
+      },
+      "capture": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/.kanon-exec/run-btiinv",
+      "stdout_sha256": "8f433a4d4d956a5a5176f21f9c7535b2d68cf2226af5dac0a1dfdd8990f2ff03",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source-audit": {
+      "argv": [
+        "python3",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/audit.py"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean",
+      "exit_code": 0,
+      "counts": {
+        "stdout_bytes": 149,
+        "stderr_bytes": 0,
+        "stdout_lines": 1,
+        "stderr_lines": 0,
+        "error_lines": 0,
+        "warning_lines": 0
+      },
+      "capture": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/.kanon-exec/run-Doc0rI",
+      "stdout_sha256": "aa3a200af616313b01d54a43f9fe59f85fd8ccfe01ea343b5094ce2529c64a5b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cache-check": {
+      "argv": [
+        "python3",
+        "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/check_cache.py"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean",
+      "exit_code": 0,
+      "counts": {
+        "stdout_bytes": 340,
+        "stderr_bytes": 0,
+        "stdout_lines": 2,
+        "stderr_lines": 0,
+        "error_lines": 0,
+        "warning_lines": 0
+      },
+      "capture": "/Users/oobi/Documents/gpt4/kanon-current-validation/evidence/lean/.kanon-exec/run-bCjUsW",
+      "stdout_sha256": "e9a2da8750778733390c42d8c7658e1c9155ea5205c37521da63144ce5098084",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "capture_wrapper": "kanon-wait run --root EVIDENCE/waits --cwd EVIDENCE -- kanon-exec run --budget 4000 -- COMMAND",
+  "source_head_note": "Source snapshot HEAD supplied and verified by the parent agent; every meta source hash checked against the initial snapshot before completion.",
+  "build_note": "Default build reused source/hash-verified compiled artifacts and let Lake arbitrate freshness. It was not a clean compilation.",
+  "combined_log_sha256": "465dc70866033fe4fb43e683f43879a8f882b6c16d7afface2dfb03ec3e682bf"
+}
