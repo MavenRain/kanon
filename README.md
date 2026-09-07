@@ -15,6 +15,8 @@ families, dependent matching, structural recursion, arbitrary precision
 `Nat` arithmetic and exact-use `1` binders.  `auto`, `nu`, level variables
 and the deferred equality shape remain later work.  The
 [build log](dev/M1-BUILD-LOG.md) records validation results and open gates.
+The [reactor build log](dev/REACTOR-BUILD-LOG.md) records the validation of
+the reactor host runtime, its CLI and the realpath example.
 
 ## Checking a file
 
@@ -133,6 +135,20 @@ disagree.  4 is a trap, on one host, on both hosts, or in the kernel,
 where an exported value outside the i31 range raises a trap.
 64 is a usage error, a missing file or a missing runner.
 
+## Reusable modules
+
+`kanon build FILE... -o OUT.wasm --export NAME` compiles ordered source
+files into one module with ordinary function and value exports. Repeat
+`--export NAME` to expose more definitions. Later files can use earlier
+declarations. The Node reactor host drives an exported state machine and
+performs its requested OS operations.
+
+`runtime/reactor.kan` supplies reusable byte and argument lists, and
+`examples/reactor-realpath.kan` resolves one path and prints the result.
+Run a compiled reactor with `node runtime/run.mjs MODULE.wasm [ARG ...]`.
+[REACTOR.md](REACTOR.md) gives the complete build command, export ABI,
+operation table and CLI behavior.
+
 ## The spines
 
 `examples/m1-spine.kan` extends the M0 coverage with direct, mutual and
@@ -213,9 +229,10 @@ vendor/tot/         git submodule, checked out at PIN
 lib/                library kanon_kernel
 surface/            library kanon_surface
 wasm/               library kanon_wasm: gc_encode.ml, link.ml, emit.ml
-bin/kanon.ml        driver: check | emit | run | axioms | spec-count
+bin/kanon.ml        driver: check | emit | build | run | axioms | spec-count
 bin/host.ml         the three hosts that kanon run reaches
-examples/           m0-spine.kan and m1-spine.kan
+examples/           m0-spine.kan, m1-spine.kan and reactor-realpath.kan
+runtime/            shared reactor.kan, Node host reactor.mjs and run.mjs CLI
 meta/               Lean metatheory, constructions and regression proofs
 test/               main.ml, wasm.ml, sl_surface.ml, sys_io.ml,
                     fixtures/*.kan, golden/*.checked, golden/*.erased,
@@ -243,6 +260,10 @@ zsh dev/trusted-lines.sh          # the kernel and the encoder line bounds
 zsh dev/gates.sh                  # the whole gate battery, every leg
 _build/default/test/main.exe test               # the kernel suite
 _build/default/test/wasm.exe test               # the emission suite
+node dev/reactor-test.mjs         # compiled module ABI, byte literals and
+                                  # realpath CLI integration
+node --test dev/runtime-test.mjs  # OS operations, process cleanup and
+                                  # interruption status
 ```
 
 Each script finds the repository root from its own path, so a copy of the
@@ -256,7 +277,7 @@ Every leg prints one
 captured.  BUILD is the one leg that ends the run when it fails, because
 every later leg reads the build it makes.  Every other leg runs even
 when an earlier leg failed, so one run names every failing leg.  The
-nineteen legs, in order:
+twenty-one legs, in order:
 
 ```
 BUILD            dev/dunecho.sh build prints 0 errors, 0 warnings
@@ -278,6 +299,8 @@ POSITIVITY       all positive mu fixtures and the nonpositive rejection
 M1-CORPUS        the 1000-line corpus, through check and all runtime hosts
 M1-SUITE         feature ledger, negative twins, One, Nat and surface cases
 AGREEMENT        5445 unary witnesses and 2000 independent full-range cases
+REACTOR          compiled module ABI, byte literals and realpath CLI integration
+RUNTIME          OS operations, process cleanup and interruption status
 ```
 
 Several verdict lines include observations, such as `main=521`, timing

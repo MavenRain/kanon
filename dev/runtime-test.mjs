@@ -213,6 +213,80 @@ const lists = {
   wordsEmpty: l => Number(l.length === 0), wordsHead: l => l[0], wordsTail: l => l.slice(1),
 };
 
+for (const exitCode of [0, 7]) {
+  test(`a terminal request preserves application exit code ${exitCode} without interruption`, async t => {
+    const engine = globalThis.WebAssembly;
+    t.after(() => { globalThis.WebAssembly = engine; });
+    const api = {
+      ...lists,
+      init: () => 0,
+      requestCode: () => 0,
+      requestArgs: () => [],
+      requestBody: () => [],
+      resume: () => assert.fail('a terminal request must not resume'),
+      exitCode: () => exitCode,
+    };
+    globalThis.WebAssembly = { instantiate: async () => ({ instance: { exports: api } }) };
+    assert.equal(await runReactor(new URL('../runtime/reactor.mjs', import.meta.url), []), exitCode);
+  });
+}
+
+test('the argument list reaches init in order and unchanged', async t => {
+  const engine = globalThis.WebAssembly;
+  t.after(() => { globalThis.WebAssembly = engine; });
+  let seen = null;
+  const api = {
+    ...lists,
+    // The words arrive as byte lists, so the record decodes each one.
+    init: words => { seen = words.map(word => Buffer.from(word).toString()); return 0; },
+    requestCode: () => 0,
+    requestArgs: () => [],
+    requestBody: () => [],
+    resume: () => assert.fail('a terminal request must not resume'),
+    exitCode: () => 0,
+  };
+  globalThis.WebAssembly = { instantiate: async () => ({ instance: { exports: api } }) };
+  const argv = ['first', 'second', 'café'];
+  assert.equal(await runReactor(new URL('../runtime/reactor.mjs', import.meta.url), argv), 0);
+  assert.deepEqual(seen, argv);
+});
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  test(`a terminal request after operation 4 preserves ${signal} status`, async t => {
+    const s = await sandbox(t);
+    const engine = globalThis.WebAssembly;
+    t.after(() => { globalThis.WebAssembly = engine; });
+    const word = text => [...Buffer.from(text)];
+    const responses = [];
+    const started = spawns.started;
+    const api = {
+      ...lists,
+      init: () => 0,
+      requestCode: state => state === 0 ? 4 : 0,
+      requestArgs: () => command(s, '0', sideEffect(s)).map(word),
+      requestBody: () => {
+        // Deliver the signal when opening the captures yields. Operation 4
+        // then reports interruption without any timer or process startup race.
+        queueMicrotask(() => process.emit(signal));
+        return [];
+      },
+      resume: (state, status, answer) => {
+        responses.push({ status, answer: fields(Buffer.from(answer)) });
+        return state + 1;
+      },
+      exitCode: () => 0,
+    };
+    globalThis.WebAssembly = { instantiate: async () => ({ instance: { exports: api } }) };
+    const status = await runReactor(new URL('../runtime/reactor.mjs', import.meta.url), []);
+    const interruptedCode = 128 + constants.signals[signal];
+    assert.deepEqual(responses, [{ status: 0, answer: [String(interruptedCode),
+      String(constants.signals[signal]), '0', '1', ''] }]);
+    assert.equal(spawns.started, started);
+    assert.equal(status, interruptedCode);
+    await absent(s.marker);
+  });
+}
+
 test('a signal between requests ends the loop with 128 plus the signal number', { skip: process.platform === 'win32' }, async t => {
   const guard = () => {};
   const engine = globalThis.WebAssembly;

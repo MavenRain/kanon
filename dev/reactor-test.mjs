@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,9 @@ const compiler = resolve(process.argv[2] ?? join(root, '_build/default/bin/kanon
 const scratch = mkdtempSync(join(tmpdir(), 'kanon-reactor-'));
 const fixture = name => join(root, 'test/fixtures/reactor', `${name}.kan`);
 const run = args => spawnSync(compiler, args, { encoding: 'utf8' });
+const runModule = (args, cwd = scratch) => spawnSync(process.execPath,
+  [join(root, 'runtime/run.mjs'), ...args],
+  { encoding: 'utf8', cwd, timeout: 20000 });
 const exports = ['empty', 'prepend', 'byteHead', 'byteTail',
   'byteLength', 'initialState', 'stateCount', 'stateBytes', 'updateState',
   'increment', 'literalBytes', 'literalEmpty'];
@@ -71,6 +74,74 @@ try {
   verify(() => assert.deepEqual(readFileSync(output), readFileSync(join(root, 'test/mu-mutual-emit.wasm'))));
   const { instance: old } = await WebAssembly.instantiate(readFileSync(output));
   verify(() => assert.equal(old.exports.main(), 4));
+
+  // Exercise a real compiled state machine through the same CLI a user runs.
+  const reactorExports = ['emptyBytes', 'consBytes', 'bytesEmpty', 'bytesHead', 'bytesTail',
+    'emptyWords', 'consWords', 'wordsEmpty', 'wordsHead', 'wordsTail',
+    'init', 'resume', 'requestCode', 'requestArgs', 'requestBody', 'exitCode'];
+  const application = join(scratch, 'realpath.wasm');
+  const applicationBuild = run(['build', join(root, 'runtime/reactor.kan'),
+    join(root, 'examples/reactor-realpath.kan'), '-o', application,
+    ...reactorExports.flatMap(name => ['--export', name])]);
+  verify(() => assert.equal(applicationBuild.status, 0, applicationBuild.stderr));
+  const { instance: applicationInstance } = await WebAssembly.instantiate(readFileSync(application));
+  const app = applicationInstance.exports;
+  const toBytes = bytes => bytes.reduceRight((tail, byte) => app.consBytes(byte, tail), app.emptyBytes());
+  const fromBytes = list => {
+    const result = [];
+    while (!app.bytesEmpty(list)) {
+      result.push(app.bytesHead(list));
+      list = app.bytesTail(list);
+    }
+    return result;
+  };
+  const pending = app.init(app.consWords(toBytes([65]), app.emptyWords()));
+  verify(() => assert.equal(app.requestCode(pending), 8));
+  const rawAnswer = [65, 0, 255, 195, 169];
+  const reporting = app.resume(pending, 0, toBytes(rawAnswer));
+  verify(() => assert.equal(app.requestCode(reporting), 6));
+  verify(() => assert.deepEqual(fromBytes(app.requestBody(reporting)), [...rawAnswer, 10]));
+  const writeFailure = app.resume(reporting, 1, app.emptyBytes());
+  verify(() => assert.equal(app.requestCode(writeFailure), 0));
+  verify(() => assert.equal(app.exitCode(writeFailure), 1));
+  const directory = join(scratch, 'caf\u00e9 path');
+  mkdirSync(directory);
+  const success = runModule([application, 'caf\u00e9 path']);
+  verify(() => assert.equal(success.status, 0, success.stderr));
+  verify(() => assert.equal(success.stdout, `${realpathSync(directory)}\n`));
+  verify(() => assert.equal(success.stderr, ''));
+
+  mkdirSync(join(scratch, '--help'));
+  const flagPath = runModule([application, '--help']);
+  verify(() => assert.equal(flagPath.status, 0, flagPath.stderr));
+  verify(() => assert.equal(flagPath.stdout, `${realpathSync(join(scratch, '--help'))}\n`));
+  const missingPath = runModule([application, 'missing-path']);
+  verify(() => assert.equal(missingPath.status, 1, missingPath.stderr));
+  verify(() => assert.equal(missingPath.stdout, ''));
+  verify(() => assert.match(missingPath.stderr, /^ENOENT:.*missing-path.*\n$/));
+  for (const args of [[], ['one', 'two']]) {
+    const invalid = runModule([application, ...args]);
+    verify(() => assert.equal(invalid.status, 64, invalid.stderr));
+    verify(() => assert.equal(invalid.stdout, ''));
+    verify(() => assert.equal(invalid.stderr, 'usage: reactor-realpath PATH\n'));
+  }
+
+  const noModule = runModule([]);
+  verify(() => assert.equal(noModule.status, 64));
+  verify(() => assert.equal(noModule.stdout, ''));
+  verify(() => assert.match(noModule.stderr, /^Usage:/));
+  const help = runModule(['--help']);
+  verify(() => assert.equal(help.status, 0));
+  verify(() => assert.match(help.stdout, /^Usage:/));
+  verify(() => assert.equal(help.stderr, ''));
+  const absentModule = runModule([join(scratch, 'absent.wasm')]);
+  verify(() => assert.equal(absentModule.status, 2));
+  verify(() => assert.equal(absentModule.stdout, ''));
+  verify(() => assert.match(absentModule.stderr, /^kanon reactor:.*ENOENT.*\n$/));
+  const invalidModule = runModule([output]);
+  verify(() => assert.equal(invalidModule.status, 2));
+  verify(() => assert.equal(invalidModule.stdout, ''));
+  verify(() => assert.match(invalidModule.stderr, /^kanon reactor: missing reactor export emptyBytes\n$/));
   process.stdout.write(`reactor: ${checks} checks passed\n`);
 } finally {
   rmSync(scratch, { recursive: true, force: true });

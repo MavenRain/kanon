@@ -35,6 +35,21 @@ export const osString = buffer => {
   return text;
 };
 
+// A failing output stream reports the failure twice: the write callback
+// receives the error, and the stream emits an 'error' event after it. An
+// unhandled 'error' event ends the whole process, so a broken pipe would
+// never reach the request loop. The callback is the reported path, so each
+// written stream keeps one listener that leaves the event to it. The
+// promise below then carries the failure to the caller.
+const guarded = new WeakSet();
+export const writeStream = (stream, chunk) => {
+  if (!guarded.has(stream)) {
+    stream.on('error', () => {});
+    guarded.add(stream);
+  }
+  return new Promise((ok, fail) => stream.write(chunk, error => error ? fail(error) : ok()));
+};
+
 export async function executeProcess(args, interrupted) {
   const [outPath, errPath, cwd, deadline, ...argv] = args;
   if (args.some(arg => typeof arg !== 'string' || arg.includes('\0'))) throw new TypeError('process arguments must be NUL-free strings');
@@ -183,8 +198,8 @@ async function perform(code, args, body, interrupted) {
       if (!info.isFile()) throw new Error('expected a regular file');
       return Buffer.from(String(info.size));
     }
-    case 6: await new Promise((ok, fail) => process.stdout.write(body, error => error ? fail(error) : ok())); return Buffer.alloc(0);
-    case 7: await new Promise((ok, fail) => process.stderr.write(body, error => error ? fail(error) : ok())); return Buffer.alloc(0);
+    case 6: await writeStream(process.stdout, body); return Buffer.alloc(0);
+    case 7: await writeStream(process.stderr, body); return Buffer.alloc(0);
     case 8: return Buffer.from(await realpath(args[0]));
     case 9: return Buffer.from(resolve(args[0], args[1]));
     default: throw new Error(`unknown OS request ${code}`);
@@ -232,7 +247,10 @@ export async function runReactor(wasmPath, argv = process.argv.slice(2)) {
       if (interrupted.signal && !grace) return signalCode(interrupted.signal);
       grace = false;
       const code = nat(api.requestCode(state));
-      if (code === 0) return nat(api.exitCode(state));
+      if (code === 0) {
+        // A terminal shutdown request keeps the latched interruption status.
+        return interrupted.signal ? signalCode(interrupted.signal) : nat(api.exitCode(state));
+      }
       const args = [];
       let values = api.requestArgs(state);
       while (!api.wordsEmpty(values)) {

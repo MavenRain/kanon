@@ -91,8 +91,26 @@ init, resume, requestCode, requestArgs, requestBody, exitCode
 Request accessors return an operation number, a list of byte strings, and
 payload bytes. `resume(state, status, answer)` receives status 0 on success
 or 1 with an error string and returns the next state. Operation 0 ends the
-loop with `exitCode(state)`. The runtime never interprets application state.
-Empty-list predicates return 1 for empty and 0 otherwise.
+loop with `exitCode(state)` unless an interruption is latched, in which
+case it preserves the signal status. The runtime never interprets
+application state. Empty-list predicates return 1 for empty and 0 otherwise.
+
+`runtime/reactor.kan` supplies the ordinary `Bytes` and `Words` inductive
+types and the ten list exports above. `Bytes` is a list of naturals used
+for bytes, and `Words` is a list of `Bytes`. Every element of a `Bytes`
+list that the host reads must be 0..255. A larger element ends the run with
+the `kanon reactor:` line and exit 2, like a rejected OS string argument,
+and never reaches the state machine as an answer. It also defines
+`bytesAppend : Bytes -> Bytes -> Bytes` for building response text. Compile
+this source before an application that uses these definitions. The helper
+is available inside the module and need not be exported to the host.
+`bytesAppend` recurses once per element of its left list, so the emitted
+module spends one Wasm call frame per element of that list. It is safe for
+a few thousand bytes only. A left list of about 4096 bytes still appends,
+and one of about 8192 bytes overflows the call stack, which ends the run
+with the `kanon reactor:` line and exit 2. An application that produces
+more output writes it in chunks, and never appends a whole 65536-byte
+answer from operation 2.
 
 | Operation | Arguments | Result |
 | --- | --- | --- |
@@ -127,12 +145,58 @@ is running and sets the interruption flag of its response. That one report earns
 the program a single further request, so it can write a summary or release what
 it holds. The loop then stops and returns 128 plus the signal number. A signal
 latched during any other operation stops the loop before the next request, with
-the same status. The module also exports `spawns`, a counter of started processes
-that the suite reads to observe that no command began.
+the same status. If the further request is terminal operation 0, it also returns
+the latched status, even when the application reports exit code 0. The module
+also exports `spawns`, a counter of started processes that the suite reads to
+observe that no command began.
 
 The driver performs OS operations and byte marshalling only. Applications own
 their argument parsing, paths, serialization, selection, and resource policies.
 This is a host adapter, not an effect primitive or kernel extension.
+
+## Running a reactor application
+
+`examples/reactor-realpath.kan` accepts exactly one path. It requests
+operation 8 to resolve the path, then writes the result and a newline to
+stdout through operation 6 and exits 0. A resolution failure writes the
+host's error and a newline to stderr through operation 7 and exits 1.
+A failed output write also makes an otherwise successful run exit 1.
+Zero or multiple arguments print usage on stderr and exit 64.
+
+From the repository root, build the compiler and compile the shared source
+followed by the application, exporting all 16 functions required by the host:
+
+```sh
+zsh dev/dune.sh build bin/kanon.exe
+_build/default/bin/kanon.exe build runtime/reactor.kan \
+  examples/reactor-realpath.kan -o /tmp/reactor-realpath.wasm \
+  --export emptyBytes --export consBytes \
+  --export bytesEmpty --export bytesHead --export bytesTail \
+  --export emptyWords --export consWords \
+  --export wordsEmpty --export wordsHead --export wordsTail \
+  --export init --export resume --export requestCode \
+  --export requestArgs --export requestBody --export exitCode
+node runtime/run.mjs /tmp/reactor-realpath.wasm .
+```
+
+The CLI syntax is `node runtime/run.mjs MODULE.wasm [ARG ...]`. A missing
+module argument prints usage on stderr and exits 64. A sole `--help`
+prints usage on stdout and exits 0. Every argument after the module path
+is passed literally to the application, including `--help`. The process
+keeps the caller's working directory, so relative application paths are
+resolved there.
+
+The CLI returns the application's exit code or the runtime's interruption
+status. That code is a whole number in 0..255, the range a POSIX status
+holds. A code outside the range never reaches the shell, which would
+truncate it: the CLI prints the `kanon reactor:` line and exits 2.
+Module loading and runtime errors print one `kanon reactor: MESSAGE`
+line on stderr and exit 2. Requested OS operation failures are delivered
+to the state machine, which chooses its response and exit code. A failed
+operation 6 or operation 7 write is such a failure: a closed pipe reaches
+the state machine as status 1 with the host's error text, not as a crash.
+A usage write that fails prints the same `kanon reactor:` line and exits 2,
+because no application is running yet.
 
 ## Validation
 
@@ -161,3 +225,9 @@ checks the ABI in Node, rejects invalid arguments and literals, and
 compares a legacy emitted module byte for byte with its checked-in
 artifact. Its multi-file and negative fixtures live in
 `test/fixtures/reactor/`, outside the legacy suite's flat golden set.
+It also compiles the shared reactor source and realpath application and
+runs the CLI against a relative UTF-8 path, a missing path, wrong argument
+counts and a literal `--help` path. CLI usage, help, missing modules and
+missing required exports are checked separately. The runtime suite checks
+that terminal operation 0 preserves both normal application exits and
+latched SIGINT or SIGTERM status.
