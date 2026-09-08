@@ -4,7 +4,8 @@ Released under MIT OR Apache 2.0 license.
 
 The disclosure driver of gate SF-G4 and the initiality developments.
 It prints the six syntax theorem reports. It also prints the
-natural-family group of `KanonMeta.MuNat` and the public initiality
+natural-family group of `KanonMeta.MuNat`, the binary-tree group of
+`KanonMeta.MuTree`, and the public initiality
 and initial-chain results. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
@@ -46,6 +47,25 @@ import KanonMeta
 #print axioms KanonMeta.MuNat.FoldProgram.interpret_zero
 #print axioms KanonMeta.MuNat.FoldProgram.interpret_succ
 #print axioms KanonMeta.MuNat.doubleProgram_semantics
+
+#print axioms KanonMeta.MuTree.decode_encode
+#print axioms KanonMeta.MuTree.encode_injective
+#print axioms KanonMeta.MuTree.Value.fold_leaf
+#print axioms KanonMeta.MuTree.Value.fold_fork
+#print axioms KanonMeta.MuTree.Value.fold_constructors
+#print axioms KanonMeta.MuTree.recursiveInitial
+#print axioms KanonMeta.MuTree.interpret_leaf
+#print axioms KanonMeta.MuTree.interpret_fork
+#print axioms KanonMeta.MuTree.semanticFold_leaf
+#print axioms KanonMeta.MuTree.semanticFold_fork
+#print axioms KanonMeta.MuTree.fold_interpret
+#print axioms KanonMeta.MuTree.semanticFold_unique
+#print axioms KanonMeta.MuTree.reify_interpret
+#print axioms KanonMeta.MuTree.interpret_injective
+#print axioms KanonMeta.MuTree.interpret_separates
+#print axioms KanonMeta.MuTree.semanticMirror_leaf
+#print axioms KanonMeta.MuTree.semanticMirror_fork
+#print axioms KanonMeta.MuTree.mirror_interpret
 
 open KanonMeta
 

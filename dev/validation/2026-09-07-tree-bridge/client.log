@@ -1,0 +1,7 @@
+ℹ [51/52] Built Client (2.1s)
+info: Client.lean:30:0: 'TreeBridgeClient.decode_sample' does not depend on any axioms
+info: Client.lean:31:0: 'TreeBridgeClient.fold_sample' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:32:0: 'TreeBridgeClient.mirror_sample' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:33:0: 'TreeBridgeClient.mirror_weight' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:34:0: 'TreeBridgeClient.injective' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (52 jobs).

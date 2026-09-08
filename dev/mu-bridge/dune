@@ -10,3 +10,12 @@
    (with-stdout-to GeneratedMuNat.lean
     (run %{exe:export_mu.exe} %{dep:../../test/meta/mu-nat-bridge.kan}))
    (diff ../../meta/test/GeneratedMuNat.lean GeneratedMuNat.lean))))
+
+(rule
+ (alias runtest)
+ (deps ../../test/meta/mu-tree-bridge.kan ../../meta/test/GeneratedMuTree.lean)
+ (action
+  (progn
+   (with-stdout-to GeneratedMuTree.lean
+    (run %{exe:export_mu.exe} --tree %{dep:../../test/meta/mu-tree-bridge.kan}))
+   (diff ../../meta/test/GeneratedMuTree.lean GeneratedMuTree.lean))))

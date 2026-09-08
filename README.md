@@ -9,7 +9,9 @@ including vectors.  The [finite branching construction](dev/FINITARY-CONSTRUCTIO
 extends initiality to arbitrary finite constructor arities.  The
 [natural-family bridge](dev/MU-NAT-BRIDGE.md) connects one extracted
 checked `SMu` declaration and its closed constructor fragment to the
-constructed algebra. General declaration interpretation, compiler
+constructed algebra. The [binary-tree bridge](dev/MU-TREE-BRIDGE.md) connects
+a checked family with two recursive children and its mirror operation to
+the finite branching construction. General declaration interpretation, compiler
 preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed
