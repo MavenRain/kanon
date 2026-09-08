@@ -99,6 +99,11 @@ import KanonMeta
 #print axioms KanonMeta.MuFinitary.semanticFold_unique
 #print axioms KanonMeta.MuFinitary.reify_interpret
 #print axioms KanonMeta.MuFinitary.interpret_injective
+#print axioms KanonMeta.MuFinitary.constructorName_injective
+#print axioms KanonMeta.MuFinitary.encode_injective
+#print axioms KanonMeta.MuFinitary.decode_encode
+#print axioms KanonMeta.MuFinitary.decode_sound
+#print axioms KanonMeta.MuFinitary.decoded_fold_interpret
 
 open KanonMeta
 

@@ -1,0 +1,6 @@
+ℹ [54/55] Built Client (14s)
+info: Client.lean:39:0: 'Client.exact_input' does not depend on any axioms
+info: Client.lean:40:0: 'Client.semantic_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:41:0: 'Client.arbitrary_value_roundtrip' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:42:0: 'Client.distinct_encodings' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (55 jobs).

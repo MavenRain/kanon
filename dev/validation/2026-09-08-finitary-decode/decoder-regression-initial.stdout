@@ -1,0 +1,5 @@
+'KanonMeta.MuFinitary.Tests.Decode.generated_observation' depends on axioms: [propext, Quot.sound]
+'KanonMeta.MuFinitary.Tests.Decode.generated_reencoding' depends on axioms: [propext, Quot.sound]
+'KanonMeta.MuFinitary.Tests.Decode.reordered_constructor_position' depends on axioms: [propext, Quot.sound]
+'KanonMeta.MuFinitary.Tests.Decode.reject_late_child' depends on axioms: [propext, Quot.sound]
+'KanonMeta.MuFinitary.Tests.Decode.arbitrary_arity' depends on axioms: [propext, Quot.sound]

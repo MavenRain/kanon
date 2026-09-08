@@ -21,3 +21,4 @@ import KanonMeta.MuNat
 import KanonMeta.MuTree
 import KanonMeta.MuVector
 import KanonMeta.MuFinitary
+import KanonMeta.MuFinitaryDecode

@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "reports": 133,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "decoder_reports": {
+    "KanonMeta.MuFinitary.constructorName_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.encode_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.decode_encode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.decode_sound": [
+      "propext",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.decoded_fold_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": "a58819d051fae0c9f570d97f4a643980fb97e019eb2f4f5ccb8db49f1d3ebc36",
+  "driver_sha256": "8b497c2906d4009f02dfa7d82c077160d7ac8ef83f96dad69567f1ad5d178a49",
+  "output_sha256": "5f409a4516e9eb7cc787d171f1d94fe5d02d929d12994b345e74529b12866ed5"
+}

@@ -15,7 +15,9 @@ the finite branching construction. The [indexed-vector bridge](dev/MU-VECTOR-BRI
 connects checked length indices and payload-preserving copy to the constructed
 indexed algebra. The [finite-family bridge](dev/MU-FINITARY-BRIDGE.md)
 derives a signature from any validated unindexed family in the direct-recursion
-fragment, retaining arbitrary finite constructor arities. General typed interpretation, compiler
+fragment, retaining arbitrary finite constructor arities. Its
+[raw-term decoder](dev/MU-FINITARY-DECODE.md) reconstructs closed constructor values
+with exact syntax certificates and roundtrip laws. General typed interpretation, compiler
 preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

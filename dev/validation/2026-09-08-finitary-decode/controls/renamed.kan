@@ -1,0 +1,10 @@
+-- Four constructor arities exercise the generic unindexed family bridge.
+mu Orchard : Type 0 with
+| seed : Orchard
+| stem : Orchard -> Orchard
+| branch : Orchard -> Orchard -> Orchard
+| canopy : Orchard -> Orchard -> Orchard -> Orchard
+
+def sample : Orchard := canopy seed (stem seed) (branch seed (stem seed))
+def rec weight : Orchard -> Nat := fun (t : Orchard) => case t as x in Orchard return Nat with | seed => 1 | stem a => natAdd 1 (weight a) | branch l r => natAdd (natMul 2 (weight l)) (natMul 3 (weight r)) | canopy l m r => natAdd (natAdd (natMul 2 (weight l)) (natMul 3 (weight m))) (natMul 5 (weight r))
+def main : Nat := weight sample

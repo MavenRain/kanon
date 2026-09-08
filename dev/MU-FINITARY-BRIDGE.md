@@ -6,7 +6,7 @@ The semantic carrier and its initiality come from `FinitaryConstruction`. Constr
 
 `dev/mu-bridge/export_mu.ml --finitary FAMILY FIXTURE.kan` checks the complete source and exports the selected family record and the checked `sample` definition, including its type and recursion metadata. The generated source has a Dune freshness check. The fixture `test/meta/mu-finitary-bridge.kan` exercises four constructor arities, including a ternary constructor. Its harness also checks renamed and reordered declarations and malformed invocation and source controls.
 
-This remains external metatheory for a bounded declaration fragment. The extraction certificates identify the sample's raw constructor encoding directly; a generic raw-term decoder is separate work. General indexed and mutual declaration interpretation, payload fields, open typed terms and substitution, recursive-call correspondence, compiler preservation and the internal Kan-only requirement remain open. This increment does not ratify M1 exit.
+This remains external metatheory for a bounded declaration fragment. The later [raw-term decoder](MU-FINITARY-DECODE.md) reconstructs arbitrary closed constructor trees in this fragment, certifies their exact raw encoding and proves roundtrip laws. The extraction harness now also checks decoding and ordered observations of the exported samples. General indexed and mutual declaration interpretation, payload fields, open typed terms and substitution, recursive-call correspondence, compiler preservation and the internal Kan-only requirement remain open. This increment does not ratify M1 exit.
 
 After the OCaml and pinned Lean package builds, reproduce the extraction and runtime checks with:
 
