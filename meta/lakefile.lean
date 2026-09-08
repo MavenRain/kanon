@@ -13,4 +13,5 @@ lean_lib «KanonMeta» where
 
 @[default_target]
 lean_lib «KanonMetaTests» where
-  roots := #[`test.Regression, `test.Initiality, `test.InitialChain, `test.VectorConstruction]
+  roots := #[`test.Regression, `test.Initiality, `test.InitialChain, `test.VectorConstruction,
+    `test.FinitaryConstruction, `test.FinitarySequence]

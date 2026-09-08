@@ -61,3 +61,15 @@ open KanonMeta
 #print axioms VectorConstruction.copy_eq
 #print axioms VectorConstruction.copy_nil
 #print axioms VectorConstruction.copy_cons
+
+#print axioms FinitaryConstruction.preserves
+#print axioms FinitaryConstruction.recursive
+#print axioms FinitaryConstruction.recursiveInitial
+#print axioms FinitaryConstruction.node_eta
+#print axioms FinitaryConstruction.synchronize
+#print axioms FinitaryConstruction.representatives_respect
+#print axioms FinitaryConstruction.descend
+#print axioms FinitaryConstruction.descend_on_leg
+
+#print axioms FiniteBound.bound
+#print axioms FiniteBound.le_bound

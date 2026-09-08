@@ -12,7 +12,7 @@ This is an external semantic model of the fixture's signature. It does not parse
 
 All constructor and dependent beta equations are propositional equalities in Lean. The construction uses Lean's natural-number iteration, equality, and quotient machinery. It does not establish an internal derivation from Kanon's admitted shape grammar. Indices, payloads, carriers, and displayed fibres use the universe discipline inherited from `InitialChain`.
 
-General preservation for constructors with multiple finite recursive children remains a separate theorem. It requires placing those children in a common sequence stage. Infinite branching is also outside this increment. Full Lean parity, source-to-Wasm preservation, and OCaml compilation-speed parity remain open.
+The later [finite branching construction](FINITARY-CONSTRUCTION.md) proves preservation of the constructed sequence quotient for constructors with any finite number of recursive children. It places those children in a common sequence stage and derives their initial algebra. Infinite branching remains outside these increments. Full Lean parity, source-to-Wasm preservation, and OCaml compilation-speed parity remain open.
 
 Validation records, the public-import client, source hashes, and the integration patch are retained in `/Users/oobi/Documents/gpt15/evidence/indexed-construction`.
 

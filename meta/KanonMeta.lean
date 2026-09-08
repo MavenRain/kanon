@@ -15,3 +15,5 @@ import KanonMeta.ChainColimit
 import KanonMeta.NatConstruction
 import KanonMeta.LinearConstruction
 import KanonMeta.VectorConstruction
+import KanonMeta.FiniteBound
+import KanonMeta.FinitaryConstruction

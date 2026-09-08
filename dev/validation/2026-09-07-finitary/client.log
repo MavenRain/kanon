@@ -1,0 +1,8 @@
+ℹ [49/50] Built Client (1.0s)
+info: Client.lean:25:0: KanonMeta.FinitaryConstruction.node.{u} {Index : Type u} (Q : FinitaryConstruction.Signature Index)
+  {X : InitialChain.Family Index} {i : Index} (shape : Q.Shape i)
+  (xs : (pos : Fin (Q.arity shape)) → X (Q.child shape pos)) : InitialChain.polyObj Q.polynomial X i
+info: Client.lean:26:0: 'publicInitial' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:27:0: 'publicPreservation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:28:0: 'publicDependentBeta' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (50 jobs).

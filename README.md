@@ -5,7 +5,9 @@ The [foundation audit](dev/FOUNDATION-AUDIT.md) records the remaining
 obligation to derive the implemented inductive rules from their universal
 properties.  The [indexed construction](dev/INDEXED-CONSTRUCTION.md)
 supplies external Lean models for nullary/unary indexed signatures,
-including vectors.  Connecting those models to checked `SMu` declarations
+including vectors.  The [finite branching construction](dev/FINITARY-CONSTRUCTION.md)
+extends initiality to arbitrary finite constructor arities.  Connecting
+those models to checked `SMu` declarations
 and proving compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

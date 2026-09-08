@@ -1,0 +1,37 @@
+ℹ [47/55] Replayed test.Initiality
+info: test/Initiality.lean:117:0: 'KanonMeta.Initiality.Tests.natInitial' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:118:0: 'KanonMeta.Initiality.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:119:0: 'KanonMeta.Initiality.Tests.nat_projection' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:120:0: 'KanonMeta.Initiality.Tests.junkFold' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:121:0: 'KanonMeta.Initiality.Tests.junk_not_initial' does not depend on any axioms
+info: test/Initiality.lean:122:0: 'KanonMeta.Initiality.Tests.junk_no_section' does not depend on any axioms
+ℹ [48/55] Replayed test.InitialChain
+info: test/InitialChain.lean:91:0: 'KanonMeta.InitialChain.Tests.observe_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:92:0: 'KanonMeta.InitialChain.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:93:0: 'KanonMeta.InitialChain.Tests.collapse_not_hom' depends on axioms: [Quot.sound]
+ℹ [49/55] Replayed test.VectorConstruction
+info: test/VectorConstruction.lean:119:0: 'KanonMeta.VectorConstruction.Tests.total_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:120:0: 'KanonMeta.VectorConstruction.Tests.count_values' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:121:0: 'KanonMeta.VectorConstruction.Tests.count_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:122:0: 'KanonMeta.VectorConstruction.Tests.singleton_payload_ne' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:123:0: 'KanonMeta.VectorConstruction.Tests.erasure_not_hom' depends on axioms: [propext, Quot.sound]
+ℹ [50/55] Replayed test.FinitarySequence
+info: test/FinitarySequence.lean:70:0: 'KanonMeta.FinitarySequence.Tests.identifies' depends on axioms: [Quot.sound]
+info: test/FinitarySequence.lean:71:0: 'KanonMeta.FinitarySequence.Tests.mixed_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+ℹ [51/55] Built test.FinitaryConstruction (2.1s)
+info: test/FinitaryConstruction.lean:355:0: 'KanonMeta.FinitaryConstruction.Tests.total_values' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:356:0: 'KanonMeta.FinitaryConstruction.Tests.weighted_values' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:357:0: 'KanonMeta.FinitaryConstruction.Tests.independent_child_depths' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: test/FinitaryConstruction.lean:358:0: 'KanonMeta.FinitaryConstruction.Tests.copied_positions' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:359:0: 'KanonMeta.FinitaryConstruction.Tests.count_roll' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:360:0: 'KanonMeta.FinitaryConstruction.Tests.count_copied' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:361:0: 'KanonMeta.FinitaryConstruction.Tests.swapped_children_ne' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:362:0: 'KanonMeta.FinitaryConstruction.Tests.omitting_child_not_hom' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:363:0: 'KanonMeta.FinitaryConstruction.Tests.collapsing_payload_not_hom' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+✔ [52/55] Built KanonMeta (10s)
+✔ [54/55] Built test.Regression (2.1s)
+Build completed successfully (55 jobs).

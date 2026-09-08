@@ -1,0 +1,18 @@
+The finite branching foundation increment extends the external semantic construction to indexed signatures with any finite number of recursive children. A constructor has a payload-bearing shape, a natural-number arity, and a child index for each position. The arity may vary with the shape, and child indices may differ from the result index.
+
+`meta/KanonMeta/FinitaryConstruction.lean` supplies the reusable `Signature`, its `polynomial`, and `node` with positions indexed by `Fin`. Internally, positions are lifted to the universe of the indexed families. Indices, shapes, carriers, and displayed fibres retain the `Type u` discipline of `InitialChain`.
+
+`preserves` proves the universal property for the polynomial image of `ChainColimit.cocone S`, for every sequence `S`. Its target is this particular constructed quotient cocone. It does not assert preservation for an arbitrary externally supplied colimit. No injectivity or inhabitance assumption is imposed on the sequence's connecting maps or fibres.
+
+Finite children can be represented at different stages. The construction uses classical choice to select representatives and common-stage witnesses, then proves that descent is independent of those choices. The finite upper-bound helper itself is constructive. This addresses the obstruction that the earlier nullary/unary construction did not encounter. Preservation with the chain cocone gives `recursive` through `InitialChain.chainAlgebra`. Adding `ChainColimit.isColimit` and `InitialChain.chainInitial` gives `recursiveInitial`. Neither step needs an initiality or colimit-existence premise. The resulting definitions are noncomputable Lean semantics.
+
+The regression targets exercise the constructed carrier and a separate sequence:
+
+- `meta/test/FinitaryConstruction.lean` covers nullary, binary, and ternary constructors, retained payloads, different child indices and depths, constructor equations, copy uniqueness, and observations that distinguish child order.
+- `meta/test/FinitarySequence.lean` uses pairs of a natural number and a Boolean. Transitions retain the number and collapse both Boolean values to `false`. Three children occupy different stages and index fibres. An order-sensitive observation descends their node to `42`, showing that the API applies beyond sequences of embeddings while retaining observable child data.
+
+These results remain external metatheory. Constructor and dependent beta equations are propositional equalities in Lean. The construction uses Lean's natural-number iteration, equality, quotient machinery, and classical choice. It does not interpret checked `SMu` declarations, derive countable diagrams internally from Kanon's admitted shapes, prove compiler preservation, or cover infinite branching. The [foundation audit](FOUNDATION-AUDIT.md) records those remaining obligations.
+
+The public preservation and initiality declarations and the downstream dependent-beta client report exactly `propext`, `Classical.choice`, and `Quot.sound`. These are the existing permitted dependencies in `meta/Axioms.lean`. The explicit use of classical choice is an additional dependency compared with the earlier linear construction. No new axiom declaration is introduced.
+
+Validation is recorded in `dev/validation/2026-09-07-finitary/` after the complete package build, public-import check, axiom disclosure, source audit, and static review by the increment author. This increment changes Lean sources and documentation; compiler and Wasm sources are unchanged, so their gate battery is not repeated.
