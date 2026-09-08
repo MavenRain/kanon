@@ -1,0 +1,76 @@
+ℹ [50/68] Replayed test.Initiality
+info: test/Initiality.lean:117:0: 'KanonMeta.Initiality.Tests.natInitial' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:118:0: 'KanonMeta.Initiality.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:119:0: 'KanonMeta.Initiality.Tests.nat_projection' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:120:0: 'KanonMeta.Initiality.Tests.junkFold' depends on axioms: [Quot.sound]
+info: test/Initiality.lean:121:0: 'KanonMeta.Initiality.Tests.junk_not_initial' does not depend on any axioms
+info: test/Initiality.lean:122:0: 'KanonMeta.Initiality.Tests.junk_no_section' does not depend on any axioms
+ℹ [51/68] Replayed test.InitialChain
+info: test/InitialChain.lean:91:0: 'KanonMeta.InitialChain.Tests.observe_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:92:0: 'KanonMeta.InitialChain.Tests.count_three' depends on axioms: [Quot.sound]
+info: test/InitialChain.lean:93:0: 'KanonMeta.InitialChain.Tests.collapse_not_hom' depends on axioms: [Quot.sound]
+ℹ [52/68] Replayed test.VectorConstruction
+info: test/VectorConstruction.lean:119:0: 'KanonMeta.VectorConstruction.Tests.total_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:120:0: 'KanonMeta.VectorConstruction.Tests.count_values' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:121:0: 'KanonMeta.VectorConstruction.Tests.count_copied' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:122:0: 'KanonMeta.VectorConstruction.Tests.singleton_payload_ne' depends on axioms: [Quot.sound]
+info: test/VectorConstruction.lean:123:0: 'KanonMeta.VectorConstruction.Tests.erasure_not_hom' depends on axioms: [propext, Quot.sound]
+ℹ [53/68] Replayed test.FinitaryConstruction
+info: test/FinitaryConstruction.lean:355:0: 'KanonMeta.FinitaryConstruction.Tests.total_values' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:356:0: 'KanonMeta.FinitaryConstruction.Tests.weighted_values' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:357:0: 'KanonMeta.FinitaryConstruction.Tests.independent_child_depths' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: test/FinitaryConstruction.lean:358:0: 'KanonMeta.FinitaryConstruction.Tests.copied_positions' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:359:0: 'KanonMeta.FinitaryConstruction.Tests.count_roll' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:360:0: 'KanonMeta.FinitaryConstruction.Tests.count_copied' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:361:0: 'KanonMeta.FinitaryConstruction.Tests.swapped_children_ne' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:362:0: 'KanonMeta.FinitaryConstruction.Tests.omitting_child_not_hom' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/FinitaryConstruction.lean:363:0: 'KanonMeta.FinitaryConstruction.Tests.collapsing_payload_not_hom' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+ℹ [54/68] Replayed test.FinitarySequence
+info: test/FinitarySequence.lean:70:0: 'KanonMeta.FinitarySequence.Tests.identifies' depends on axioms: [Quot.sound]
+info: test/FinitarySequence.lean:71:0: 'KanonMeta.FinitarySequence.Tests.mixed_payload' depends on axioms: [propext, Classical.choice, Quot.sound]
+ℹ [57/68] Replayed test.MuNat
+info: test/MuNat.lean:107:0: 'KanonMeta.MuNat.Tests.checked_declaration' does not depend on any axioms
+info: test/MuNat.lean:108:0: 'KanonMeta.MuNat.Tests.generated_three_decoder' does not depend on any axioms
+info: test/MuNat.lean:109:0: 'KanonMeta.MuNat.Tests.generated_three_checked_decoder' does not depend on any axioms
+info: test/MuNat.lean:110:0: 'KanonMeta.MuNat.Tests.generated_three_observation' depends on axioms: [Quot.sound]
+info: test/MuNat.lean:111:0: 'KanonMeta.MuNat.Tests.generated_double_encoder' does not depend on any axioms
+info: test/MuNat.lean:112:0: 'KanonMeta.MuNat.Tests.generated_double_three_observation' depends on axioms: [Quot.sound]
+info: test/MuNat.lean:113:0: 'KanonMeta.MuNat.Tests.generated_case_predecessor' depends on axioms: [Quot.sound]
+info: test/MuNat.lean:114:0: 'KanonMeta.MuNat.Tests.zero_successor_separation' depends on axioms: [Quot.sound]
+ℹ [59/68] Replayed test.MuTree
+info: test/MuTree.lean:115:0: 'KanonMeta.MuTree.Tests.checked_declaration' does not depend on any axioms
+info: test/MuTree.lean:116:0: 'KanonMeta.MuTree.Tests.generated_sample_decoder' does not depend on any axioms
+info: test/MuTree.lean:117:0: 'KanonMeta.MuTree.Tests.generated_sample_checked_decoder' does not depend on any axioms
+info: test/MuTree.lean:118:0: 'KanonMeta.MuTree.Tests.generated_sample_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuTree.lean:119:0: 'KanonMeta.MuTree.Tests.generated_mirror_encoder' does not depend on any axioms
+info: test/MuTree.lean:120:0: 'KanonMeta.MuTree.Tests.generated_mirror_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuTree.lean:121:0: 'KanonMeta.MuTree.Tests.mirror_changes_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuTree.lean:122:0: 'KanonMeta.MuTree.Tests.leaf_fork_separation' depends on axioms: [propext, Classical.choice, Quot.sound]
+ℹ [61/68] Replayed test.MuVector
+info: test/MuVector.lean:211:0: 'KanonMeta.MuVector.Tests.checked_natural_declaration' does not depend on any axioms
+info: test/MuVector.lean:212:0: 'KanonMeta.MuVector.Tests.checked_declaration' does not depend on any axioms
+info: test/MuVector.lean:213:0: 'KanonMeta.MuVector.Tests.generated_sample_decoder' depends on axioms: [propext]
+info: test/MuVector.lean:214:0: 'KanonMeta.MuVector.Tests.generated_sample_checked_decoder' does not depend on any axioms
+info: test/MuVector.lean:215:0: 'KanonMeta.MuVector.Tests.generated_copy_encoder' depends on axioms: [propext]
+info: test/MuVector.lean:216:0: 'KanonMeta.MuVector.Tests.generated_copy_interpretation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:217:0: 'KanonMeta.MuVector.Tests.generated_sample_observation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:218:0: 'KanonMeta.MuVector.Tests.generated_copy_observation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:219:0: 'KanonMeta.MuVector.Tests.payload_order_separation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:220:0: 'KanonMeta.MuVector.Tests.payload_erasure_separation' depends on axioms: [propext, Quot.sound]
+✔ [62/68] Built KanonMeta.MuFinitary (789ms)
+✔ [63/68] Built test.GeneratedMuFinitary (465ms)
+ℹ [64/68] Built test.MuFinitary (1.0s)
+info: test/MuFinitary.lean:192:0: 'KanonMeta.MuFinitary.Tests.generated_validation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuFinitary.lean:193:0: 'KanonMeta.MuFinitary.Tests.generated_supported' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuFinitary.lean:194:0: 'KanonMeta.MuFinitary.Tests.generated_sample_encoder' depends on axioms: [propext]
+info: test/MuFinitary.lean:195:0: 'KanonMeta.MuFinitary.Tests.generated_sample_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuFinitary.lean:196:0: 'KanonMeta.MuFinitary.Tests.positions_remain_distinct' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuFinitary.lean:197:0: 'KanonMeta.MuFinitary.Tests.sample_roundtrip' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/MuFinitary.lean:198:0: 'KanonMeta.MuFinitary.Tests.reject_duplicate_names' depends on axioms: [propext, Classical.choice, Quot.sound]
+✔ [65/68] Built KanonMeta (5.7s)
+✔ [67/68] Built test.Regression (1.3s)
+Build completed successfully (68 jobs).

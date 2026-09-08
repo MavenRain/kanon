@@ -1,0 +1,474 @@
+{
+  "passed": true,
+  "controls": {
+    "renamed": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "reordered": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "swapped-children": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "multiple-nullary": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    }
+  },
+  "rejections": {
+    "invalid_fixture": true,
+    "missing-family": true,
+    "missing-sample": true,
+    "missing-file": true,
+    "missing-arguments": true,
+    "missing-family-and-file": true,
+    "missing-file-argument": true,
+    "extra-argument": true,
+    "unknown-mode": true
+  },
+  "observations": [
+    {
+      "name": "extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "baseline-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/baseline.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "renamed-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Orchard",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/renamed.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "renamed-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/renamed.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "renamed-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/renamed.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "renamed-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/renamed.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "renamed-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/renamed.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reordered-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/reordered.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reordered-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/reordered.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reordered-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/reordered.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reordered-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/reordered.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reordered-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/reordered.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "swapped-children-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/swapped-children.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "swapped-children-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/swapped-children.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "swapped-children-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/swapped-children.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "swapped-children-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/swapped-children.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "swapped-children-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/swapped-children.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "multiple-nullary-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Signal",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/multiple-nullary.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "multiple-nullary-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/multiple-nullary.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "multiple-nullary-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/multiple-nullary.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "multiple-nullary-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/multiple-nullary.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "multiple-nullary-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/multiple-nullary.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "invalid-check",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "check",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/invalid-trailing-definition.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "invalid-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/invalid-trailing-definition.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-family",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Absent",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-sample",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/missing-sample.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-file",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/.gatework/mu-finitary-bridge/missing.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-arguments",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-family-and-file",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "missing-file-argument",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "extra-argument",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--finitary",
+        "Grove",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan",
+        "extra"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "unknown-mode",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--unknown",
+        "/Users/oobi/Documents/kanon/test/meta/mu-finitary-bridge.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    }
+  ],
+  "sha256": {
+    "test/meta/mu-finitary-bridge.kan": "e29d9a2467b466ef5fccaf40ad65bda0ebf2e5fd038f03849911f0c728bdc048",
+    "meta/test/GeneratedMuFinitary.lean": "243c6630b655043ae36cd218dba8dc3daf479f9fc20c105445a3ca0aa79e1c0a",
+    "dev/mu-bridge/export_mu.ml": "7514c481911f216c9c004603a1453a1224552de47b9278561b2fdd7c8db2d6a8",
+    "dev/mu-bridge/check_finitary.py": "5b3a8ef840262d2e7d5cd5d7f24304a0faf2f02835f0fd5243bf4ad3eed51a6e",
+    "dev/mu-bridge/dune": "9fd53caace076926593bdebdb16f8893f48fc99c882dda6e330966611fabfe13",
+    "meta/KanonMeta/MuNat.lean": "d5deb60743f3958444f3be65511af6c829c24f7b63fcbae1a6bc712ea1c3a10c",
+    "meta/KanonMeta/FinitaryConstruction.lean": "472bee290ee82479828046d126487e70c648041c2de5f9622261e16c63e47fec",
+    "meta/KanonMeta/MuFinitary.lean": "5c4a489b9fc15d25e2ce910a6acac3dec7381965a8667dcadc05f97d73a9a634",
+    "meta/test/MuFinitary.lean": "73b0a23b9aa03492b225104ab7f2faf4b9bba5cd6d94d3044783ac61cc0675f7",
+    "lib/positivity.ml": "97cb5fc9484ecaec360b4be1ac42f0668ae767aad25efc10ddbc1d4143185471",
+    "lib/rules.ml": "b625cec31061ca79f77669889039e4ae2658393911e39076dc65189022f702ab",
+    "surface/elab.ml": "657b134e25e495e6edc5435bb3c9335bc48637915045fba91da9a595d2e3280d"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/validation/2026-09-08-finitary-bridge/audit.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.213,
+  "stdout": "audit-command.stdout",
+  "stderr": "audit-command.stderr",
+  "stdout_sha256": "6c329e0837a270c621a57821c7b9855d4eee32360abe895bf2e6223d1c72a0c9",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

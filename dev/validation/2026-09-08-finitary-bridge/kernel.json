@@ -1,0 +1,13 @@
+{
+  "command": [
+    "_build/default/test/main.exe",
+    "test"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.798,
+  "stdout": "kernel.stdout",
+  "stderr": "kernel.stderr",
+  "stdout_sha256": "430a5b9934150529544f77a249ebdb4f94841a45811ebbb4ebd65fcbdb2efd06",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

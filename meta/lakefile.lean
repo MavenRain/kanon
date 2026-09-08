@@ -17,4 +17,5 @@ lean_lib «KanonMetaTests» where
     `test.FinitaryConstruction, `test.FinitarySequence,
     `test.MuSyntax, `test.GeneratedMuNat, `test.MuNat,
     `test.GeneratedMuTree, `test.MuTree,
-    `test.GeneratedMuVector, `test.MuVector]
+    `test.GeneratedMuVector, `test.MuVector,
+    `test.GeneratedMuFinitary, `test.MuFinitary]

@@ -1,0 +1,8 @@
+mu Signal : Type 0 with
+| idle : Signal
+| wake : Signal
+| pair : Signal -> Signal -> Signal
+
+def sample : Signal := pair idle wake
+def rec weight : Signal -> Nat := fun (t : Signal) => case t as x in Signal return Nat with | idle => 2 | wake => 5 | pair l r => natAdd (natMul 2 (weight l)) (natMul 3 (weight r))
+def main : Nat := weight sample

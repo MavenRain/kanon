@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "reports": 128,
+  "missing": [],
+  "unexpected": {},
+  "new_reports": {
+    "KanonMeta.MuFinitary.Validated.supported": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.validate_sound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.Value.fold_node": [],
+    "KanonMeta.MuFinitary.Value.fold_constructors": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.recursiveInitial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticFold_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.fold_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticFold_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.reify_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.interpret_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "driver_sha256": "44989c45b495d82af334a5becf8e259b83c2bf025f7d55576afdeb16e1a4ccff",
+  "output_sha256": "6e35ea3b446cb2c877a277062179c6a4914f049ad003fad8ae94a0b6630f5bd0"
+}

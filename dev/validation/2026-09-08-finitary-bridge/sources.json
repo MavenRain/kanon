@@ -1,0 +1,21 @@
+{
+  "base": "0feabec9baadebc5e47645809d5e5c3d682e23f4",
+  "cwd": "/Users/oobi/Documents/kanon",
+  "evidence_matches_current_sources": true,
+  "changed_sources": {
+    "README.md": "f4c97b9cc01a0c1789c16ecf35289b961499bcc8459a863255feb19a0bb15012",
+    "dev/FOUNDATION-AUDIT.md": "c427bcdca6cb4343f52fa9e9d98bce7c3700f9ea31582608ab402aa94bd88fd4",
+    "dev/MU-FINITARY-BRIDGE.md": "07628494fd352c99ca00051f7e211bb9c5334749be01f5c3627b7ce9d3ac015e",
+    "dev/mu-bridge/check_finitary.py": "5b3a8ef840262d2e7d5cd5d7f24304a0faf2f02835f0fd5243bf4ad3eed51a6e",
+    "dev/mu-bridge/dune": "9fd53caace076926593bdebdb16f8893f48fc99c882dda6e330966611fabfe13",
+    "dev/mu-bridge/export_mu.ml": "7514c481911f216c9c004603a1453a1224552de47b9278561b2fdd7c8db2d6a8",
+    "meta/Axioms.lean": "44989c45b495d82af334a5becf8e259b83c2bf025f7d55576afdeb16e1a4ccff",
+    "meta/KanonMeta.lean": "5354f6943369596bd34c842806cc098d590a9ec9048e6764df2b5995ce49f0e2",
+    "meta/KanonMeta/MuFinitary.lean": "5c4a489b9fc15d25e2ce910a6acac3dec7381965a8667dcadc05f97d73a9a634",
+    "meta/lakefile.lean": "83b9ac274d435e69415cc15b272fb5a34fd6698ea998c7afc005b777a80dd503",
+    "meta/test/GeneratedMuFinitary.lean": "243c6630b655043ae36cd218dba8dc3daf479f9fc20c105445a3ca0aa79e1c0a",
+    "meta/test/MuFinitary.lean": "73b0a23b9aa03492b225104ab7f2faf4b9bba5cd6d94d3044783ac61cc0675f7",
+    "test/meta/mu-finitary-bridge.kan": "e29d9a2467b466ef5fccaf40ad65bda0ebf2e5fd038f03849911f0c728bdc048"
+  },
+  "client_sha256": "11b7b3c78a1fe40a6e5d17c72da91ee6c86b4be0a2580b442426df593577aafc"
+}

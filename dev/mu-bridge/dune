@@ -35,3 +35,12 @@
    (with-stdout-to GeneratedMuVector.lean
     (run %{exe:export_mu.exe} --vector %{dep:../../test/meta/mu-vector-bridge.kan}))
    (diff ../../meta/test/GeneratedMuVector.lean GeneratedMuVector.lean))))
+
+(rule
+ (alias runtest)
+ (deps ../../test/meta/mu-finitary-bridge.kan ../../meta/test/GeneratedMuFinitary.lean)
+ (action
+  (progn
+   (with-stdout-to GeneratedMuFinitary.lean
+    (run %{exe:export_mu.exe} --finitary Grove %{dep:../../test/meta/mu-finitary-bridge.kan}))
+   (diff ../../meta/test/GeneratedMuFinitary.lean GeneratedMuFinitary.lean))))

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/mu-bridge/check_tree.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.625,
+  "stdout": "tree-runtime.stdout",
+  "stderr": "tree-runtime.stderr",
+  "stdout_sha256": "3badbff20eb4d0ec7101ebd9fa2c07796ce522a66d106c9721c7c5b87767aa33",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

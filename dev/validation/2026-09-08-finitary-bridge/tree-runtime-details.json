@@ -1,0 +1,199 @@
+{
+  "passed": true,
+  "controls": {
+    "preserve-order": {
+      "extraction_changed": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "drop-right": {
+      "extraction_changed": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    }
+  },
+  "observations": [
+    {
+      "name": "extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--tree",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "original-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan",
+        "--export",
+        "original",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "original-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-tree-bridge.kan",
+        "--export",
+        "original",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "preserve-order-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--tree",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/preserve-order.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "preserve-order-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/preserve-order.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "preserve-order-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/preserve-order.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "preserve-order-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/preserve-order.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "drop-right-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--tree",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/drop-right.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "drop-right-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/drop-right.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "drop-right-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/drop-right.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "drop-right-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-tree-bridge/drop-right.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    }
+  ],
+  "sha256": {
+    "test/meta/mu-tree-bridge.kan": "7b04c8bc732eee0c9435a32ef95804c9e4154354fc8079332f2b1e09f0be2fc4",
+    "meta/test/GeneratedMuTree.lean": "c7f5a623c33f92823250ba494f184f948eb65632d48b7801fa7cd48fce7385be",
+    "dev/mu-bridge/export_mu.ml": "7514c481911f216c9c004603a1453a1224552de47b9278561b2fdd7c8db2d6a8",
+    "dev/mu-bridge/check_tree.py": "7609237724aa0b80d4f1ac56b737007e57b7c90502f207d032230d6660b3ed95",
+    "dev/mu-bridge/dune": "9fd53caace076926593bdebdb16f8893f48fc99c882dda6e330966611fabfe13",
+    "lib/positivity.ml": "97cb5fc9484ecaec360b4be1ac42f0668ae767aad25efc10ddbc1d4143185471",
+    "lib/rules.ml": "b625cec31061ca79f77669889039e4ae2658393911e39076dc65189022f702ab",
+    "surface/elab.ml": "657b134e25e495e6edc5435bb3c9335bc48637915045fba91da9a595d2e3280d"
+  }
+}

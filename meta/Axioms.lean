@@ -6,6 +6,7 @@ The disclosure driver of gate SF-G4 and the initiality developments.
 It prints the six syntax theorem reports. It also prints the
 natural-family group of `KanonMeta.MuNat`, the binary-tree group of
 `KanonMeta.MuTree`, the indexed-vector group of `KanonMeta.MuVector`,
+the finite-family group of `KanonMeta.MuFinitary`,
 and the public initiality and initial-chain results. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
@@ -87,6 +88,17 @@ import KanonMeta
 #print axioms KanonMeta.MuVector.Value.copy_eq
 #print axioms KanonMeta.MuVector.semanticCopy_eq
 #print axioms KanonMeta.MuVector.copy_interpret
+
+#print axioms KanonMeta.MuFinitary.Validated.supported
+#print axioms KanonMeta.MuFinitary.validate_sound
+#print axioms KanonMeta.MuFinitary.Value.fold_node
+#print axioms KanonMeta.MuFinitary.Value.fold_constructors
+#print axioms KanonMeta.MuFinitary.recursiveInitial
+#print axioms KanonMeta.MuFinitary.semanticFold_node
+#print axioms KanonMeta.MuFinitary.fold_interpret
+#print axioms KanonMeta.MuFinitary.semanticFold_unique
+#print axioms KanonMeta.MuFinitary.reify_interpret
+#print axioms KanonMeta.MuFinitary.interpret_injective
 
 open KanonMeta
 

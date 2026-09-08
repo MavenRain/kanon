@@ -1,0 +1,13 @@
+{
+  "command": [
+    "zsh",
+    "dev/house.sh"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.836,
+  "stdout": "house.stdout",
+  "stderr": "house.stderr",
+  "stdout_sha256": "019f9958e4d1062b8f47620c53228f52e9961613127ec49626837fdd510e0965",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

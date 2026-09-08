@@ -1,0 +1,15 @@
+{
+  "command": [
+    "zsh",
+    "dev/dune.sh",
+    "runtest",
+    "dev/mu-bridge"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.087,
+  "stdout": "generic-freshness.stdout",
+  "stderr": "generic-freshness.stderr",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

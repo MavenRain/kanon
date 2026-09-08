@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/validation/2026-09-08-finitary-bridge/check_axioms.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.061,
+  "stdout": "axiom-audit-command.stdout",
+  "stderr": "axiom-audit-command.stderr",
+  "stdout_sha256": "057a4dbb31602bea8fab0dad5d676eccb5da6a146e49e91837a39fdd7474bff4",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

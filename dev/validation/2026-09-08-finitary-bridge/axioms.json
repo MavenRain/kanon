@@ -1,0 +1,18 @@
+{
+  "command": [
+    "lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "--dir",
+    "meta",
+    "env",
+    "lean",
+    "meta/Axioms.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 5.861,
+  "stdout": "axioms.stdout",
+  "stderr": "axioms.stderr",
+  "stdout_sha256": "6e35ea3b446cb2c877a277062179c6a4914f049ad003fad8ae94a0b6630f5bd0",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

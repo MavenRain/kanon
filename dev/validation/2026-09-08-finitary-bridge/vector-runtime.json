@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/mu-bridge/check_vector.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 4.748,
+  "stdout": "vector-runtime.stdout",
+  "stderr": "vector-runtime.stderr",
+  "stdout_sha256": "4a0281d64a39a56387131e19c9da3a33e7d96b8c786be4167bd85da5aa58178e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

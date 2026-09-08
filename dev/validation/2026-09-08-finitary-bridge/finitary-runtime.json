@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/mu-bridge/check_finitary.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 7.832,
+  "stdout": "finitary-runtime.stdout",
+  "stderr": "finitary-runtime.stderr",
+  "stdout_sha256": "6a2ffa19fc3733d94a2f9c4d1c26f55072fc7577e49253da9a7bd0f1ffd652ec",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

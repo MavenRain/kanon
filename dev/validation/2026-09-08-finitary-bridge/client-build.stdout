@@ -1,0 +1,26 @@
+✔ [52/54] Built KanonMeta (5.5s)
+✖ [53/54] Building Client (2.4s)
+trace: .> LEAN_PATH=/Users/oobi/Documents/gpt11/kanon-client/.lake/packages/comp-cat-theory/.lake/build/lib/lean:/Users/oobi/Documents/gpt11/kanon-client/.lake/packages/kan-tactics/.lake/build/lib/lean:/Users/oobi/Documents/gpt11/kanon/meta/.lake/build/lib/lean:/Users/oobi/Documents/gpt11/kanon-client/.lake/build/lib/lean /Users/oobi/.elan/toolchains/leanprover--lean4---v4.33.0-rc1/bin/lean /Users/oobi/Documents/gpt11/kanon-client/Client.lean -o /Users/oobi/Documents/gpt11/kanon-client/.lake/build/lib/lean/Client.olean -i /Users/oobi/Documents/gpt11/kanon-client/.lake/build/lib/lean/Client.ilean -c /Users/oobi/Documents/gpt11/kanon-client/.lake/build/ir/Client.c --setup /Users/oobi/Documents/gpt11/kanon-client/.lake/build/ir/Client.setup.json --json
+error: Client.lean:29:32: failed to synthesize instance of type class
+  OfNat spec.Constructor 0
+numerals are polymorphic in Lean, but the numeral `0` cannot be used in a context where the expected type is
+  spec.Constructor
+due to the absence of the instance above
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+error: Client.lean:32:8: failed to synthesize instance of type class
+  OfNat spec.Constructor 1
+numerals are polymorphic in Lean, but the numeral `1` cannot be used in a context where the expected type is
+  spec.Constructor
+due to the absence of the instance above
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+error: Client.lean:42:2: Type mismatch
+  fold_interpret Nat count sample
+has type
+  semanticFold spec Nat count sample.interpret = Value.fold count sample
+but is expected to have type
+  semanticFold spec Nat count sample.interpret = 7
+error: Lean exited with code 1
+Some required targets logged failures:
+- Client

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "python3",
+    "-I",
+    "dev/mu-bridge/check.py"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon",
+  "exit": 0,
+  "seconds": 0.464,
+  "stdout": "nat-runtime.stdout",
+  "stderr": "nat-runtime.stderr",
+  "stdout_sha256": "9025d831ad6fea4ce2f682d239f35a6d54fc9913ad8dbeda8aa32e48a162d2e0",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

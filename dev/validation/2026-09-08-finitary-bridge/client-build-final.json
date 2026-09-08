@@ -1,0 +1,16 @@
+{
+  "command": [
+    "lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "--dir",
+    "/Users/oobi/Documents/gpt11/kanon-client",
+    "build"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt11/kanon",
+  "exit": 0,
+  "seconds": 7.986,
+  "stdout": "client-build-final.stdout",
+  "stderr": "client-build-final.stderr",
+  "stdout_sha256": "f6ccd721fca0f98aedb57b2ba25ee19fd26e739a13059f4a199ac533c15b2f32",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
