@@ -4,6 +4,8 @@ The [validation record](FOUNDATION-VALIDATION.md) lists the commands, outcomes, 
 
 The later [initial-chain increment](INITIAL-CHAIN.md) constructs sequence colimits and a concrete recursive initial algebra. It advances the semantic existence argument while retaining the separate obligation to connect that construction to the compiler's admitted shapes. The [indexed construction](INDEXED-CONSTRUCTION.md) adds preservation for nullary/unary indexed signatures and a constructed vector model with payload-preserving copy.
 
+The later [natural-family bridge](MU-NAT-BRIDGE.md) extracts one checked `SMu N` family and its constructor fragment into Lean, then interprets it in the constructed natural algebra. This is a bounded connection to checked syntax. General typed interpretation and compiler preservation remain open.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |
@@ -13,7 +15,7 @@ The current implementation supplies useful inductive behavior, but a derivation 
 | Recursive induction | Branch contexts bind constructor fields. Recursive calls are checked separately by `Totality.guard_group` and `Order.certify`. | No derivation of this combination from initiality is established. |
 | Constructor beta | `mu_beta` looks up the matching branch and evaluates it in the constructor-field environment. | Operational rule; correspondence with a universal-property derivation is open. |
 | Mu uniqueness | The mu pack disables both definitional eta flags and provides no expansion. | Absence of definitional eta does not rule out propositional uniqueness. No such theorem for the compiler's mu interpretation is supplied here. |
-| Substitution | `meta/KanonMeta/BeckChevalley.lean` proves four raw-syntax substitution equations for SPi and SColl by reflexivity. | These do not establish typed substitution preservation, semantic Beck-Chevalley, or mu substitution stability. |
+| Substitution | `meta/KanonMeta/BeckChevalley.lean` proves raw-syntax substitution equations for SPi, SColl and SMu by reflexivity. | These do not establish typed substitution preservation, semantic Beck-Chevalley, or substitution stability of the semantic mu interpretation. |
 
 The initiality bridge added in `meta/KanonMeta/Initiality.lean` makes one implication precise. An indexed polynomial signature specifies constructor shapes, recursive positions, and the index of each recursive child. An algebra supplies a carrier family and constructor operation. The `Initial` structure supplies a chosen algebra morphism to every algebra in the stated universe and pointwise uniqueness of all such morphisms.
 
@@ -50,4 +52,4 @@ Lean parity remains a separate matrix:
 
 The reference feature set is the [Lean kernel documentation](https://lean-lang.org/doc/reference/latest/Elaboration-and-Compilation/#kernel); the metatheory toolchain is pinned separately by `meta/lean-toolchain`. A full parity claim needs a pinned source-language reference and a typing-preserving translation, not only a growing set of examples.
 
-The next foundation increment should give a typed interpretation of one actual SMu signature, connect its constructor and recursive-call rules to the polynomial algebra, and prove initiality from the proposed Kan construction. It must state the category, admitted diagrams, existence assumptions, and substitution behavior. If extra existence or computation rules are needed, disclose them before claiming the strict primitive requirement has been met.
+After the bounded natural-family bridge, the next foundation work is to extend interpretation to indexed declarations and open typed terms, and prove correspondence with the checker and its recursive-call rules. The category, admitted diagrams, existence assumptions, and substitution behavior must remain explicit. If extra existence or computation rules are needed, disclose them before claiming the strict primitive requirement has been met.

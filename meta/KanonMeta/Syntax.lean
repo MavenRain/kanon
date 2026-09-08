@@ -4,10 +4,10 @@ Released under MIT OR Apache 2.0 license.
 
 The object language of the kanon kernel, mirrored in Lean 4.
 
-`Shape` carries the two shapes that SPEC.md:143 admits at M0, `SPi` and
-`SColl`, in the order of lib/shape.ml:11-12.  `SPar`, `SMu` and `SNu`
-stay out (SF-D4): Lean carries no milestone refusal, so a shape that the
-kernel refuses has no Lean mirror.
+`Shape` carries the M0 shapes `SPi` and `SColl` and the M1 inductive
+shape `SMu`, retaining its declaration name and index terms.  `SPar`
+and `SNu` stay out.  This is raw syntax: its constructors do not assert
+that every former and shape combination passes the kernel checker.
 
 `Term` carries the twelve M0 constructors of lib/term.ml, in the order of
 SPEC.md:26-42.  `Auto` stays out because check.ml refuses it until M2.
@@ -31,10 +31,11 @@ inductive Quantity where
 mutual
 
 /-- A point address retains its argument separately from the fibre or
-function head.  Recursive constructor addresses stay out at M0. -/
+function head.  Constructor addresses retain their declaration names. -/
 inductive Addr where
   | apt (q : Quantity) (arg : Term)
   | aleg (k : Nat)
+  | actor (name : String)
 
 /-- A section leg or elimination branch with its explicit binders. -/
 inductive Leg where
@@ -44,12 +45,13 @@ inductive Leg where
 inductive Motive where
   | mk (ind : Option String) (idx : List String) (self : String) (body : Term)
 
-/-- The two admitted shapes (SPEC.md:143). -/
+/-- The M0 shapes and the M1 inductive shape from lib/shape.ml. -/
 inductive Shape where
   | SPi (q : Quantity) (name : String) (dom : Term)
   | SColl (n : Nat)
+  | SMu (name : String) (indices : List Term)
 
-/-- The kernel term at M0. -/
+/-- The raw kernel term with its admitted shape and address payloads. -/
 inductive Term where
   | var (i : Nat)
   | univ (l : Nat)

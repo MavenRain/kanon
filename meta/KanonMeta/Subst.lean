@@ -9,16 +9,15 @@ Two layers, in the usual order.  `ren` renames with a map on indices and
 under one binder, and it needs `ren` to weaken the terms it carries, so
 renaming comes first.  `subst` is the total substitution and
 `substShape` is the shape action, which rewrites the point domain and
-leaves the collection shape alone, because lib/shape.ml:12 gives `SColl`
-an `int` and no term.
+inductive indices.  It leaves the collection shape alone because
+`SColl` carries a size and no term.
 
 Every function is total and structurally recursive through the equation
 compiler.  Each definition is total, with no escape hatch and no tactic.
 
 The binder count of a diagram is the kernel's: the point diagram opens
-one binder and the collection diagram opens none, which lib/rules.ml:635
-and lib/rules.ml:637 state as `spi_diagram_arity` and
-`coll_diagram_arity`.  The two former arms therefore split on the shape
+one binder, while collection and inductive diagrams open none, as
+the rule packs in lib/rules.ml specify.  The former arms split on the shape
 and lift the substitution only under `SPi` (SF-D15).  Each section leg
 and elimination branch lifts under its explicit binders.  A motive
 lifts under its indices and its self variable.  Point addresses carry
@@ -56,10 +55,14 @@ def ren (rho : Ren) (tm : Term) : Term :=
       Term.lan (renShape rho (Shape.SPi q name dom)) (ren (upRen rho) body)
   | Term.lan (Shape.SColl n) body =>
       Term.lan (renShape rho (Shape.SColl n)) (ren rho body)
+  | Term.lan (Shape.SMu name indices) body =>
+      Term.lan (renShape rho (Shape.SMu name indices)) (ren rho body)
   | Term.ran (Shape.SPi q name dom) body =>
       Term.ran (renShape rho (Shape.SPi q name dom)) (ren (upRen rho) body)
   | Term.ran (Shape.SColl n) body =>
       Term.ran (renShape rho (Shape.SColl n)) (ren rho body)
+  | Term.ran (Shape.SMu name indices) body =>
+      Term.ran (renShape rho (Shape.SMu name indices)) (ren rho body)
   | Term.intro s a args =>
       Term.intro (renShape rho s) (renAddr rho a) (renArgs rho args)
   | Term.elim s scrut q motive branches =>
@@ -108,12 +111,14 @@ def renShape (rho : Ren) (s : Shape) : Shape :=
   match s with
   | Shape.SPi q name dom => Shape.SPi q name (ren rho dom)
   | Shape.SColl n => Shape.SColl n
+  | Shape.SMu name indices => Shape.SMu name (renArgs rho indices)
 
 /-- Rename point arguments in the outer context. -/
 def renAddr (rho : Ren) (a : Addr) : Addr :=
   match a with
   | Addr.apt q arg => Addr.apt q (ren rho arg)
   | Addr.aleg k => Addr.aleg k
+  | Addr.actor name => Addr.actor name
 
 /-- Rename a leg under all its binders. -/
 def renLeg (rho : Ren) (leg : Leg) : Leg :=
@@ -156,10 +161,14 @@ def subst (sigma : Subst) (tm : Term) : Term :=
       Term.lan (substShape sigma (Shape.SPi q name dom)) (subst (up sigma) body)
   | Term.lan (Shape.SColl n) body =>
       Term.lan (substShape sigma (Shape.SColl n)) (subst sigma body)
+  | Term.lan (Shape.SMu name indices) body =>
+      Term.lan (substShape sigma (Shape.SMu name indices)) (subst sigma body)
   | Term.ran (Shape.SPi q name dom) body =>
       Term.ran (substShape sigma (Shape.SPi q name dom)) (subst (up sigma) body)
   | Term.ran (Shape.SColl n) body =>
       Term.ran (substShape sigma (Shape.SColl n)) (subst sigma body)
+  | Term.ran (Shape.SMu name indices) body =>
+      Term.ran (substShape sigma (Shape.SMu name indices)) (subst sigma body)
   | Term.intro s a args =>
       Term.intro (substShape sigma s) (substAddr sigma a)
         (substArgs sigma args)
@@ -206,18 +215,20 @@ def substBranches (sigma : Subst) (branches : List (Addr Ã— Leg)) : List (Addr Ã
   | [] => []
   | branch :: rest => substBranch sigma branch :: substBranches sigma rest
 
-/-- Apply a substitution to a shape.  The point shape carries its domain
-through, and the collection shape holds no term and stays as it is. -/
+/-- Apply a substitution to the point domain or inductive indices.
+The collection shape holds no term and stays as it is. -/
 def substShape (sigma : Subst) (s : Shape) : Shape :=
   match s with
   | Shape.SPi q name dom => Shape.SPi q name (subst sigma dom)
   | Shape.SColl n => Shape.SColl n
+  | Shape.SMu name indices => Shape.SMu name (substArgs sigma indices)
 
 /-- Substitute point arguments in the outer context. -/
 def substAddr (sigma : Subst) (a : Addr) : Addr :=
   match a with
   | Addr.apt q arg => Addr.apt q (subst sigma arg)
   | Addr.aleg k => Addr.aleg k
+  | Addr.actor name => Addr.actor name
 
 /-- Substitute a leg under all its binders. -/
 def substLeg (sigma : Subst) (leg : Leg) : Leg :=

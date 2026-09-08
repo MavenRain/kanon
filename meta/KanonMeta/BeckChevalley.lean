@@ -2,13 +2,14 @@
 Copyright (c) 2026 Onyeka Obi.  All rights reserved.
 Released under MIT OR Apache 2.0 license.
 
-Beck-Chevalley for the two formers over the two admitted shapes.
+Raw Beck-Chevalley substitution equations for the mirrored shapes.
 
 The statement form is the design verdict's, at
 kan-lang-design-verdict.md:164-166: substitution slides through an open
 shape, `(Lan_s A)[sigma] = Lan_{s[sigma]} (A[sigma^+])`, and the same for
-`Ran`, proved one shape at a time.  Each theorem mirrors one eta row of
-SPEC.md section 4.
+`Ran`, proved one shape at a time.  These are equations of raw syntax,
+not typing, reduction, or eta theorems.  In particular, the raw `Ran`
+equation at `SMu` does not assert that the checker admits `Ran SMu`.
 
 The proofs use kan-tactics only (M1-PLAN.md:182).  `kan_rfl` closes each
 goal because `subst` is structurally recursive, so the two sides are
@@ -50,6 +51,22 @@ Unit its eta at `SColl 0`. -/
 theorem bc_ran_scoll (sigma : Subst) (A : Term) (n : Nat) :
     subst sigma (Term.ran (Shape.SColl n) A)
       = Term.ran (Shape.SColl n) (subst sigma A) := by
+  kan_rfl
+
+/-- Lan at the inductive shape.  Its indices and diagram are both in
+the outer context because the inductive rule pack opens no binder. -/
+theorem bc_lan_smu (sigma : Subst) (A : Term) (name : String)
+    (indices : List Term) :
+    subst sigma (Term.lan (Shape.SMu name indices) A)
+      = Term.lan (Shape.SMu name (substArgs sigma indices)) (subst sigma A) := by
+  kan_rfl
+
+/-- The corresponding raw Ran equation.  This states only how the
+syntax traversal acts and carries no kernel admissibility claim. -/
+theorem bc_ran_smu (sigma : Subst) (A : Term) (name : String)
+    (indices : List Term) :
+    subst sigma (Term.ran (Shape.SMu name indices) A)
+      = Term.ran (Shape.SMu name (substArgs sigma indices)) (subst sigma A) := by
   kan_rfl
 
 end KanonMeta

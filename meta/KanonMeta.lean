@@ -17,3 +17,4 @@ import KanonMeta.LinearConstruction
 import KanonMeta.VectorConstruction
 import KanonMeta.FiniteBound
 import KanonMeta.FinitaryConstruction
+import KanonMeta.MuNat

@@ -1,0 +1,12 @@
+(executable
+ (name export_mu)
+ (libraries kanon_kernel kanon_surface))
+
+(rule
+ (alias runtest)
+ (deps ../../test/meta/mu-nat-bridge.kan ../../meta/test/GeneratedMuNat.lean)
+ (action
+  (progn
+   (with-stdout-to GeneratedMuNat.lean
+    (run %{exe:export_mu.exe} %{dep:../../test/meta/mu-nat-bridge.kan}))
+   (diff ../../meta/test/GeneratedMuNat.lean GeneratedMuNat.lean))))

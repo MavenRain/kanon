@@ -1,0 +1,281 @@
+{
+  "files": [
+    {
+      "path": "Axioms.lean",
+      "sha256": "533393ef41e23b35262f2e224109c1d4072c9b2bf5ff7134fb846778a2e23069"
+    },
+    {
+      "path": "KanonMeta/BeckChevalley.lean",
+      "sha256": "c90dcc854fb448fadc04a6b12ef5dc2f6394711d8a061aa8f35d5e0f23006f05"
+    },
+    {
+      "path": "KanonMeta/ChainColimit.lean",
+      "sha256": "faa3ac6e9c3f3d67e4d37ff8a9942a27b5a450f9128868aba80cd90072b5462a"
+    },
+    {
+      "path": "KanonMeta/FinitaryConstruction.lean",
+      "sha256": "472bee290ee82479828046d126487e70c648041c2de5f9622261e16c63e47fec"
+    },
+    {
+      "path": "KanonMeta/FiniteBound.lean",
+      "sha256": "87a564b67e8aa841aeb9a6af08ddd28cac73014f8a9c34443a38925b01380daa"
+    },
+    {
+      "path": "KanonMeta/InitialChain.lean",
+      "sha256": "7ce1dcfea3d67e9dad862aa63df57fc97c8903625858c29e52f8d5a93a648bc7"
+    },
+    {
+      "path": "KanonMeta/Initiality.lean",
+      "sha256": "acbb58441316d33bbe7c1afd2169e37d66cbbb36710628f7829f43a8247f3405"
+    },
+    {
+      "path": "KanonMeta/LinearConstruction.lean",
+      "sha256": "b97450f42cc80371202550455a3ace83eae70701789aae6b9e8402b21b86f75b"
+    },
+    {
+      "path": "KanonMeta/MuNat.lean",
+      "sha256": "d5deb60743f3958444f3be65511af6c829c24f7b63fcbae1a6bc712ea1c3a10c"
+    },
+    {
+      "path": "KanonMeta/NatConstruction.lean",
+      "sha256": "53e8f82bcc1fb6fb2d2f21eac80fce95fda7afa9d9f0707ab99a90a36e42b13d"
+    },
+    {
+      "path": "KanonMeta/Subst.lean",
+      "sha256": "1a49eb71dc340f302756410756aac02403aad9a823df8f35123b581550a28445"
+    },
+    {
+      "path": "KanonMeta/Syntax.lean",
+      "sha256": "fa36cc5c559cdad908f944577d7e0e8c0ab5e5b7b1deb4b0d8588752b2561072"
+    },
+    {
+      "path": "KanonMeta/VectorConstruction.lean",
+      "sha256": "41f51f080be151e36ebe720229e5bea5e72410cf1c72c30e114f70a93265af03"
+    },
+    {
+      "path": "KanonMeta.lean",
+      "sha256": "427e40e51acf29d081a0be0dec3997cc820b5a4b441639bab63e4220445c99b0"
+    },
+    {
+      "path": "lakefile.lean",
+      "sha256": "9b0b7d18ee668ba8266ed7909e0192d1f48aa84ecc9cf52a7ae396839b1d574c"
+    },
+    {
+      "path": "test/FinitaryConstruction.lean",
+      "sha256": "d711e80120a2ee0a18a4ea19c0c50c472ebccef6cbc4843905ce209f1d58beba"
+    },
+    {
+      "path": "test/FinitarySequence.lean",
+      "sha256": "6f5546347f5e25d304acda0599be3df700b9649f0948d0257bcf1b3a00be0429"
+    },
+    {
+      "path": "test/GeneratedMuNat.lean",
+      "sha256": "22f0ce0a3151abda9c7b62b926e9175d36fd9be15537f9229d7ba3ced0d4d649"
+    },
+    {
+      "path": "test/InitialChain.lean",
+      "sha256": "987e2c7d144bffa424b9ade0f0940656cb238e483300b8614b24621fe4fca8a0"
+    },
+    {
+      "path": "test/Initiality.lean",
+      "sha256": "2a55dfed862c6baa351d73c90ad67e8eb0423ceb61d855d7bec54ebbd2d14750"
+    },
+    {
+      "path": "test/MuNat.lean",
+      "sha256": "9f4ea6b8e121fa09f97f26fdf15ec571b30c1a812de553911ed1eda9feb4d9b3"
+    },
+    {
+      "path": "test/MuSyntax.lean",
+      "sha256": "54fb915609b6bfdfb0ee16d9843eacce2b0f0c8de0c32e504e37e3dbeec370da"
+    },
+    {
+      "path": "test/Regression.lean",
+      "sha256": "e510d9bcedd089275e3eda6263bb3662414ce3da82408916cfdf986539f59377"
+    },
+    {
+      "path": "test/VectorConstruction.lean",
+      "sha256": "020c17e84932bc5acffb0e2a62a3c5045b02df3e575a1e9454de89f902853aaf"
+    }
+  ],
+  "forbidden": [],
+  "proof_blocks": [
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 37,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 46,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 53,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 61,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 69,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 21,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 26,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 36,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 41,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 50,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 60,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 78,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 94,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 103,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 111,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 117,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 122,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 21,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 25,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 34,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 42,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 49,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 57,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 62,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 66,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 70,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 75,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 79,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 84,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 88,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 98,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 105,
+      "body": "kan_rfl"
+    }
+  ],
+  "unexpected_proof_blocks": [],
+  "em_dash_files": [],
+  "pass": true
+}

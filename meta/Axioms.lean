@@ -3,8 +3,9 @@ Copyright (c) 2026 Onyeka Obi.  All rights reserved.
 Released under MIT OR Apache 2.0 license.
 
 The disclosure driver of gate SF-G4 and the initiality developments.
-It prints the four syntax theorem reports followed by the public
-initiality and initial-chain results. The report is
+It prints the six syntax theorem reports. It also prints the
+natural-family group of `KanonMeta.MuNat` and the public initiality
+and initial-chain results. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
 
@@ -13,6 +14,38 @@ Run it with
 -/
 
 import KanonMeta
+
+#print axioms KanonMeta.bc_lan_smu
+#print axioms KanonMeta.bc_ran_smu
+#print axioms KanonMeta.MuNat.decode_encode
+#print axioms KanonMeta.MuNat.encode_injective
+#print axioms KanonMeta.MuNat.fold_interpret
+#print axioms KanonMeta.MuNat.semanticFold_zero
+#print axioms KanonMeta.MuNat.semanticFold_succ
+#print axioms KanonMeta.MuNat.semanticFold_unique
+#print axioms KanonMeta.MuNat.semanticCase_zero
+#print axioms KanonMeta.MuNat.semanticCase_succ
+#print axioms KanonMeta.MuNat.observe_interpret
+#print axioms KanonMeta.MuNat.interpret_injective
+#print axioms KanonMeta.MuNat.FoldProgram.run_interpret
+#print axioms KanonMeta.MuNat.Value.fold_zero
+#print axioms KanonMeta.MuNat.Value.fold_succ
+#print axioms KanonMeta.MuNat.interpret_zero
+#print axioms KanonMeta.MuNat.interpret_succ
+#print axioms KanonMeta.MuNat.observe_zero
+#print axioms KanonMeta.MuNat.observe_succ
+#print axioms KanonMeta.MuNat.Value.toNat_injective
+#print axioms KanonMeta.MuNat.interpret_separates
+#print axioms KanonMeta.MuNat.semanticDouble_zero
+#print axioms KanonMeta.MuNat.semanticDouble_succ
+#print axioms KanonMeta.MuNat.double_interpret
+#print axioms KanonMeta.MuNat.wrap_encode
+#print axioms KanonMeta.MuNat.wrap_interpret
+#print axioms KanonMeta.MuNat.FoldProgram.run_zero
+#print axioms KanonMeta.MuNat.FoldProgram.run_succ
+#print axioms KanonMeta.MuNat.FoldProgram.interpret_zero
+#print axioms KanonMeta.MuNat.FoldProgram.interpret_succ
+#print axioms KanonMeta.MuNat.doubleProgram_semantics
 
 open KanonMeta
 

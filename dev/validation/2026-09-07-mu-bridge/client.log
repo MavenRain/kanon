@@ -1,0 +1,5 @@
+ℹ [50/51] Replayed Client
+info: Client.lean:21:0: 'MuBridgeClient.roundtrip' does not depend on any axioms
+info: Client.lean:22:0: 'MuBridgeClient.foldCorrespondence' depends on axioms: [Quot.sound]
+info: Client.lean:23:0: 'MuBridgeClient.separation' depends on axioms: [Quot.sound]
+Build completed successfully (51 jobs).
