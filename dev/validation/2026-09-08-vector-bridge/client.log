@@ -1,0 +1,8 @@
+ℹ [52/53] Replayed Client
+info: Client.lean:51:0: 'VectorBridgeClient.decode_sample' depends on axioms: [propext]
+info: Client.lean:52:0: 'VectorBridgeClient.copy_sample' depends on axioms: [propext, Quot.sound]
+info: Client.lean:53:0: 'VectorBridgeClient.copy_interpretation' depends on axioms: [propext, Quot.sound]
+info: Client.lean:54:0: 'VectorBridgeClient.injective' depends on axioms: [propext, Quot.sound]
+info: Client.lean:55:0: 'VectorBridgeClient.sample_observation' depends on axioms: [propext, Quot.sound]
+info: Client.lean:56:0: 'VectorBridgeClient.copy_observation' depends on axioms: [propext, Quot.sound]
+Build completed successfully (53 jobs).

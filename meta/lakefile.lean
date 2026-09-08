@@ -16,4 +16,5 @@ lean_lib «KanonMetaTests» where
   roots := #[`test.Regression, `test.Initiality, `test.InitialChain, `test.VectorConstruction,
     `test.FinitaryConstruction, `test.FinitarySequence,
     `test.MuSyntax, `test.GeneratedMuNat, `test.MuNat,
-    `test.GeneratedMuTree, `test.MuTree]
+    `test.GeneratedMuTree, `test.MuTree,
+    `test.GeneratedMuVector, `test.MuVector]

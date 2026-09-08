@@ -1,0 +1,12 @@
+ℹ [12/12] Replayed test.MuVector
+info: test/MuVector.lean:211:0: 'KanonMeta.MuVector.Tests.checked_natural_declaration' does not depend on any axioms
+info: test/MuVector.lean:212:0: 'KanonMeta.MuVector.Tests.checked_declaration' does not depend on any axioms
+info: test/MuVector.lean:213:0: 'KanonMeta.MuVector.Tests.generated_sample_decoder' depends on axioms: [propext]
+info: test/MuVector.lean:214:0: 'KanonMeta.MuVector.Tests.generated_sample_checked_decoder' does not depend on any axioms
+info: test/MuVector.lean:215:0: 'KanonMeta.MuVector.Tests.generated_copy_encoder' depends on axioms: [propext]
+info: test/MuVector.lean:216:0: 'KanonMeta.MuVector.Tests.generated_copy_interpretation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:217:0: 'KanonMeta.MuVector.Tests.generated_sample_observation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:218:0: 'KanonMeta.MuVector.Tests.generated_copy_observation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:219:0: 'KanonMeta.MuVector.Tests.payload_order_separation' depends on axioms: [propext, Quot.sound]
+info: test/MuVector.lean:220:0: 'KanonMeta.MuVector.Tests.payload_erasure_separation' depends on axioms: [propext, Quot.sound]
+Build completed successfully (12 jobs).

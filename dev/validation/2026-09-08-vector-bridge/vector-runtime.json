@@ -1,0 +1,343 @@
+{
+  "passed": true,
+  "controls": {
+    "zero-payload": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "replace-recursion": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    },
+    "reverse-payloads": {
+      "extraction_changed": true,
+      "extraction_certified": true,
+      "empty_axioms": true,
+      "runtime_passed": true
+    }
+  },
+  "rejections": {
+    "wrong-result-index": true,
+    "wrong-tail-index": true
+  },
+  "observations": [
+    {
+      "name": "extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "main-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "original-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan",
+        "--export",
+        "original",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "original-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-vector-bridge.kan",
+        "--export",
+        "original",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "zero-payload-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/zero-payload.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "zero-payload-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/zero-payload.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "zero-payload-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/zero-payload.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "zero-payload-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/zero-payload.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "zero-payload-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/zero-payload.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "replace-recursion-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/replace-recursion.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "replace-recursion-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/replace-recursion.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "replace-recursion-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/replace-recursion.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "replace-recursion-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/replace-recursion.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "replace-recursion-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/replace-recursion.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reverse-payloads-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/reverse-payloads.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reverse-payloads-certificate",
+      "command": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/kanon/meta",
+        "env",
+        "lean",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/reverse-payloads.lean"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reverse-payloads-axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/reverse-payloads.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reverse-payloads-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/reverse-payloads.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "reverse-payloads-both",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/reverse-payloads.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "wrong-result-index-check",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "check",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/wrong-result-index.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "wrong-result-index-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/wrong-result-index.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "wrong-tail-index-check",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "check",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/wrong-tail-index.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    },
+    {
+      "name": "wrong-tail-index-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "--vector",
+        "/Users/oobi/Documents/kanon/.gatework/mu-vector-bridge/wrong-tail-index.kan"
+      ],
+      "exit": 1,
+      "passed": true
+    }
+  ],
+  "sha256": {
+    "test/meta/mu-vector-bridge.kan": "6ded906829ab2efa6f5c79da8673ec4601403ba7d72c875cd814196ede1ff9ed",
+    "meta/test/GeneratedMuVector.lean": "542a9fcd60cafb735b9404304dbc55d443b1d95eac8a1b9e6a3670b128855737",
+    "dev/mu-bridge/export_mu.ml": "39c2e206a137cef885e53471bb23d72c4a043bb22801f16a3674e692b4a93749",
+    "dev/mu-bridge/check_vector.py": "6aa8809808d7132d16c45d4a051388fe8673eb91e7342b8f629c674d6de19b83",
+    "dev/mu-bridge/dune": "6258d037c6d095052a1de803df54753470861cb6bcf38179b6cb05c56a5201ee",
+    "meta/KanonMeta/MuVector.lean": "94ed0331ec31c8130957d95ba5b5f22f04af8370e1baee302a48834a75cb2d35",
+    "meta/test/MuVector.lean": "e93df36b648e2632ecd5be94f94e91e0e70567e1b9430387a8922c12fa813b53",
+    "lib/positivity.ml": "97cb5fc9484ecaec360b4be1ac42f0668ae767aad25efc10ddbc1d4143185471",
+    "lib/rules.ml": "b625cec31061ca79f77669889039e4ae2658393911e39076dc65189022f702ab",
+    "surface/elab.ml": "657b134e25e495e6edc5435bb3c9335bc48637915045fba91da9a595d2e3280d"
+  }
+}

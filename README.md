@@ -11,7 +11,9 @@ extends initiality to arbitrary finite constructor arities.  The
 checked `SMu` declaration and its closed constructor fragment to the
 constructed algebra. The [binary-tree bridge](dev/MU-TREE-BRIDGE.md) connects
 a checked family with two recursive children and its mirror operation to
-the finite branching construction. General declaration interpretation, compiler
+the finite branching construction. The [indexed-vector bridge](dev/MU-VECTOR-BRIDGE.md)
+connects checked length indices and payload-preserving copy to the constructed
+indexed algebra. General declaration interpretation, compiler
 preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

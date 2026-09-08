@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "changed_recursion_detected": true,
+  "observations": [
+    {
+      "name": "extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "/Users/oobi/Documents/kanon/test/meta/mu-nat-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-nat-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "hosts",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/test/meta/mu-nat-bridge.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "axioms",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "axioms",
+        "/Users/oobi/Documents/kanon/test/meta/mu-nat-bridge.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "changed-extraction",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/dev/mu-bridge/export_mu.exe",
+        "/Users/oobi/Documents/kanon/.gatework/mu-bridge/single-step.kan"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "changed-kernel",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-bridge/single-step.kan",
+        "--export",
+        "main",
+        "--host",
+        "kernel"
+      ],
+      "exit": 0,
+      "passed": true
+    },
+    {
+      "name": "changed-hosts",
+      "command": [
+        "/Users/oobi/Documents/kanon/_build/default/bin/kanon.exe",
+        "run",
+        "/Users/oobi/Documents/kanon/.gatework/mu-bridge/single-step.kan",
+        "--export",
+        "main",
+        "--host",
+        "both"
+      ],
+      "exit": 0,
+      "passed": true
+    }
+  ],
+  "sha256": {
+    "test/meta/mu-nat-bridge.kan": "79340362c4c6a7392ef781f242de6733358d77a13288ad7b46c3d931e53c910f",
+    "meta/test/GeneratedMuNat.lean": "22f0ce0a3151abda9c7b62b926e9175d36fd9be15537f9229d7ba3ced0d4d649",
+    "dev/mu-bridge/export_mu.ml": "39c2e206a137cef885e53471bb23d72c4a043bb22801f16a3674e692b4a93749",
+    "lib/positivity.ml": "97cb5fc9484ecaec360b4be1ac42f0668ae767aad25efc10ddbc1d4143185471",
+    "lib/rules.ml": "b625cec31061ca79f77669889039e4ae2658393911e39076dc65189022f702ab",
+    "surface/elab.ml": "657b134e25e495e6edc5435bb3c9335bc48637915045fba91da9a595d2e3280d"
+  }
+}

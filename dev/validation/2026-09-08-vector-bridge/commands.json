@@ -1,0 +1,192 @@
+[
+  {
+    "name": "compiler",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-BPsDOd",
+    "command": [
+      "zsh",
+      "dev/dunecho.sh",
+      "build"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-BPsDOd/manifest.json",
+    "log": "compiler.log"
+  },
+  {
+    "name": "freshness",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-ah7S75",
+    "command": [
+      "zsh",
+      "dev/dune.sh",
+      "runtest",
+      "dev/mu-bridge"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-ah7S75/manifest.json",
+    "log": "freshness.log"
+  },
+  {
+    "name": "nat-runtime",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-7SyDc0",
+    "command": [
+      "python3",
+      "-I",
+      "dev/mu-bridge/check.py"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-7SyDc0/manifest.json",
+    "log": "nat-runtime.log"
+  },
+  {
+    "name": "tree-runtime",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-9ag8Fo",
+    "command": [
+      "python3",
+      "-I",
+      "dev/mu-bridge/check_tree.py"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-9ag8Fo/manifest.json",
+    "log": "tree-runtime.log"
+  },
+  {
+    "name": "kernel",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-n7bnPx",
+    "command": [
+      "_build/default/test/main.exe",
+      "test"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-n7bnPx/manifest.json",
+    "log": "kernel.log"
+  },
+  {
+    "name": "house-initial",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-wbUiHr",
+    "command": [
+      "zsh",
+      "dev/house.sh"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-wbUiHr/manifest.json",
+    "log": "house-initial.log"
+  },
+  {
+    "name": "build",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-tydZgJ",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-tydZgJ/manifest.json",
+    "command": [
+      "lake",
+      "+leanprover/lean4:v4.33.0-rc1",
+      "--dir",
+      "meta",
+      "build"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "build.log"
+  },
+  {
+    "name": "regression",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/evidence/lean-regression/run-CmVSfr",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/evidence/lean-regression/run-CmVSfr/manifest.json",
+    "command": [
+      "lake",
+      "+leanprover/lean4:v4.33.0-rc1",
+      "--dir",
+      "meta",
+      "build",
+      "test.GeneratedMuVector",
+      "test.MuVector"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "regression.log"
+  },
+  {
+    "name": "client",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/evidence/lean-client/run-tlMjFF",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/evidence/lean-client/run-tlMjFF/manifest.json",
+    "command": [
+      "lake",
+      "+leanprover/lean4:v4.33.0-rc1",
+      "build"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/client",
+    "exit": 0,
+    "log": "client.log"
+  },
+  {
+    "name": "axioms",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-pffW54",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-pffW54/manifest.json",
+    "command": [
+      "lake",
+      "+leanprover/lean4:v4.33.0-rc1",
+      "--dir",
+      "meta",
+      "env",
+      "lean",
+      "meta/Axioms.lean"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "axioms.log"
+  },
+  {
+    "name": "vector-initial",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-bIPwUN",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-bIPwUN/manifest.json",
+    "command": [
+      "python3",
+      "-I",
+      "dev/mu-bridge/check_vector.py"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 1,
+    "log": "vector-initial.log"
+  },
+  {
+    "name": "vector-intermediate",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-7W8Jbp",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-7W8Jbp/manifest.json",
+    "command": [
+      "python3",
+      "-I",
+      "dev/mu-bridge/check_vector.py"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "vector-intermediate.log"
+  },
+  {
+    "name": "vector-runtime",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-PVsj7v",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-PVsj7v/manifest.json",
+    "command": [
+      "python3",
+      "-I",
+      "dev/mu-bridge/check_vector.py"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "vector-runtime.log"
+  },
+  {
+    "name": "house",
+    "artifact": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-hrLP5X",
+    "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-hrLP5X/manifest.json",
+    "command": [
+      "zsh",
+      "dev/house.sh"
+    ],
+    "cwd": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work",
+    "exit": 0,
+    "log": "house.log"
+  }
+]

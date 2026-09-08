@@ -2,6 +2,13 @@
  (name export_mu)
  (libraries kanon_kernel kanon_surface))
 
+; SD-D14 keeps one catch site in the repository, in test/sys_io.ml.  That
+; module belongs to the test stanza and is not a library, so the exporter
+; reads its fixture through a copy of it.  The exporter adds no catch site
+; of its own.
+(copy_files#
+ (files ../../test/sys_io.ml))
+
 (rule
  (alias runtest)
  (deps ../../test/meta/mu-nat-bridge.kan ../../meta/test/GeneratedMuNat.lean)
@@ -19,3 +26,12 @@
    (with-stdout-to GeneratedMuTree.lean
     (run %{exe:export_mu.exe} --tree %{dep:../../test/meta/mu-tree-bridge.kan}))
    (diff ../../meta/test/GeneratedMuTree.lean GeneratedMuTree.lean))))
+
+(rule
+ (alias runtest)
+ (deps ../../test/meta/mu-vector-bridge.kan ../../meta/test/GeneratedMuVector.lean)
+ (action
+  (progn
+   (with-stdout-to GeneratedMuVector.lean
+    (run %{exe:export_mu.exe} --vector %{dep:../../test/meta/mu-vector-bridge.kan}))
+   (diff ../../meta/test/GeneratedMuVector.lean GeneratedMuVector.lean))))

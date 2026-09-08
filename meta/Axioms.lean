@@ -5,8 +5,8 @@ Released under MIT OR Apache 2.0 license.
 The disclosure driver of gate SF-G4 and the initiality developments.
 It prints the six syntax theorem reports. It also prints the
 natural-family group of `KanonMeta.MuNat`, the binary-tree group of
-`KanonMeta.MuTree`, and the public initiality
-and initial-chain results. The report is
+`KanonMeta.MuTree`, the indexed-vector group of `KanonMeta.MuVector`,
+and the public initiality and initial-chain results. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
 
@@ -66,6 +66,27 @@ import KanonMeta
 #print axioms KanonMeta.MuTree.semanticMirror_leaf
 #print axioms KanonMeta.MuTree.semanticMirror_fork
 #print axioms KanonMeta.MuTree.mirror_interpret
+
+#print axioms KanonMeta.MuVector.indexValue_toNat
+#print axioms KanonMeta.MuVector.decodeIndex_indexTerm
+#print axioms KanonMeta.MuVector.checkIndex_indexTerm
+#print axioms KanonMeta.MuVector.decode_encode
+#print axioms KanonMeta.MuVector.encode_injective
+#print axioms KanonMeta.MuVector.Value.fold_nil
+#print axioms KanonMeta.MuVector.Value.fold_cons
+#print axioms KanonMeta.MuVector.Value.fold_constructors
+#print axioms KanonMeta.MuVector.interpret_nil
+#print axioms KanonMeta.MuVector.interpret_cons
+#print axioms KanonMeta.MuVector.semanticFold_nil
+#print axioms KanonMeta.MuVector.semanticFold_cons
+#print axioms KanonMeta.MuVector.fold_interpret
+#print axioms KanonMeta.MuVector.semanticFold_unique
+#print axioms KanonMeta.MuVector.reify_interpret
+#print axioms KanonMeta.MuVector.interpret_injective
+#print axioms KanonMeta.MuVector.interpret_separates
+#print axioms KanonMeta.MuVector.Value.copy_eq
+#print axioms KanonMeta.MuVector.semanticCopy_eq
+#print axioms KanonMeta.MuVector.copy_interpret
 
 open KanonMeta
 

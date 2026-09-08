@@ -1,0 +1,136 @@
+{
+  "passed": true,
+  "report_count": 20,
+  "allowed_axioms": [
+    "Quot.sound",
+    "propext"
+  ],
+  "observed_union": [
+    "Quot.sound",
+    "propext"
+  ],
+  "reports": [
+    {
+      "name": "KanonMeta.MuVector.indexValue_toNat",
+      "axioms": []
+    },
+    {
+      "name": "KanonMeta.MuVector.decodeIndex_indexTerm",
+      "axioms": []
+    },
+    {
+      "name": "KanonMeta.MuVector.checkIndex_indexTerm",
+      "axioms": []
+    },
+    {
+      "name": "KanonMeta.MuVector.decode_encode",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.encode_injective",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.Value.fold_nil",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.Value.fold_cons",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.Value.fold_constructors",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.interpret_nil",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.interpret_cons",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.semanticFold_nil",
+      "axioms": [
+        "Quot.sound"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.semanticFold_cons",
+      "axioms": [
+        "Quot.sound"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.fold_interpret",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.semanticFold_unique",
+      "axioms": [
+        "Quot.sound"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.reify_interpret",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.interpret_injective",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.interpret_separates",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.Value.copy_eq",
+      "axioms": [
+        "propext"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.semanticCopy_eq",
+      "axioms": [
+        "Quot.sound"
+      ]
+    },
+    {
+      "name": "KanonMeta.MuVector.copy_interpret",
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ]
+    }
+  ],
+  "manifest": "/Users/oobi/Documents/gpt1/kanon-vector-bridge/work/.kanon-exec/run-pffW54/manifest.json"
+}
