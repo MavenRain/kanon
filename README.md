@@ -24,6 +24,12 @@ The [dependent elimination bridge](dev/MU-FINITARY-ELIM.md) derives dependent
 constructor computation and uniqueness for the constructed finite-family
 carrier, with agreement on closed and open constructor terms and both
 reification inverse laws.
+Its [substitution laws](dev/MU-FINITARY-ELIM-SUBST.md) preserve arbitrary
+dependent variable witnesses under substitution and renaming of homogeneous
+constructor terms, with explicit transport between the resulting fibres.
+The [composition coherence laws](dev/MU-FINITARY-ELIM-COHERENCE.md) compare
+successive semantic transports with the composed route, preserving the
+supplied dependent witnesses through the change of environment.
 General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

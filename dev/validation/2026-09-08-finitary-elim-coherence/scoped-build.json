@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt1/kanon-coherence/meta/.kanon-exec/run-sfWta9",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 156,
+    "stderr_bytes": 0,
+    "stdout_lines": 3,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "build",
+        "KanonMeta.MuFinitaryElimCoherence"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt1/kanon-coherence/meta",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/meta/.kanon-exec/run-sfWta9/command-0001.stdout",
+        "bytes": 156,
+        "lines": 3
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/meta/.kanon-exec/run-sfWta9/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

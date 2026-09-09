@@ -1,0 +1,16 @@
+✔ [59/62] Built KanonCoherenceClient (4.0s)
+ℹ [61/62] Built test.Coherence (2.2s)
+info: test/Coherence.lean:156:0: 'KanonCoherenceClient.Tests.composed_transport_retains_supplied_annotation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+info: test/Coherence.lean:157:0: 'KanonCoherenceClient.Tests.nested_transport_certificate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:158:0: 'KanonCoherenceClient.Tests.composed_endpoint_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:159:0: 'KanonCoherenceClient.Tests.explicit_environment_congruence' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:160:0: 'KanonCoherenceClient.Tests.substitution_routes' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:161:0: 'KanonCoherenceClient.Tests.three_transport_route_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:162:0: 'KanonCoherenceClient.Tests.sequential_rename_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:163:0: 'KanonCoherenceClient.Tests.composed_rename_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: test/Coherence.lean:164:0: 'KanonCoherenceClient.Tests.empty_context_substitution_annotation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+Build completed successfully (62 jobs).

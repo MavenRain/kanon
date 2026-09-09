@@ -21,6 +21,22 @@ inhabitant is the interpretation of its reified syntax. These results use the
 existing constructed initiality and do not establish correspondence with the
 compiler's dependent case analysis or recursive-call rules.
 
+The [dependent substitution increment](MU-FINITARY-ELIM-SUBST.md) proves that
+structural induction commutes with substitution and renaming in the homogeneous
+constructor fragment. Witnesses are transported along the existing semantic
+interpretation equalities. Variable witnesses remain arbitrary, so the law
+also preserves data beyond the witness selected by the semantic eliminator.
+This establishes coherence for this fragment; dependent contexts and the
+compiler's typed substitution judgment still require a separate interpretation.
+
+The [composition coherence increment](MU-FINITARY-ELIM-COHERENCE.md) compares
+the successive semantic transports with the composed substitution route.
+Environment congruence transports the supplied dependent witnesses using
+pointwise interpretation equalities. The comparison retains the witness data
+at each variable; it does not select a canonical witness from its semantic
+value. The corresponding renaming routes also agree. These laws still concern
+the homogeneous constructor fragment.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |

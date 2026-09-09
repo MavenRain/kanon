@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt3/kanon-next/.kanon-exec/run-HCnjZd",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 15063,
+    "stderr_bytes": 0,
+    "stdout_lines": 192,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "/Users/oobi/.elan/bin/lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "meta",
+        "env",
+        "lean",
+        "meta/Axioms.lean"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt3/kanon-next",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt3/kanon-next/.kanon-exec/run-HCnjZd/command-0001.stdout",
+        "bytes": 15063,
+        "lines": 192
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt3/kanon-next/.kanon-exec/run-HCnjZd/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

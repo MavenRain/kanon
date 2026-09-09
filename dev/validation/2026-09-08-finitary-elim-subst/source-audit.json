@@ -1,0 +1,373 @@
+{
+  "files": [
+    {
+      "path": "Axioms.lean",
+      "sha256": "5c48997f0a1c0aeb6efcfa236d620208b0a0539465ec5fe23c40b5f8f79cd66d"
+    },
+    {
+      "path": "KanonMeta/BeckChevalley.lean",
+      "sha256": "c90dcc854fb448fadc04a6b12ef5dc2f6394711d8a061aa8f35d5e0f23006f05"
+    },
+    {
+      "path": "KanonMeta/ChainColimit.lean",
+      "sha256": "faa3ac6e9c3f3d67e4d37ff8a9942a27b5a450f9128868aba80cd90072b5462a"
+    },
+    {
+      "path": "KanonMeta/FinitaryConstruction.lean",
+      "sha256": "472bee290ee82479828046d126487e70c648041c2de5f9622261e16c63e47fec"
+    },
+    {
+      "path": "KanonMeta/FiniteBound.lean",
+      "sha256": "87a564b67e8aa841aeb9a6af08ddd28cac73014f8a9c34443a38925b01380daa"
+    },
+    {
+      "path": "KanonMeta/InitialChain.lean",
+      "sha256": "7ce1dcfea3d67e9dad862aa63df57fc97c8903625858c29e52f8d5a93a648bc7"
+    },
+    {
+      "path": "KanonMeta/Initiality.lean",
+      "sha256": "17aa7d88c5f70dc01d1886e02cc308ca0e9485d3220ee201ccd2be611e963f45"
+    },
+    {
+      "path": "KanonMeta/LinearConstruction.lean",
+      "sha256": "b97450f42cc80371202550455a3ace83eae70701789aae6b9e8402b21b86f75b"
+    },
+    {
+      "path": "KanonMeta/MuFinitary.lean",
+      "sha256": "5c4a489b9fc15d25e2ce910a6acac3dec7381965a8667dcadc05f97d73a9a634"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryDecode.lean",
+      "sha256": "a58819d051fae0c9f570d97f4a643980fb97e019eb2f4f5ccb8db49f1d3ebc36"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryElim.lean",
+      "sha256": "0ebbfc39879821f76db32a677fd0daa085b139dd49c55517a4c966a271285a66"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryElimCoherence.lean",
+      "sha256": "e6de893b57844af76f9e5b3f1639e0b15e5958326647e676bd999838afaad489"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryElimSubst.lean",
+      "sha256": "0aed4f817dc9b843ee00537fc30aa60f0e9edeac3729fc4c6bfcb10b40139323"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryOpen.lean",
+      "sha256": "aca95f3512daed54e0f95618595ba5ccc3f7208c5240e7fe2f00ffdf0d7f9e01"
+    },
+    {
+      "path": "KanonMeta/MuFinitaryOpenDecode.lean",
+      "sha256": "7afef62803963f2ebf09da9a544cd792c13debe5931011d204ae6be91f91cad9"
+    },
+    {
+      "path": "KanonMeta/MuNat.lean",
+      "sha256": "d5deb60743f3958444f3be65511af6c829c24f7b63fcbae1a6bc712ea1c3a10c"
+    },
+    {
+      "path": "KanonMeta/MuTree.lean",
+      "sha256": "b687ddd78a4b39f45d8ed292ac0af063e387b3315b6277b666d836b671f7331e"
+    },
+    {
+      "path": "KanonMeta/MuVector.lean",
+      "sha256": "94ed0331ec31c8130957d95ba5b5f22f04af8370e1baee302a48834a75cb2d35"
+    },
+    {
+      "path": "KanonMeta/NatConstruction.lean",
+      "sha256": "53e8f82bcc1fb6fb2d2f21eac80fce95fda7afa9d9f0707ab99a90a36e42b13d"
+    },
+    {
+      "path": "KanonMeta/Subst.lean",
+      "sha256": "1a49eb71dc340f302756410756aac02403aad9a823df8f35123b581550a28445"
+    },
+    {
+      "path": "KanonMeta/Syntax.lean",
+      "sha256": "fa36cc5c559cdad908f944577d7e0e8c0ab5e5b7b1deb4b0d8588752b2561072"
+    },
+    {
+      "path": "KanonMeta/VectorConstruction.lean",
+      "sha256": "41f51f080be151e36ebe720229e5bea5e72410cf1c72c30e114f70a93265af03"
+    },
+    {
+      "path": "KanonMeta.lean",
+      "sha256": "13e662aa4f8ad3d791b770232fe40d96f83183b3c41f387811bc9347be8832d5"
+    },
+    {
+      "path": "lakefile.lean",
+      "sha256": "81e56e1655eac5b691dc98f3386ad6140b6857df36aaeb6d47bedc2524adeeb4"
+    },
+    {
+      "path": "test/FinitaryConstruction.lean",
+      "sha256": "d711e80120a2ee0a18a4ea19c0c50c472ebccef6cbc4843905ce209f1d58beba"
+    },
+    {
+      "path": "test/FinitarySequence.lean",
+      "sha256": "6f5546347f5e25d304acda0599be3df700b9649f0948d0257bcf1b3a00be0429"
+    },
+    {
+      "path": "test/GeneratedMuFinitary.lean",
+      "sha256": "243c6630b655043ae36cd218dba8dc3daf479f9fc20c105445a3ca0aa79e1c0a"
+    },
+    {
+      "path": "test/GeneratedMuNat.lean",
+      "sha256": "22f0ce0a3151abda9c7b62b926e9175d36fd9be15537f9229d7ba3ced0d4d649"
+    },
+    {
+      "path": "test/GeneratedMuTree.lean",
+      "sha256": "c7f5a623c33f92823250ba494f184f948eb65632d48b7801fa7cd48fce7385be"
+    },
+    {
+      "path": "test/GeneratedMuVector.lean",
+      "sha256": "542a9fcd60cafb735b9404304dbc55d443b1d95eac8a1b9e6a3670b128855737"
+    },
+    {
+      "path": "test/InitialChain.lean",
+      "sha256": "987e2c7d144bffa424b9ade0f0940656cb238e483300b8614b24621fe4fca8a0"
+    },
+    {
+      "path": "test/Initiality.lean",
+      "sha256": "aec7e984313ad0cd991d5f37dd5a31e1b980603e372e6626559c1ccd6f72bfd8"
+    },
+    {
+      "path": "test/MuFinitary.lean",
+      "sha256": "73b0a23b9aa03492b225104ab7f2faf4b9bba5cd6d94d3044783ac61cc0675f7"
+    },
+    {
+      "path": "test/MuFinitaryDecode.lean",
+      "sha256": "79ab6e1e6fcb0d04dc78c50aec8ac2d78cb7bb30e62a02124c342d262cc89e6a"
+    },
+    {
+      "path": "test/MuFinitaryElim.lean",
+      "sha256": "7d48bcd6500619c9aa3a8f8742be22d623936600fd182994c58f194de7d08410"
+    },
+    {
+      "path": "test/MuFinitaryElimCoherence.lean",
+      "sha256": "78ea7846c490b7edc8ae8fc8733083ebfe362bbd54bd14bc72f8284b34e410c4"
+    },
+    {
+      "path": "test/MuFinitaryElimSubst.lean",
+      "sha256": "1312fe99c222b8f273e3fe516facea1197e9c4ddeee505e954d65b61241fd3f9"
+    },
+    {
+      "path": "test/MuFinitaryOpen.lean",
+      "sha256": "ef34dbe56d1b491417fa5c98705b86a57c0f82bb642f6a806cb120d67275b37b"
+    },
+    {
+      "path": "test/MuFinitaryOpenDecode.lean",
+      "sha256": "5740adb30cf7e9bea9ee0c6cbcdd64c30ce500497d94e364f36f432108261119"
+    },
+    {
+      "path": "test/MuNat.lean",
+      "sha256": "9f4ea6b8e121fa09f97f26fdf15ec571b30c1a812de553911ed1eda9feb4d9b3"
+    },
+    {
+      "path": "test/MuSyntax.lean",
+      "sha256": "54fb915609b6bfdfb0ee16d9843eacce2b0f0c8de0c32e504e37e3dbeec370da"
+    },
+    {
+      "path": "test/MuTree.lean",
+      "sha256": "2fd5bac5d470a90562085baf9cf0a9e85e5e7c873b8e926f469ab9cf9f56477b"
+    },
+    {
+      "path": "test/MuVector.lean",
+      "sha256": "e93df36b648e2632ecd5be94f94e91e0e70567e1b9430387a8922c12fa813b53"
+    },
+    {
+      "path": "test/Regression.lean",
+      "sha256": "e510d9bcedd089275e3eda6263bb3662414ce3da82408916cfdf986539f59377"
+    },
+    {
+      "path": "test/VectorConstruction.lean",
+      "sha256": "020c17e84932bc5acffb0e2a62a3c5045b02df3e575a1e9454de89f902853aaf"
+    },
+    {
+      "path": "dev/validation/2026-09-08-finitary-elim-subst/Client.lean",
+      "sha256": "1aa962a660072c7452b249dee630ea4dec39eb40ac4d1930da18b1cab398700c"
+    },
+    {
+      "path": "dev/validation/2026-09-08-finitary-elim-subst/client-lakefile.lean",
+      "sha256": "c2b8786b771fc366f92b236ea9cb50ae90a02b4c4d7c5b2252fe67e486a3b077"
+    }
+  ],
+  "forbidden": [],
+  "proof_blocks": [
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 37,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 46,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 53,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 61,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "KanonMeta/BeckChevalley.lean",
+      "line": 69,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 21,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 26,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 36,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 41,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 50,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 60,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 78,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 94,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 103,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 111,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 117,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/MuSyntax.lean",
+      "line": 122,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 21,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 25,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 30,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 34,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 42,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 49,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 57,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 62,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 66,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 70,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 75,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 79,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 84,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 88,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 98,
+      "body": "kan_rfl"
+    },
+    {
+      "file": "test/Regression.lean",
+      "line": 105,
+      "body": "kan_rfl"
+    }
+  ],
+  "unexpected_proof_blocks": [],
+  "em_dash_files": [],
+  "pass": true
+}

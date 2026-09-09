@@ -1,0 +1,8 @@
+✔ [57/59] Built KanonMeta (5.5s)
+ℹ [58/59] Built Client (1.2s)
+info: Client.lean:85:0: 'Client.substitution_naturality' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:86:0: 'Client.transported_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:87:0: 'Client.supplied_annotations_matter' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:88:0: 'Client.renaming_naturality' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:89:0: 'Client.renamed_annotation' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (59 jobs).

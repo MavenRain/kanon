@@ -19,6 +19,9 @@ elimination of its semantic interpretation. `OpenTerm.inductInterpret`
 also accepts a witness for each variable in a homogeneous environment.
 Its agreement theorem uses the chosen semantic eliminator at those environment
 entries. Arbitrary supplied variable witnesses need not equal that choice.
+The subsequent [substitution increment](MU-FINITARY-ELIM-SUBST.md) proves
+transport-aware substitution and renaming laws for arbitrary supplied witnesses
+in this homogeneous fragment.
 
 `interpret_reify` proves that reifying and interpreting returns every inhabitant
 of the constructed carrier. Together with the existing `reify_interpret`,

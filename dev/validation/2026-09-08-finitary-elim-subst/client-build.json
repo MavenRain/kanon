@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt3/kanon-subst-client/.kanon-exec/run-lvqEmv",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 681,
+    "stderr_bytes": 0,
+    "stdout_lines": 8,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "build"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt3/kanon-subst-client",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt3/kanon-subst-client/.kanon-exec/run-lvqEmv/command-0001.stdout",
+        "bytes": 681,
+        "lines": 8
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt3/kanon-subst-client/.kanon-exec/run-lvqEmv/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

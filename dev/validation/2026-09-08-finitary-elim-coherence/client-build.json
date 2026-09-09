@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-ZyrQYd",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 1503,
+    "stderr_bytes": 0,
+    "stdout_lines": 16,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/gpt1/kanon-coherence-client",
+        "build"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt1/kanon-coherence",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-ZyrQYd/command-0001.stdout",
+        "bytes": 1503,
+        "lines": 16
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-ZyrQYd/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

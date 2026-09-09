@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-TX2dCS",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 17220,
+    "stderr_bytes": 0,
+    "stdout_lines": 192,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "lake",
+        "+leanprover/lean4:v4.33.0-rc1",
+        "--dir",
+        "/Users/oobi/Documents/gpt1/kanon-coherence/meta",
+        "build"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt1/kanon-coherence",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-TX2dCS/command-0001.stdout",
+        "bytes": 17220,
+        "lines": 192
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt1/kanon-coherence/.kanon-exec/run-TX2dCS/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

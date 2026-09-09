@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "reports": 182,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "substitution_api_reports": {
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "meta/KanonMeta/MuFinitaryElimSubst.lean": "0aed4f817dc9b843ee00537fc30aa60f0e9edeac3729fc4c6bfcb10b40139323",
+    "meta/KanonMeta/MuFinitaryElimCoherence.lean": "e6de893b57844af76f9e5b3f1639e0b15e5958326647e676bd999838afaad489"
+  },
+  "driver_sha256": "5c48997f0a1c0aeb6efcfa236d620208b0a0539465ec5fe23c40b5f8f79cd66d",
+  "output_sha256": "216c7f05ba5b1aa06f7ecec3e525a0fd721573eb80e598614ab11047e30736a0"
+}

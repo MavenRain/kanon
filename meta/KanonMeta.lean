@@ -25,3 +25,5 @@ import KanonMeta.MuFinitaryDecode
 import KanonMeta.MuFinitaryOpen
 import KanonMeta.MuFinitaryOpenDecode
 import KanonMeta.MuFinitaryElim
+import KanonMeta.MuFinitaryElimSubst
+import KanonMeta.MuFinitaryElimCoherence

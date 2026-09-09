@@ -204,3 +204,17 @@ open KanonMeta
 #print axioms KanonMeta.MuFinitary.OpenTerm.semanticElim_interpret
 #print axioms KanonMeta.MuFinitary.interpret_reify
 #print axioms KanonMeta.MuFinitary.reify_injective
+
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_id
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_id
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_comp
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_comp
+
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_congr
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_comp_coherent
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_seq
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_comp_routes
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_seq
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_comp_routes
