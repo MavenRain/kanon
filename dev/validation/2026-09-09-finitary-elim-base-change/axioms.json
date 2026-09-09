@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "Axioms.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt3/kanon-base-change/meta",
+  "exit_code": 0,
+  "elapsed_seconds": 2.511,
+  "stdout_sha256": "92330e97b257977e61eda449ebe44f0305d1cc1896f70e6569b40538bd4365e0",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-I",
+    "/Users/oobi/Documents/gpt3/kanon-base-change/dev/validation/2026-09-09-finitary-elim-base-change/audit.py"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt3/kanon-base-change",
+  "exit_code": 0,
+  "elapsed_seconds": 0.259,
+  "stdout_sha256": "552417b50bf904182fc1ce38ffcc587c4e38f58baf50d62cee237edfa96937be",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

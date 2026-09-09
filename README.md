@@ -33,6 +33,9 @@ supplied dependent witnesses through the change of environment.
 The [dependent fusion laws](dev/MU-FINITARY-ELIM-FUSION.md) preserve
 constructor-respecting transformations of witness types through elimination,
 open induction, substitution and renaming. Constant fibres recover ordinary folds.
+The [base-change laws](dev/MU-FINITARY-ELIM-BASE-CHANGE.md) extend this to
+constructor-preserving maps between base algebras, retaining dependent witnesses
+through pullback, composition, substitution and renaming.
 General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

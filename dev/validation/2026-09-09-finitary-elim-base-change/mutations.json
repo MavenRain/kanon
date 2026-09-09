@@ -1,0 +1,47 @@
+[
+  {
+    "name": "omit-transport",
+    "source": "KanonMeta/InitialityBaseChange.lean",
+    "old": "    Eq.mp (congrArg E.Fibre (f.comm shape xs).symm)\n      (E.step shape (fun pos => f.map (xs pos)) witnesses)",
+    "new": "    E.step shape (fun pos => f.map (xs pos)) witnesses",
+    "killed": true,
+    "source_sha256": "1e190f68bf2f9488bdd8ae323f064be6dc585237e93dc31e5a96744ad89c0972",
+    "diagnostic_lines": [
+      33,
+      40,
+      47,
+      56,
+      67,
+      95,
+      117
+    ]
+  },
+  {
+    "name": "reset-witness",
+    "source": "test/MuFinitaryElimBaseChange.lean",
+    "old": "map := fun (_value) witness => (\u27e8witness.1.val, witness.1.property\u27e9, witness.2)",
+    "new": "map := fun (_value) witness => (\u27e8witness.1.val, witness.1.property\u27e9, 0)",
+    "killed": true,
+    "source_sha256": "ea1a458c33402956103cfe2163f57678e5ed0c3c8ace8c714eb89be19724fb45",
+    "diagnostic_lines": [
+      44,
+      82,
+      87,
+      93,
+      100,
+      116,
+      134
+    ]
+  },
+  {
+    "name": "drop-second-shift",
+    "source": "test/InitialityBaseChange.lean",
+    "old": "(i := ()) (3 : Nat)).2 = 19 :=",
+    "new": "(i := ()) (3 : Nat)).2 = 17 :=",
+    "killed": true,
+    "source_sha256": "0d10872dafcb6edfc4c27b72112737f0eab7da177ec18f22df4cdc8a6452917a",
+    "diagnostic_lines": [
+      71
+    ]
+  }
+]

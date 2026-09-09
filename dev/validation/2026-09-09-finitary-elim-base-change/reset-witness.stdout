@@ -1,0 +1,93 @@
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:44:26: error: Application type mismatch: The argument
+  Eq.symm (congrArg Prod.fst stable)
+has type
+  ((targetDisplay.step ctor (fun pos => baseMap.map (xs pos)) fun pos => (⟨(ih pos).fst.val, ⋯⟩, (ih pos).snd)).fst.val,
+        (targetDisplay.step ctor (fun pos => baseMap.map (xs pos)) fun pos =>
+            (⟨(ih pos).fst.val, ⋯⟩, (ih pos).snd)).snd).fst =
+    ((⋯.mp
+              (targetDisplay.step ctor (fun pos => baseMap.map (xs pos)) fun pos =>
+                (⟨(ih pos).fst.val, ⋯⟩, (ih pos).snd))).fst.val,
+        (⋯.mp
+            (targetDisplay.step ctor (fun pos => baseMap.map (xs pos)) fun pos =>
+              (⟨(ih pos).fst.val, ⋯⟩, (ih pos).snd))).snd).fst
+but is expected to have type
+  (⟨((displayed spec Witness step).step ctor xs ih).fst.val, ⋯⟩, 0).fst.val =
+    ((targetDisplay.pullback baseMap).step ctor xs fun pos => (⟨(ih pos).fst.val, ⋯⟩, 0)).fst.val
+in the application
+  Subtype.ext (Eq.symm (congrArg Prod.fst stable))
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:82:2: error: Type mismatch
+  Eq.symm (congrArg Prod.snd (Value.inductInterpret_fusion_over changeBase sample))
+has type
+  (Value.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) sample).snd =
+    (changeBase.map sample.interpret (Value.inductInterpret Witness step sample)).snd
+but is expected to have type
+  (Value.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) sample).snd = 51
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:87:2: error: Type mismatch
+  Eq.symm (congrArg Prod.snd (Value.inductInterpret_fusion_over changeBase swapped))
+has type
+  (Value.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) swapped).snd =
+    (changeBase.map swapped.interpret (Value.inductInterpret Witness step swapped)).snd
+but is expected to have type
+  (Value.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) swapped).snd = 36
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:93:2: error: Type mismatch
+  Eq.symm (congrArg Prod.snd (OpenTerm.inductInterpret_fusion_over changeBase environment witnesses pattern))
+has type
+  (OpenTerm.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) environment
+        (fun i => changeBase.map (environment i) (witnesses i)) pattern).snd =
+    (changeBase.map (pattern.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment witnesses pattern)).snd
+but is expected to have type
+  (OpenTerm.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) environment
+        (fun i => changeBase.map (environment i) (witnesses i)) pattern).snd =
+    159
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:100:2: error: Type mismatch
+  Eq.symm (congrArg Prod.snd (OpenTerm.inductInterpret_fusion_over changeBase environment alternateWitnesses pattern))
+has type
+  (OpenTerm.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) environment
+        (fun i => changeBase.map (environment i) (alternateWitnesses i)) pattern).snd =
+    (changeBase.map (pattern.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment alternateWitnesses pattern)).snd
+but is expected to have type
+  (OpenTerm.inductInterpret (pullbackFibre baseMap targetDisplay) (pullbackStep baseMap targetDisplay) environment
+        (fun i => changeBase.map (environment i) (alternateWitnesses i)) pattern).snd =
+    179
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:116:2: error: Type mismatch
+  ElimSubst.transported_substitution_observation
+has type
+  (⋯.mp
+        (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+          (pattern.substitute replacement))).snd =
+    78
+but is expected to have type
+  (changeBase.map (pattern.interpret fun i => (replacement i).interpret targetEnvironment)
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+            (pattern.substitute replacement)))).snd =
+    78
+/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean:134:6: error: Application type mismatch: The argument
+  ElimSubst.transported_renaming_observation
+has type
+  (⋯.mp (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses (pattern.rename collapse))).snd = 68
+but is expected to have type
+  (changeBase.map (pattern.interpret fun i => targetEnvironment (collapse i))
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses (pattern.rename collapse)))).snd =
+    68
+in the application
+  Eq.trans
+    (Eq.symm
+      (congrArg Prod.snd
+        (OpenTerm.inductInterpret_rename_fusion_over changeBase collapse targetEnvironment targetWitnesses pattern)))
+    ElimSubst.transported_renaming_observation
+'KanonMeta.MuFinitary.Tests.ElimBaseChange.open_annotation' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimBaseChange.substitution_route' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimBaseChange.renaming_route' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]

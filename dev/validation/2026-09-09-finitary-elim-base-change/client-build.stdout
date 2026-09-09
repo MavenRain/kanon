@@ -1,0 +1,4 @@
+ℹ [63/64] Built BaseChangeClient (1.8s)
+info: BaseChangeClient.lean:68:0: 'BaseChangeClient.result' depends on axioms: [Quot.sound]
+info: BaseChangeClient.lean:69:0: 'BaseChangeClient.true_annotation' depends on axioms: [Quot.sound]
+Build completed successfully (64 jobs).

@@ -1,0 +1,9 @@
+/tmp/claude-501/kanon-base-change-controls-iqpik0re/drop-second-shift.lean:71:2: error: Type mismatch
+  congrArg Prod.snd (composed_result 3)
+has type
+  (elim natInitial (((shiftedWitness 2).pullback shiftAgain).pullback shiftMap) 3).snd = (choose (3 + 2)).snd
+but is expected to have type
+  (elim natInitial (((shiftedWitness 2).pullback shiftAgain).pullback shiftMap) 3).snd = 17
+'KanonMeta.Initiality.Tests.BaseChange.shifted_annotation' depends on axioms: [Quot.sound]
+'KanonMeta.Initiality.Tests.BaseChange.composed_annotation' depends on axioms: [sorryAx, Quot.sound]
+'KanonMeta.Initiality.Tests.BaseChange.boxed_elimination' depends on axioms: [Quot.sound]

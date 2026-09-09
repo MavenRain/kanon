@@ -11,6 +11,7 @@ import KanonMeta.Subst
 import KanonMeta.BeckChevalley
 import KanonMeta.Initiality
 import KanonMeta.InitialityFusion
+import KanonMeta.InitialityBaseChange
 import KanonMeta.InitialChain
 import KanonMeta.ChainColimit
 import KanonMeta.NatConstruction
@@ -29,3 +30,4 @@ import KanonMeta.MuFinitaryElim
 import KanonMeta.MuFinitaryElimSubst
 import KanonMeta.MuFinitaryElimCoherence
 import KanonMeta.MuFinitaryElimFusion
+import KanonMeta.MuFinitaryElimBaseChange

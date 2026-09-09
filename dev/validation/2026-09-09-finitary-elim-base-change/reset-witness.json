@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/tmp/claude-501/kanon-base-change-controls-2rb6hnhy/reset-witness.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 4.765,
+  "stdout_sha256": "8e4ecf43e686164c4a553178954005971095b775df2cdfdcd7dbceec9e24b08e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

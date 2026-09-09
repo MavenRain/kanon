@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "build"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt3/kanon-base-change/dev/validation/2026-09-09-finitary-elim-base-change/client",
+  "exit_code": 0,
+  "elapsed_seconds": 2.796,
+  "stdout_sha256": "8a99ade7f064af7fef4ec45ca188765681d1b689b0e6c078434cdb76ee06521a",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

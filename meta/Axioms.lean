@@ -233,3 +233,27 @@ open KanonMeta
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion
+
+#print axioms KanonMeta.Initiality.Displayed.pullback
+#print axioms KanonMeta.Initiality.Displayed.pullbackId
+#print axioms KanonMeta.Initiality.Displayed.pullbackComp
+#print axioms KanonMeta.Initiality.DisplayedHom.pullback
+#print axioms KanonMeta.Initiality.DisplayedHomOver
+#print axioms KanonMeta.Initiality.DisplayedHomOver.id
+#print axioms KanonMeta.Initiality.DisplayedHomOver.comp
+#print axioms KanonMeta.Initiality.Displayed.section_transport
+#print axioms KanonMeta.Initiality.elim_pullback_section
+#print axioms KanonMeta.Initiality.elim_pullback
+#print axioms KanonMeta.Initiality.elim_fusion_over
+#print axioms KanonMeta.Initiality.elim_pullback_id
+#print axioms KanonMeta.Initiality.elim_pullback_comp
+#print axioms KanonMeta.MuFinitary.pullbackFibre
+#print axioms KanonMeta.MuFinitary.pullbackStep
+#print axioms KanonMeta.MuFinitary.pullbackDisplayedHom
+#print axioms KanonMeta.MuFinitary.semanticElim_pullback_section
+#print axioms KanonMeta.MuFinitary.semanticElim_pullback
+#print axioms KanonMeta.MuFinitary.pullbackFusionHom
+#print axioms KanonMeta.MuFinitary.Value.inductInterpret_fusion_over
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion_over
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion_over
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion_over

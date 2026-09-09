@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/tmp/claude-501/kanon-base-change-controls-iqpik0re/drop-second-shift.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 1.982,
+  "stdout_sha256": "4f679c4cafa5e39f5a36e5a1f7cbcaa510ad860e09d12e074210b0f905d42b32",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

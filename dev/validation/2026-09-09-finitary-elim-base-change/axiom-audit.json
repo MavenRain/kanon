@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "reports": 219,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "base_change_api": {
+    "KanonMeta.Initiality.Displayed.pullback": [],
+    "KanonMeta.Initiality.Displayed.pullbackId": [],
+    "KanonMeta.Initiality.Displayed.pullbackComp": [],
+    "KanonMeta.Initiality.DisplayedHom.pullback": [],
+    "KanonMeta.Initiality.DisplayedHomOver": [],
+    "KanonMeta.Initiality.DisplayedHomOver.id": [],
+    "KanonMeta.Initiality.DisplayedHomOver.comp": [],
+    "KanonMeta.Initiality.Displayed.section_transport": [],
+    "KanonMeta.Initiality.elim_pullback_section": [],
+    "KanonMeta.Initiality.elim_pullback": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.elim_fusion_over": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.elim_pullback_id": [],
+    "KanonMeta.Initiality.elim_pullback_comp": [],
+    "KanonMeta.MuFinitary.pullbackFibre": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.pullbackStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.pullbackDisplayedHom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim_pullback_section": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim_pullback": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.pullbackFusionHom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.Value.inductInterpret_fusion_over": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion_over": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion_over": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion_over": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  }
+}

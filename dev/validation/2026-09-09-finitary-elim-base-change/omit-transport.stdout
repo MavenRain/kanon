@@ -1,0 +1,53 @@
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:33:4: error: Type mismatch
+  E.step shape (fun pos => f.map (xs pos)) witnesses
+has type
+  E.Fibre (B.roll shape fun pos => f.map (xs pos))
+but is expected to have type
+  E.Fibre (f.map (A.roll shape xs))
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:40:39: error: Type mismatch
+  rfl
+has type
+  ?m.26 = ?m.26
+but is expected to have type
+  (D.pullback (Hom.id A)).step _shape _xs _witnesses = D.step _shape _xs fun pos => _witnesses pos
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:47:4: error: Type mismatch
+  cast_comp (congrArg E.Fibre (Eq.symm (g.comm shape fun pos => f.map (xs pos))))
+    (congrArg (fun x => E.Fibre (g.map x)) (Eq.symm (f.comm shape xs)))
+    (E.step shape (fun pos => g.map (f.map (xs pos))) witnesses)
+has type
+  ⋯.mp (⋯.mp (E.step shape (fun pos => g.map (f.map (xs pos))) witnesses)) =
+    ⋯.mp (E.step shape (fun pos => g.map (f.map (xs pos))) witnesses)
+but is expected to have type
+  ((E.pullback g).pullback f).step shape xs witnesses = (E.pullback (g.comp f)).step shape xs fun pos => witnesses pos
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:56:4: error: Type mismatch
+  Eq.trans (map_transport h (Eq.symm (f.comm shape xs)) (D.step shape (fun pos => f.map (xs pos)) witnesses))
+    (congrArg (congrArg E.Fibre (Eq.symm (f.comm shape xs))).mp (h.comm shape (fun pos => f.map (xs pos)) witnesses))
+has type
+  h.map (f.map (A.roll shape xs)) (⋯.mp (D.step shape (fun pos => f.map (xs pos)) witnesses)) =
+    ⋯.mp (E.step shape (fun pos => f.map (xs pos)) fun pos => h.map (f.map (xs pos)) (witnesses pos))
+but is expected to have type
+  h.map (f.map (A.roll shape xs)) ((D.pullback f).step shape xs witnesses) =
+    (E.pullback f).step shape xs fun pos => h.map (f.map (xs pos)) (witnesses pos)
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:67:2: error: Type mismatch
+  DisplayedHom.id D
+has type
+  DisplayedHom D D
+but is expected to have type
+  DisplayedHomOver (Hom.id A) D D
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:95:8: error: Application type mismatch: The argument
+  congrArg (congrArg E.Fibre (Eq.symm (f.comm shape xs))).mp (comm shape fun pos => f.map (xs pos))
+has type
+  ⋯.mp (choose (B.roll shape fun pos => f.map (xs pos))) =
+    ⋯.mp (E.step shape (fun pos => f.map (xs pos)) fun pos => choose (f.map (xs pos)))
+but is expected to have type
+  ⋯.mp (choose (B.roll shape fun pos => f.map (xs pos))) =
+    (E.pullback f).step shape xs fun pos => choose (f.map (xs pos))
+in the application
+  Eq.trans (Eq.symm (Displayed.section_transport E (fun {i} => choose) (Eq.symm (f.comm shape xs))))
+    (congrArg (congrArg E.Fibre (Eq.symm (f.comm shape xs))).mp (comm shape fun pos => f.map (xs pos)))
+/tmp/claude-501/kanon-base-change-controls-4_i252re/omit-transport.lean:117:2: error: Type mismatch
+  elim_fusion hA D.pullbackId x
+has type
+  D.pullbackId.map x (elim hA (D.pullback (Hom.id A)) x) = elim hA D x
+but is expected to have type
+  elim hA (D.pullback (Hom.id A)) x = elim hA D x
