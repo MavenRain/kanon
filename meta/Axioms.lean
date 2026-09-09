@@ -218,3 +218,18 @@ open KanonMeta
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_comp_routes
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_seq
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_comp_routes
+
+#print axioms KanonMeta.Initiality.DisplayedHom
+#print axioms KanonMeta.Initiality.DisplayedHom.id
+#print axioms KanonMeta.Initiality.DisplayedHom.comp
+#print axioms KanonMeta.Initiality.DisplayedHom.totalHom
+#print axioms KanonMeta.Initiality.DisplayedHom.map_transport
+#print axioms KanonMeta.Initiality.elim_fusion
+#print axioms KanonMeta.Initiality.Displayed.constant
+#print axioms KanonMeta.Initiality.elim_constant
+#print axioms KanonMeta.MuFinitary.displayedHom
+#print axioms KanonMeta.MuFinitary.semanticElim_fusion
+#print axioms KanonMeta.MuFinitary.Value.inductInterpret_fusion
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion

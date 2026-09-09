@@ -1,0 +1,34 @@
+/tmp/claude-501/kanon-fusion-controls-xibirzm1/permute-children.lean:48:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (OpenTerm.inductInterpret_fusion swapHom environment witnesses reversed))
+has type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        reversed).fst =
+    (swapHom.map (reversed.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment witnesses reversed)).fst
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        reversed).fst =
+    159
+'KanonMeta.MuFinitary.Tests.ElimFusion.constructed_fusion' depends on axioms: [propext, Classical.choice, Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.supplied_annotation_retained' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.supplied_certificate_retained' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_substitution_observation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_renaming_observation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_substitution_certificate' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_renaming_certificate' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.resetting_annotation_is_not_lawful' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]

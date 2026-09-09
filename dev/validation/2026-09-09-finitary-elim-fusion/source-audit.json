@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-I",
+    "/Users/oobi/Documents/gpt1/kanon-fusion/dev/validation/2026-09-09-finitary-elim-fusion/audit.py"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt1/kanon-fusion",
+  "exit_code": 0,
+  "elapsed_seconds": 0.142,
+  "stdout_sha256": "c0746ef5ac722ddc2438dc8c168f7967a9fbf2c0db5580a0aaf966fd662a77e5",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

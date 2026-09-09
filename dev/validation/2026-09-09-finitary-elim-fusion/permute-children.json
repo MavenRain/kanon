@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/tmp/claude-501/kanon-fusion-controls-xibirzm1/permute-children.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 1.033,
+  "stdout_sha256": "8f762cb0b04d72e456a35f11e8e03140429092e4cab20bb96aa1cb0aa48343fd",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

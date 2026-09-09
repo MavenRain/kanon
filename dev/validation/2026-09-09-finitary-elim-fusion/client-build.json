@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "build"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt1/kanon-fusion/dev/validation/2026-09-09-finitary-elim-fusion/client",
+  "exit_code": 0,
+  "elapsed_seconds": 7.484,
+  "stdout_sha256": "93fd3d80ab9a61842ebbdab5dc028b98e1a6ffef0a5f92d0127fadc1f4713f87",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

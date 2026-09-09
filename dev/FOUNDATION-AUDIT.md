@@ -37,6 +37,14 @@ at each variable; it does not select a canonical witness from its semantic
 value. The corresponding renaming routes also agree. These laws still concern
 the homogeneous constructor fragment.
 
+The [dependent fusion increment](MU-FINITARY-ELIM-FUSION.md) constructs
+constructor-preserving maps between displayed algebras over a fixed base.
+Initiality makes these maps commute with dependent elimination; constant
+fibres recover ordinary folds. The finite-family bridge preserves the maps
+on closed and open constructor syntax, including substitution and renaming
+transports with arbitrary supplied witnesses. Changing base algebras and
+interpreting the compiler's dependent typing rules remain separate obligations.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |

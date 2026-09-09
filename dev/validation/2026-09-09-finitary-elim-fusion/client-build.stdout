@@ -1,0 +1,8 @@
+ℹ [61/62] Built FusionClient (6.5s)
+info: FusionClient.lean:112:0: 'FusionClient.constructed_fusion' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: FusionClient.lean:113:0: 'FusionClient.duplicate_annotations' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: FusionClient.lean:114:0: 'FusionClient.dependent_certificate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: FusionClient.lean:115:0: 'FusionClient.substitution_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: FusionClient.lean:116:0: 'FusionClient.renaming_observation' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: FusionClient.lean:117:0: 'FusionClient.substitution_certificate' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (62 jobs).

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt1/kanon-fusion/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 1.155,
+  "stdout_sha256": "c6126c4d8014901df6e43da3de67efff4dd38860a24c47e9689da5ffbb5c5ef0",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

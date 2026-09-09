@@ -20,4 +20,5 @@ lean_lib «KanonMetaTests» where
     `test.GeneratedMuVector, `test.MuVector,
     `test.GeneratedMuFinitary, `test.MuFinitary, `test.MuFinitaryDecode,
     `test.MuFinitaryOpen, `test.MuFinitaryOpenDecode, `test.MuFinitaryElim,
-    `test.MuFinitaryElimSubst, `test.MuFinitaryElimCoherence]
+    `test.MuFinitaryElimSubst, `test.MuFinitaryElimCoherence,
+    `test.InitialityFusion, `test.MuFinitaryElimFusion]

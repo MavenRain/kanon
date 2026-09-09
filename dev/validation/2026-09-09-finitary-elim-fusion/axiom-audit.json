@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "reports": 196,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "fusion_api": {
+    "KanonMeta.Initiality.DisplayedHom": [],
+    "KanonMeta.Initiality.DisplayedHom.id": [],
+    "KanonMeta.Initiality.DisplayedHom.comp": [],
+    "KanonMeta.Initiality.DisplayedHom.totalHom": [],
+    "KanonMeta.Initiality.DisplayedHom.map_transport": [],
+    "KanonMeta.Initiality.elim_fusion": [],
+    "KanonMeta.Initiality.Displayed.constant": [],
+    "KanonMeta.Initiality.elim_constant": [],
+    "KanonMeta.MuFinitary.displayedHom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim_fusion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.Value.inductInterpret_fusion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  }
+}

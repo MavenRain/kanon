@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "build"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt1/kanon-fusion/meta",
+  "exit_code": 0,
+  "elapsed_seconds": 4.673,
+  "stdout_sha256": "404b1bc3945b378b3c99fe7dcc42314cbc73a174fdee8fce4bd1524c06089a71",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -30,6 +30,9 @@ constructor terms, with explicit transport between the resulting fibres.
 The [composition coherence laws](dev/MU-FINITARY-ELIM-COHERENCE.md) compare
 successive semantic transports with the composed route, preserving the
 supplied dependent witnesses through the change of environment.
+The [dependent fusion laws](dev/MU-FINITARY-ELIM-FUSION.md) preserve
+constructor-respecting transformations of witness types through elimination,
+open induction, substitution and renaming. Constant fibres recover ordinary folds.
 General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

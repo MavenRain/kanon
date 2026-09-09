@@ -10,6 +10,7 @@ import KanonMeta.Syntax
 import KanonMeta.Subst
 import KanonMeta.BeckChevalley
 import KanonMeta.Initiality
+import KanonMeta.InitialityFusion
 import KanonMeta.InitialChain
 import KanonMeta.ChainColimit
 import KanonMeta.NatConstruction
@@ -27,3 +28,4 @@ import KanonMeta.MuFinitaryOpenDecode
 import KanonMeta.MuFinitaryElim
 import KanonMeta.MuFinitaryElimSubst
 import KanonMeta.MuFinitaryElimCoherence
+import KanonMeta.MuFinitaryElimFusion

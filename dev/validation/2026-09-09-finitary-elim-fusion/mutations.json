@@ -1,0 +1,35 @@
+[
+  {
+    "name": "reset-witness",
+    "old": "(fun _value witness => (witness.2, witness.1))",
+    "new": "(fun _value witness => (0, witness.1))",
+    "killed": true,
+    "source_sha256": "16b2a850748deb9e5a04845f3f199b5de28507ed4f74b9f2536f9c05297293f7",
+    "diagnostic_lines": [
+      25,
+      35,
+      39,
+      43,
+      48,
+      54,
+      60,
+      66,
+      72,
+      80,
+      88,
+      97,
+      106,
+      113
+    ]
+  },
+  {
+    "name": "permute-children",
+    "old": "theorem supplied_annotation_retained :\n    (pattern.inductInterpret Target targetStep environment\n      (fun i => swapHom.map (environment i) (witnesses i))).1 = 159 :=\n  (congrArg Prod.fst\n    (OpenTerm.inductInterpret_fusion swapHom environment witnesses pattern)).symm",
+    "new": "theorem supplied_annotation_retained :\n    (reversed.inductInterpret Target targetStep environment\n      (fun i => swapHom.map (environment i) (witnesses i))).1 = 159 :=\n  (congrArg Prod.fst\n    (OpenTerm.inductInterpret_fusion swapHom environment witnesses reversed)).symm",
+    "killed": true,
+    "source_sha256": "406ac4124c5d4f6ad2e788bc845c743772e95e39bdf611baf75181f48b998383",
+    "diagnostic_lines": [
+      48
+    ]
+  }
+]

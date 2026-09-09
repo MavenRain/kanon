@@ -1,0 +1,191 @@
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:25:76: error: Type mismatch
+  rfl
+has type
+  ?m.21 = ?m.21
+but is expected to have type
+  (0, (step _ctor _xs _ih).fst) = targetStep _ctor _xs fun i => (0, (_ih i).fst)
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:35:2: error: Type mismatch
+  congrArg Prod.fst (semanticElim_fusion swapHom value)
+has type
+  (swapHom.map value (semanticElim spec Witness step value)).fst = (semanticElim spec Target targetStep value).fst
+but is expected to have type
+  (semanticElim spec Witness step value).snd = (semanticElim spec Target targetStep value).fst
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:39:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (Value.inductInterpret_fusion swapHom sample))
+has type
+  (Value.inductInterpret Target targetStep sample).fst =
+    (swapHom.map sample.interpret (Value.inductInterpret Witness step sample)).fst
+but is expected to have type
+  (Value.inductInterpret Target targetStep sample).fst = 51
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:43:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (Value.inductInterpret_fusion swapHom swapped))
+has type
+  (Value.inductInterpret Target targetStep swapped).fst =
+    (swapHom.map swapped.interpret (Value.inductInterpret Witness step swapped)).fst
+but is expected to have type
+  (Value.inductInterpret Target targetStep swapped).fst = 36
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:48:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (OpenTerm.inductInterpret_fusion swapHom environment witnesses pattern))
+has type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        pattern).fst =
+    (swapHom.map (pattern.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment witnesses pattern)).fst
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        pattern).fst =
+    159
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:54:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (OpenTerm.inductInterpret_fusion swapHom environment alternateWitnesses pattern))
+has type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (alternateWitnesses i))
+        pattern).fst =
+    (swapHom.map (pattern.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment alternateWitnesses pattern)).fst
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (alternateWitnesses i))
+        pattern).fst =
+    179
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:60:2: error: Type mismatch
+  Eq.symm
+    (congrArg (fun witness => witness.snd.val) (OpenTerm.inductInterpret_fusion swapHom environment witnesses pattern))
+has type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+          pattern).snd.val =
+    (swapHom.map (pattern.interpret environment)
+          (OpenTerm.inductInterpret Witness step environment witnesses pattern)).snd.val
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+          pattern).snd.val =
+    17
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:66:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (OpenTerm.inductInterpret_fusion swapHom environment witnesses reversed))
+has type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        reversed).fst =
+    (swapHom.map (reversed.interpret environment)
+        (OpenTerm.inductInterpret Witness step environment witnesses reversed)).fst
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep environment (fun i => swapHom.map (environment i) (witnesses i))
+        reversed).fst =
+    147
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:72:2: error: Type mismatch
+  Eq.symm (OpenTerm.inductInterpret_fusion (forgetHom.comp swapHom) environment witnesses pattern)
+has type
+  OpenTerm.inductInterpret (fun _value => Nat) (fun ctor _xs ih => weight ctor ih) environment
+      (fun i => (forgetHom.comp swapHom).map (environment i) (witnesses i)) pattern =
+    (forgetHom.comp swapHom).map (pattern.interpret environment)
+      (OpenTerm.inductInterpret Witness step environment witnesses pattern)
+but is expected to have type
+  OpenTerm.inductInterpret (fun _value => Nat) (fun ctor _xs ih => weight ctor ih) environment
+      (fun i => (forgetHom.comp swapHom).map (environment i) (witnesses i)) pattern =
+    159
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:80:2: error: Type mismatch
+  congrArg Prod.fst
+    (OpenTerm.inductInterpret_substitute_fusion swapHom replacement targetEnvironment targetWitnesses pattern)
+has type
+  (swapHom.map (pattern.interpret fun i => (replacement i).interpret targetEnvironment)
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+            (pattern.substitute replacement)))).fst =
+    (OpenTerm.inductInterpret Target targetStep (fun i => (replacement i).interpret targetEnvironment)
+        (fun i =>
+          OpenTerm.inductInterpret Target targetStep targetEnvironment
+            (fun j => swapHom.map (targetEnvironment j) (targetWitnesses j)) (replacement i))
+        pattern).fst
+but is expected to have type
+  (swapHom.map (pattern.interpret fun i => (replacement i).interpret targetEnvironment)
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+            (pattern.substitute replacement)))).fst =
+    78
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:88:2: error: Type mismatch
+  congrArg Prod.fst (OpenTerm.inductInterpret_rename_fusion swapHom collapse targetEnvironment targetWitnesses pattern)
+has type
+  (swapHom.map (pattern.interpret fun i => targetEnvironment (collapse i))
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses (pattern.rename collapse)))).fst =
+    (OpenTerm.inductInterpret Target targetStep (fun i => targetEnvironment (collapse i))
+        (fun i => swapHom.map (targetEnvironment (collapse i)) (targetWitnesses (collapse i))) pattern).fst
+but is expected to have type
+  (swapHom.map (pattern.interpret fun i => targetEnvironment (collapse i))
+        (⋯.mp
+          (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses (pattern.rename collapse)))).fst =
+    68
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:97:2: error: Type mismatch
+  congrArg (fun witness => witness.snd.val)
+    (OpenTerm.inductInterpret_substitute_fusion swapHom replacement targetEnvironment targetWitnesses pattern)
+has type
+  (swapHom.map (pattern.interpret fun i => (replacement i).interpret targetEnvironment)
+          (⋯.mp
+            (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+              (pattern.substitute replacement)))).snd.val =
+    (OpenTerm.inductInterpret Target targetStep (fun i => (replacement i).interpret targetEnvironment)
+          (fun i =>
+            OpenTerm.inductInterpret Target targetStep targetEnvironment
+              (fun j => swapHom.map (targetEnvironment j) (targetWitnesses j)) (replacement i))
+          pattern).snd.val
+but is expected to have type
+  (swapHom.map (pattern.interpret fun i => (replacement i).interpret targetEnvironment)
+          (⋯.mp
+            (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+              (pattern.substitute replacement)))).snd.val =
+    27
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:106:2: error: Type mismatch
+  congrArg (fun witness => witness.snd.val)
+    (OpenTerm.inductInterpret_rename_fusion swapHom collapse targetEnvironment targetWitnesses pattern)
+has type
+  (swapHom.map (pattern.interpret fun i => targetEnvironment (collapse i))
+          (⋯.mp
+            (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+              (pattern.rename collapse)))).snd.val =
+    (OpenTerm.inductInterpret Target targetStep (fun i => targetEnvironment (collapse i))
+          (fun i => swapHom.map (targetEnvironment (collapse i)) (targetWitnesses (collapse i))) pattern).snd.val
+but is expected to have type
+  (swapHom.map (pattern.interpret fun i => targetEnvironment (collapse i))
+          (⋯.mp
+            (OpenTerm.inductInterpret Witness step targetEnvironment targetWitnesses
+              (pattern.rename collapse)))).snd.val =
+    17
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-fusion-controls-jun379p6/reset-witness.lean:113:2: error: Type mismatch
+  Eq.symm (congrArg Prod.fst (OpenTerm.inductInterpret_fusion swapHom Fin.elim0 emptyWitnesses closedSample))
+has type
+  (OpenTerm.inductInterpret Target targetStep Fin.elim0 (fun i => swapHom.map i.elim0 (emptyWitnesses i))
+        closedSample).fst =
+    (swapHom.map (closedSample.interpret Fin.elim0)
+        (OpenTerm.inductInterpret Witness step Fin.elim0 emptyWitnesses closedSample)).fst
+but is expected to have type
+  (OpenTerm.inductInterpret Target targetStep Fin.elim0 (fun i => swapHom.map i.elim0 (emptyWitnesses i))
+        closedSample).fst =
+    51
+'KanonMeta.MuFinitary.Tests.ElimFusion.constructed_fusion' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.supplied_annotation_retained' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.supplied_certificate_retained' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_substitution_observation' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_renaming_observation' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_substitution_certificate' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.transported_renaming_certificate' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.MuFinitary.Tests.ElimFusion.resetting_annotation_is_not_lawful' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
