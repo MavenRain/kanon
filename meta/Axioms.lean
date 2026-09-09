@@ -117,6 +117,8 @@ open KanonMeta
 #print axioms Initiality.elim
 #print axioms Initiality.fold_eq_section
 #print axioms Initiality.elim_beta
+#print axioms Initiality.Displayed.sectionHom
+#print axioms Initiality.elim_unique
 
 #print axioms InitialChain.polyMap_id
 #print axioms InitialChain.polyMap_comp
@@ -191,3 +193,14 @@ open KanonMeta
 #print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_sound
 #print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_accepts_iff
 #print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_zero_iff
+
+#print axioms KanonMeta.MuFinitary.displayed
+#print axioms KanonMeta.MuFinitary.semanticElim
+#print axioms KanonMeta.MuFinitary.semanticElim_node
+#print axioms KanonMeta.MuFinitary.semanticElim_unique
+#print axioms KanonMeta.MuFinitary.Value.inductInterpret
+#print axioms KanonMeta.MuFinitary.Value.semanticElim_interpret
+#print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret
+#print axioms KanonMeta.MuFinitary.OpenTerm.semanticElim_interpret
+#print axioms KanonMeta.MuFinitary.interpret_reify
+#print axioms KanonMeta.MuFinitary.reify_injective

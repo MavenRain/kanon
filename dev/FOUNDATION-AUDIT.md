@@ -13,6 +13,14 @@ variables. Semantic interpretation commutes unconditionally. Certified decoding
 retains exact syntax. This addresses substitution for that constructor fragment;
 the general typed substitution and dependent interpretation obligations remain.
 
+The [dependent elimination bridge](MU-FINITARY-ELIM.md) supplies dependent
+sections, propositional constructor computation and uniqueness for the
+constructed finite-family carrier. It proves agreement with structural
+induction on closed and open constructor syntax, and that every semantic
+inhabitant is the interpretation of its reified syntax. These results use the
+existing constructed initiality and do not establish correspondence with the
+compiler's dependent case analysis or recursive-call rules.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |

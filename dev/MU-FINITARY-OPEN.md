@@ -27,10 +27,12 @@ closed decoder, malformed children can be encountered before a later arity
 failure. Completeness and encoding injectivity require `Spec.Valid`, including
 constructor-name uniqueness.
 
-This establishes substitution for a scoped constructor fragment. General kernel
-typing preservation, dependent contexts, quantities, indexed and mutual
-declarations, dependent elimination, recursive-call rules, compiler preservation,
-the internal Kan-only requirement and M1 exit ratification remain open.
+This establishes substitution for a scoped constructor fragment. The later
+[dependent elimination bridge](MU-FINITARY-ELIM.md) supplies dependent sections
+for the constructed carrier. General kernel typing preservation, dependent
+contexts, quantities, indexed and mutual declarations, kernel dependent
+elimination, recursive-call rules, compiler preservation, the internal Kan-only
+requirement and M1 exit ratification remain open.
 
 The [validation record](validation/2026-09-08-finitary-open/README.md) records the
 default Lean regressions, downstream client, proof dependencies and retained

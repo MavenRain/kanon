@@ -19,4 +19,4 @@ lean_lib «KanonMetaTests» where
     `test.GeneratedMuTree, `test.MuTree,
     `test.GeneratedMuVector, `test.MuVector,
     `test.GeneratedMuFinitary, `test.MuFinitary, `test.MuFinitaryDecode,
-    `test.MuFinitaryOpen, `test.MuFinitaryOpenDecode]
+    `test.MuFinitaryOpen, `test.MuFinitaryOpenDecode, `test.MuFinitaryElim]

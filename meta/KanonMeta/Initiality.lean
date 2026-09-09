@@ -85,6 +85,15 @@ def Displayed.projection (D : Displayed A) : Hom D.total A where
   map := Sigma.fst
   comm := fun _ _ => rfl
 
+/-- A section respecting displayed constructors gives a graph morphism. -/
+def Displayed.sectionHom (D : Displayed A)
+    (choose : {i : Index} → (x : A.Carrier i) → D.Fibre x)
+    (comm : ∀ {i : Index} (shape : P.Shape i) (xs),
+      choose (A.roll shape xs) = D.step shape xs (fun pos => choose (xs pos))) :
+    Hom A D.total where
+  map := fun x => ⟨x, choose x⟩
+  comm := fun shape xs => congrArg (Sigma.mk (A.roll shape xs)) (comm shape xs)
+
 /-- Uniqueness makes the projection after folding the identity on the base. -/
 theorem projection_fold (h : Initial A) (D : Displayed A)
     {i : Index} (x : A.Carrier i) : ((h.fold D.total).map x).1 = x :=
@@ -118,5 +127,15 @@ theorem elim_beta (h : Initial A) (D : Displayed A)
       (((h.fold D.total).comm shape xs).trans
         (congrArg (D.total.roll shape)
           (funext (fun pos => fold_eq_section h D (xs pos))))))).2
+
+/-- A dependent section satisfying the constructor law is the eliminator. -/
+theorem elim_unique (h : Initial A) (D : Displayed A)
+    (choose : {i : Index} → (x : A.Carrier i) → D.Fibre x)
+    (comm : ∀ {i : Index} (shape : P.Shape i) (xs),
+      choose (A.roll shape xs) = D.step shape xs (fun pos => choose (xs pos)))
+    {i : Index} (x : A.Carrier i) : choose x = elim h D x :=
+  eq_of_heq (Sigma.mk.inj
+    ((h.unique D.total (D.sectionHom choose comm) (h.fold D.total) x).trans
+      (fold_eq_section h D x))).2
 
 end KanonMeta.Initiality

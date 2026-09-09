@@ -20,6 +20,10 @@ fragment, retaining arbitrary finite constructor arities. Its
 with exact syntax certificates and roundtrip laws. The
 [open constructor fragment](dev/MU-FINITARY-OPEN.md) adds scoped variables,
 certified decoding and substitution laws for raw encoding and interpretation.
+The [dependent elimination bridge](dev/MU-FINITARY-ELIM.md) derives dependent
+constructor computation and uniqueness for the constructed finite-family
+carrier, with agreement on closed and open constructor terms and both
+reification inverse laws.
 General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

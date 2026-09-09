@@ -24,3 +24,4 @@ import KanonMeta.MuFinitary
 import KanonMeta.MuFinitaryDecode
 import KanonMeta.MuFinitaryOpen
 import KanonMeta.MuFinitaryOpenDecode
+import KanonMeta.MuFinitaryElim

@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "reports": 170,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "elimination_api_reports": {
+    "KanonMeta.Initiality.Displayed.sectionHom": [],
+    "KanonMeta.Initiality.projection_fold": [],
+    "KanonMeta.Initiality.elim": [],
+    "KanonMeta.Initiality.fold_eq_section": [],
+    "KanonMeta.Initiality.elim_beta": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.elim_unique": [],
+    "KanonMeta.MuFinitary.displayed": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim_node": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.semanticElim_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.Value.inductInterpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.Value.semanticElim_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.inductInterpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.semanticElim_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.interpret_reify": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.reify_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "meta/KanonMeta/Initiality.lean": "17aa7d88c5f70dc01d1886e02cc308ca0e9485d3220ee201ccd2be611e963f45",
+    "meta/KanonMeta/MuFinitaryElim.lean": "0ebbfc39879821f76db32a677fd0daa085b139dd49c55517a4c966a271285a66"
+  },
+  "driver_sha256": "b6f4f6c6c7b2de4639da6e99d26afca7a2058972def34b833a7229e24dbaf627",
+  "output_sha256": "cd58217797c696cf40fdaa765f93a9503b52ff553e1bd42e441f3d8f03beb476"
+}

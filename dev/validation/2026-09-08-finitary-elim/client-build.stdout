@@ -1,0 +1,4 @@
+ℹ [57/58] Built Client (5.9s)
+info: Client.lean:53:0: 'Client.dependent_result' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: Client.lean:54:0: 'Client.carrier_roundtrip' depends on axioms: [propext, Classical.choice, Quot.sound]
+Build completed successfully (58 jobs).
