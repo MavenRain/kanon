@@ -6,6 +6,13 @@ The later [initial-chain increment](INITIAL-CHAIN.md) constructs sequence colimi
 
 The later [natural-family bridge](MU-NAT-BRIDGE.md) extracts one checked `SMu N` family and its constructor fragment into Lean, then interprets it in the constructed natural algebra. The [binary-tree bridge](MU-TREE-BRIDGE.md) adds a checked family with two recursive children, interpreting its constructor fragment and mirror operation in the finite branching construction. The [indexed-vector bridge](MU-VECTOR-BRIDGE.md) connects the exact checked N/V declarations, closed length-indexed constructor values and a fixed dependent-copy template to the constructed indexed algebra. It validates the result index, erased predecessor argument and recursive child length separately, and proves payload-preserving semantic copy. These are bounded connections to checked syntax. General typed interpretation and compiler preservation remain open.
 
+The [open constructor fragment](MU-FINITARY-OPEN.md) extends the finite-family
+bridge to homogeneous contexts with scoped variables. Raw encoding commutes with
+structural substitution when the raw substitution agrees on the in-scope
+variables. Semantic interpretation commutes unconditionally. Certified decoding
+retains exact syntax. This addresses substitution for that constructor fragment;
+the general typed substitution and dependent interpretation obligations remain.
+
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 
 | Obligation | Source evidence | Status |

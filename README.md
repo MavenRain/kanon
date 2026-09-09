@@ -17,8 +17,10 @@ indexed algebra. The [finite-family bridge](dev/MU-FINITARY-BRIDGE.md)
 derives a signature from any validated unindexed family in the direct-recursion
 fragment, retaining arbitrary finite constructor arities. Its
 [raw-term decoder](dev/MU-FINITARY-DECODE.md) reconstructs closed constructor values
-with exact syntax certificates and roundtrip laws. General typed interpretation, compiler
-preservation and full Lean parity remain open.
+with exact syntax certificates and roundtrip laws. The
+[open constructor fragment](dev/MU-FINITARY-OPEN.md) adds scoped variables,
+certified decoding and substitution laws for raw encoding and interpretation.
+General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed
 all 21 gate legs, including REACTOR, RUNTIME and the binding performance

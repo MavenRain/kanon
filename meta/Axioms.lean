@@ -6,7 +6,8 @@ The disclosure driver of gate SF-G4 and the initiality developments.
 It prints the six syntax theorem reports. It also prints the
 natural-family group of `KanonMeta.MuNat`, the binary-tree group of
 `KanonMeta.MuTree`, the indexed-vector group of `KanonMeta.MuVector`,
-the finite-family group of `KanonMeta.MuFinitary`,
+the finite-family group of `KanonMeta.MuFinitary`, its open
+constructor group `KanonMeta.MuFinitary.OpenTerm`,
 and the public initiality and initial-chain results. The report is
 disclosure and not a zero-axioms gate: `propext`, `Classical.choice` and
 `Quot.sound` are the three admissible names.
@@ -164,3 +165,29 @@ open KanonMeta
 
 #print axioms FiniteBound.bound
 #print axioms FiniteBound.le_bound
+
+#print axioms KanonMeta.MuFinitary.OpenTerm.rename_id
+#print axioms KanonMeta.MuFinitary.OpenTerm.rename_comp
+#print axioms KanonMeta.MuFinitary.OpenTerm.substitute_id
+#print axioms KanonMeta.MuFinitary.OpenTerm.substitute_comp
+#print axioms KanonMeta.MuFinitary.OpenTerm.rename_eq_substitute
+#print axioms KanonMeta.MuFinitary.OpenTerm.encode_substitute
+#print axioms KanonMeta.MuFinitary.OpenTerm.encode_rename
+#print axioms KanonMeta.MuFinitary.OpenTerm.evaluate_substitute
+#print axioms KanonMeta.MuFinitary.OpenTerm.interpret_substitute
+#print axioms KanonMeta.MuFinitary.OpenTerm.evaluate_rename
+#print axioms KanonMeta.MuFinitary.OpenTerm.interpret_rename
+#print axioms KanonMeta.MuFinitary.OpenTerm.encode_injective
+#print axioms KanonMeta.MuFinitary.OpenTerm.encode_ofValue
+#print axioms KanonMeta.MuFinitary.OpenTerm.encode_close
+#print axioms KanonMeta.MuFinitary.OpenTerm.close_ofValue
+#print axioms KanonMeta.MuFinitary.OpenTerm.ofValue_close
+#print axioms KanonMeta.MuFinitary.OpenTerm.evaluate_ofValue
+#print axioms KanonMeta.MuFinitary.OpenTerm.evaluate_close
+#print axioms KanonMeta.MuFinitary.OpenTerm.interpret_ofValue
+#print axioms KanonMeta.MuFinitary.OpenTerm.interpret_close
+#print axioms KanonMeta.MuFinitary.OpenTerm.fold_interpret
+#print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_encode
+#print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_sound
+#print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_accepts_iff
+#print axioms KanonMeta.MuFinitary.OpenTerm.openDecode_zero_iff

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "artifact": "/Users/oobi/Documents/gpt4/kanon-open-terms/work/.kanon-exec/run-gowk8w",
+  "status": "complete",
+  "exitCode": 0,
+  "counts": {
+    "stdout_bytes": 85,
+    "stderr_bytes": 0,
+    "stdout_lines": 1,
+    "stderr_lines": 0,
+    "error_lines": 0,
+    "warning_lines": 0
+  },
+  "commands": [
+    {
+      "index": 1,
+      "argv": [
+        "python3",
+        "-I",
+        "dev/validation/2026-09-08-finitary-open/check_axioms.py"
+      ],
+      "cwd": "/Users/oobi/Documents/gpt4/kanon-open-terms/work",
+      "exitCode": 0,
+      "signal": 0,
+      "timedOut": false,
+      "spawnError": "",
+      "stdout": {
+        "path": "/Users/oobi/Documents/gpt4/kanon-open-terms/work/.kanon-exec/run-gowk8w/command-0001.stdout",
+        "bytes": 85,
+        "lines": 1
+      },
+      "stderr": {
+        "path": "/Users/oobi/Documents/gpt4/kanon-open-terms/work/.kanon-exec/run-gowk8w/command-0001.stderr",
+        "bytes": 0,
+        "lines": 0
+      }
+    }
+  ]
+}

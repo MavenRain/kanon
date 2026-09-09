@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "reports": 158,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "open_fragment_reports": {
+    "KanonMeta.MuFinitary.OpenTerm.rename_id": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.rename_comp": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.substitute_id": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.substitute_comp": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.rename_eq_substitute": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.encode_substitute": [
+      "propext",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.encode_rename": [
+      "propext",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.evaluate_substitute": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.interpret_substitute": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.evaluate_rename": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.interpret_rename": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.encode_injective": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.encode_ofValue": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.encode_close": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.close_ofValue": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.ofValue_close": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.evaluate_ofValue": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.evaluate_close": [
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.interpret_ofValue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.interpret_close": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.fold_interpret": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.openDecode_encode": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.openDecode_sound": [
+      "propext",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.openDecode_accepts_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "KanonMeta.MuFinitary.OpenTerm.openDecode_zero_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ]
+  },
+  "source_sha256": {
+    "meta/KanonMeta/MuFinitaryOpen.lean": "aca95f3512daed54e0f95618595ba5ccc3f7208c5240e7fe2f00ffdf0d7f9e01",
+    "meta/KanonMeta/MuFinitaryOpenDecode.lean": "7afef62803963f2ebf09da9a544cd792c13debe5931011d204ae6be91f91cad9"
+  },
+  "driver_sha256": "385ddf635f8d32a1aa175d7a3405bfbb579c286b7073d1adf93823dceb5942cc",
+  "output_sha256": "d5d006f366c9a0a1f0d2036bd19ccb21606f026bb7b9dae8e2adc46f4ed9ec32"
+}

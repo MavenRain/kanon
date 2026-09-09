@@ -17,6 +17,9 @@ nonempty indices, non-constructor addresses, unknown constructors, wrong arities
 and unsupported terms return distinct error constructors. A malformed nested
 child propagates its decoding error.
 
+The [open constructor fragment](MU-FINITARY-OPEN.md) separately extends decoding
+to scoped variables and proves substitution laws.
+
 Soundness follows from the result's exact equality certificate. Completeness and
 encoding injectivity require the constructor-name uniqueness carried by
 `Spec.Valid`. Duplicate constructor names would make distinct constructor
