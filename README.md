@@ -36,6 +36,9 @@ open induction, substitution and renaming. Constant fibres recover ordinary fold
 The [base-change laws](dev/MU-FINITARY-ELIM-BASE-CHANGE.md) extend this to
 constructor-preserving maps between base algebras, retaining dependent witnesses
 through pullback, composition, substitution and renaming.
+The [signature-change laws](dev/SIGNATURE-CHANGE.md) translate between indexed
+polynomials, tracking selected child indices and dependent witnesses through
+constructor changes, composition and fold fusion.
 General typed interpretation, compiler preservation and full Lean parity remain open.
 
 Status: M1 Stage L implementation complete. The current compiler passed

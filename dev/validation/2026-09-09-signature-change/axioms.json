@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "Axioms.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt9/kanon-signature-work/meta",
+  "exit_code": 0,
+  "elapsed_seconds": 2.603,
+  "stdout_sha256": "cfc37cd67d03f613e07e0a3c68fe20f172f612caf7a781d8226f3b8f453fc992",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

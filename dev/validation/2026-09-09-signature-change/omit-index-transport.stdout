@@ -1,0 +1,38 @@
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:56:11: error: Type mismatch
+  xs (f.position s q)
+has type
+  X (P.child s (f.position s q))
+but is expected to have type
+  X (Q.child (f.shape s) q)
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:63:19: error: Type mismatch
+  transport_map h (f.child s q) (xs (f.position s q))
+has type
+  h (⋯ ▸ xs (f.position s q)) = ⋯ ▸ h (xs (f.position s q))
+but is expected to have type
+  h (f.children s xs q) = f.children s (fun p => h (xs p)) q
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:70:19: error: Type mismatch
+  transport_comp (f.child s (g.position (f.shape s) r)) (g.child (f.shape s) r)
+    (xs (f.position s (g.position (f.shape s) r)))
+has type
+  ⋯ ▸ ⋯ ▸ xs (f.position s (g.position (f.shape s) r)) = ⋯ ▸ xs (f.position s (g.position (f.shape s) r))
+but is expected to have type
+  g.children (f.shape s) (f.children s xs) r = (g.comp f).children s xs r
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:88:28: error: Type mismatch
+  rfl
+has type
+  ?m.16 = ?m.16
+but is expected to have type
+  ((id P).restrict B).roll _s _xs = B.roll _s fun pos => _xs pos
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:114:14: error: Type mismatch
+  transport_witness (@Displayed.Fibre Index Q B E) ⋯ (xs (f.position s q)) (witnesses (f.position s q))
+has type
+  E.Fibre (⋯ ▸ xs (f.position s q))
+but is expected to have type
+  E.Fibre (f.children s xs q)
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:118:8: warning: declaration uses `sorry`
+/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean:159:2: error: Type mismatch
+  hA.unique A ((restrictId A).comp ((id P).translate hA A)) (Hom.id A) x
+has type
+  ((restrictId A).comp ((id P).translate hA A)).map x = (Hom.id A).map x
+but is expected to have type
+  ((id P).translate hA A).map x = x

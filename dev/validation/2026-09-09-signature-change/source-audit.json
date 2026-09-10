@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-I",
+    "/Users/oobi/Documents/gpt9/kanon-signature-work/dev/validation/2026-09-09-signature-change/audit.py"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt9/kanon-signature-work",
+  "exit_code": 0,
+  "elapsed_seconds": 0.176,
+  "stdout_sha256": "9f6c765d4bbe573d3ca6ac4416b67678c95bdad05ce114b63436301d0f9940a3",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

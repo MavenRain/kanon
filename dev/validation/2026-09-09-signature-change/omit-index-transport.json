@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/var/folders/d4/9sdgktzs23s857pdkm4yfndw0000gn/T/kanon-signature-controls-g80obpxr/omit-index-transport.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/gpt9/kanon-signature-work/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 2.532,
+  "stdout_sha256": "30940bffcbc24162345f497c23224a5120630e730b85c5ac08c5a4912a034d74",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

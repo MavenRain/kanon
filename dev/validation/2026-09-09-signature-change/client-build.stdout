@@ -1,0 +1,6 @@
+ℹ [64/65] Built SignatureChangeClient (6.2s)
+info: SignatureChangeClient.lean:51:0: 'SignatureChangeClient.composed' depends on axioms: [Quot.sound]
+info: SignatureChangeClient.lean:52:0: 'SignatureChangeClient.dependent' depends on axioms: [Quot.sound]
+info: SignatureChangeClient.lean:53:0: 'SignatureChangeClient.false_child' does not depend on any axioms
+info: SignatureChangeClient.lean:54:0: 'SignatureChangeClient.true_child' does not depend on any axioms
+Build completed successfully (65 jobs).

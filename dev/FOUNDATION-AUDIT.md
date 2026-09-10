@@ -2,6 +2,14 @@ This audit distinguishes implemented behavior from the mathematical obligations 
 
 The [validation record](FOUNDATION-VALIDATION.md) lists the commands, outcomes, proof dependencies, and limits of the evidence, including the concurrent source refresh.
 
+The later [signature-change increment](SIGNATURE-CHANGE.md) translates between
+indexed polynomial signatures over a fixed index type. It tracks constructor
+selection, recursive positions and child-index equality explicitly. Algebra
+restriction connects these translations to fold fusion and dependent
+elimination, without assuming that a restricted target is initial. This is
+an external semantic construction; translating checked compiler declarations
+and their open syntax across signatures remains a separate obligation.
+
 The later [initial-chain increment](INITIAL-CHAIN.md) constructs sequence colimits and a concrete recursive initial algebra. It advances the semantic existence argument while retaining the separate obligation to connect that construction to the compiler's admitted shapes. The [indexed construction](INDEXED-CONSTRUCTION.md) adds preservation for nullary/unary indexed signatures and a constructed vector model with payload-preserving copy.
 
 The later [natural-family bridge](MU-NAT-BRIDGE.md) extracts one checked `SMu N` family and its constructor fragment into Lean, then interprets it in the constructed natural algebra. The [binary-tree bridge](MU-TREE-BRIDGE.md) adds a checked family with two recursive children, interpreting its constructor fragment and mirror operation in the finite branching construction. The [indexed-vector bridge](MU-VECTOR-BRIDGE.md) connects the exact checked N/V declarations, closed length-indexed constructor values and a fixed dependent-copy template to the constructed indexed algebra. It validates the result index, erased predecessor argument and recursive child length separately, and proves payload-preserving semantic copy. These are bounded connections to checked syntax. General typed interpretation and compiler preservation remain open.
@@ -50,9 +58,9 @@ composition coherence. Dependent elimination commutes with maps between initial
 base algebras. A lawful target section needs only the source to be initial.
 The finite-family bridge preserves arbitrary supplied witnesses over the mapped
 base, including substitution and renaming transports. These maps share one
-polynomial signature. Signature-changing maps, general indexed or mutual
-declaration interpretation, and the compiler's dependent typing rules remain
-separate obligations.
+polynomial signature. The later signature-change increment addresses
+signature-changing maps. General indexed or mutual declaration interpretation
+and the compiler's dependent typing rules remain separate obligations.
 
 The current implementation supplies useful inductive behavior, but a derivation of that behavior from Kan universal properties is not yet established. This is an evidence gap, not a counterexample to the implementation's soundness or to the possibility of a Kan-based construction.
 

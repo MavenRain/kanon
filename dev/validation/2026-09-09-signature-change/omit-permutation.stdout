@@ -1,0 +1,40 @@
+/tmp/claude-501/kanon-signature-controls-8j__uhx9/omit-permutation.lean:172:0: error: Not a definitional equality: the left-hand side
+  (swap.restrict weighted).roll TreeShape.join distinctChildren
+is not definitionally equal to the right-hand side
+  17
+/tmp/claude-501/kanon-signature-controls-8j__uhx9/omit-permutation.lean:172:106: error: Type mismatch
+  rfl
+has type
+  ?m.10 = ?m.10
+but is expected to have type
+  (swap.restrict weighted).roll TreeShape.join distinctChildren = 17
+/tmp/claude-501/kanon-signature-controls-8j__uhx9/omit-permutation.lean:176:0: error: Not a definitional equality: the left-hand side
+  ((swap.restrictDisplayed certificate).step TreeShape.join distinctChildren fun p =>
+      (⟨distinctChildren p, ⋯⟩, Fin.cases 7 (fun _p => 11) p.down)).snd
+is not definitionally equal to the right-hand side
+  44
+/tmp/claude-501/kanon-signature-controls-8j__uhx9/omit-permutation.lean:178:93: error: Type mismatch
+  rfl
+has type
+  ?m.33 = ?m.33
+but is expected to have type
+  ((swap.restrictDisplayed certificate).step TreeShape.join distinctChildren fun p =>
+        (⟨distinctChildren p, ⋯⟩, Fin.cases 7 (fun _p => 11) p.down)).snd =
+    44
+'KanonMeta.Initiality.Tests.SignatureChange.fold_after_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.composed_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.selected_right' depends on axioms: [propext, Classical.choice, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.identity_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_certificate' depends on axioms: [propext, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_annotation' depends on axioms: [propext, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.initial_target_annotation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_child' does not depend on any axioms
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_annotation' does not depend on any axioms

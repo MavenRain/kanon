@@ -1,0 +1,78 @@
+[
+  {
+    "name": "omit-index-transport",
+    "source": "KanonMeta/SignatureChange.lean",
+    "old": "fun q => f.child s q \u25b8 xs (f.position s q)",
+    "new": "fun q => xs (f.position s q)",
+    "killed": true,
+    "source_sha256": "43fcef965355cbc19d174540b843a1152b15bec08b704266afadca6be70ddfd3",
+    "diagnostic_lines": [
+      56,
+      63,
+      70,
+      88,
+      114,
+      159
+    ],
+    "required_declaration": "def SignatureMap.children",
+    "required_lines": [
+      53,
+      58
+    ]
+  },
+  {
+    "name": "wrong-branch",
+    "source": "test/SignatureChange.lean",
+    "old": "| .join => fun (_q) => \u27e8(1 : Fin 2)\u27e9",
+    "new": "| .join => fun (_q) => \u27e8(0 : Fin 2)\u27e9",
+    "killed": true,
+    "source_sha256": "5219bcbe59c4d7ea491b16f48aebfe7aeb38b9d7c3d4ebceab39c52655906315",
+    "diagnostic_lines": [
+      97
+    ],
+    "required_declaration": "theorem selected_right",
+    "required_lines": [
+      95,
+      98
+    ]
+  },
+  {
+    "name": "omit-permutation",
+    "source": "test/SignatureChange.lean",
+    "old": "| .join => fun q => \u27e8Fin.cases (1 : Fin 2) (fun (_p) => (0 : Fin 2)) q.down\u27e9",
+    "new": "| .join => fun q => q",
+    "killed": true,
+    "source_sha256": "255660f3920ccdab0593ea3673facde090d9b897f22709b8bbed3267f1cde408",
+    "diagnostic_lines": [
+      172,
+      172,
+      176,
+      178
+    ],
+    "required_declaration": "theorem swapped_children",
+    "required_lines": [
+      172,
+      172
+    ]
+  },
+  {
+    "name": "reset-witness",
+    "source": "test/SignatureChange.lean",
+    "old": "2 * (ws \u27e8(0 : Fin 2)\u27e9).2 + 3 * (ws \u27e8(1 : Fin 2)\u27e9).2 + 1)",
+    "new": "0)",
+    "killed": true,
+    "source_sha256": "4dbe3e64cbe1de1004b0e1a3c1843516574b09f3dd116afa4de0b07794014167",
+    "diagnostic_lines": [
+      122,
+      154,
+      157,
+      176,
+      178
+    ],
+    "required_declaration": "theorem arbitrary_witness",
+    "required_lines": [
+      155,
+      158
+    ]
+  }
+]

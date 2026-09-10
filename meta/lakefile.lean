@@ -22,4 +22,5 @@ lean_lib «KanonMetaTests» where
     `test.MuFinitaryOpen, `test.MuFinitaryOpenDecode, `test.MuFinitaryElim,
     `test.MuFinitaryElimSubst, `test.MuFinitaryElimCoherence,
     `test.InitialityFusion, `test.MuFinitaryElimFusion,
-    `test.InitialityBaseChange, `test.MuFinitaryElimBaseChange]
+    `test.InitialityBaseChange, `test.MuFinitaryElimBaseChange,
+    `test.SignatureChange]

@@ -1,0 +1,47 @@
+/tmp/claude-501/kanon-signature-controls-bade9x6s/reset-witness.lean:122:13: error: Type mismatch
+  rfl
+has type
+  ?m.18 = ?m.18
+but is expected to have type
+  choose (weighted.roll TreeShape.join xs) = certificate.step TreeShape.join xs fun p => choose (xs p)
+/tmp/claude-501/kanon-signature-controls-bade9x6s/reset-witness.lean:154:0: error: Not a definitional equality: the left-hand side
+  ((duplicate.restrictDisplayed certificate).step NatShape.succ (fun _p => 2) fun _p => (⟨2, ⋯⟩, 7)).snd
+is not definitionally equal to the right-hand side
+  36
+/tmp/claude-501/kanon-signature-controls-bade9x6s/reset-witness.lean:157:69: error: Type mismatch
+  rfl
+has type
+  ?m.28 = ?m.28
+but is expected to have type
+  ((duplicate.restrictDisplayed certificate).step NatShape.succ (fun _p => 2) fun _p => (⟨2, ⋯⟩, 7)).snd = 36
+/tmp/claude-501/kanon-signature-controls-bade9x6s/reset-witness.lean:176:0: error: Not a definitional equality: the left-hand side
+  ((swap.restrictDisplayed certificate).step TreeShape.join distinctChildren fun p =>
+      (⟨distinctChildren p, ⋯⟩, Fin.cases 7 (fun _p => 11) p.down)).snd
+is not definitionally equal to the right-hand side
+  44
+/tmp/claude-501/kanon-signature-controls-bade9x6s/reset-witness.lean:178:93: error: Type mismatch
+  rfl
+has type
+  ?m.33 = ?m.33
+but is expected to have type
+  ((swap.restrictDisplayed certificate).step TreeShape.join distinctChildren fun p =>
+        (⟨distinctChildren p, ⋯⟩, Fin.cases 7 (fun _p => 11) p.down)).snd =
+    44
+'KanonMeta.Initiality.Tests.SignatureChange.fold_after_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.composed_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.selected_right' depends on axioms: [propext, Classical.choice, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.identity_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_certificate' depends on axioms: [propext, sorryAx, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_annotation' depends on axioms: [propext, sorryAx, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.initial_target_annotation' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_child' does not depend on any axioms
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_annotation' does not depend on any axioms

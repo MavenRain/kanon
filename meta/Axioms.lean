@@ -257,3 +257,24 @@ open KanonMeta
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_fusion_over
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_substitute_fusion_over
 #print axioms KanonMeta.MuFinitary.OpenTerm.inductInterpret_rename_fusion_over
+
+#print axioms KanonMeta.Initiality.SignatureMap
+#print axioms KanonMeta.Initiality.SignatureMap.id
+#print axioms KanonMeta.Initiality.SignatureMap.comp
+#print axioms KanonMeta.Initiality.SignatureMap.children
+#print axioms KanonMeta.Initiality.SignatureMap.children_map
+#print axioms KanonMeta.Initiality.SignatureMap.children_comp
+#print axioms KanonMeta.Initiality.SignatureMap.restrict
+#print axioms KanonMeta.Initiality.SignatureMap.restrictHom
+#print axioms KanonMeta.Initiality.SignatureMap.restrictId
+#print axioms KanonMeta.Initiality.SignatureMap.restrictComp
+#print axioms KanonMeta.Initiality.SignatureMap.restrictDisplayed
+#print axioms KanonMeta.Initiality.SignatureMap.restrict_section
+#print axioms KanonMeta.Initiality.SignatureMap.translate
+#print axioms KanonMeta.Initiality.SignatureMap.translate_beta
+#print axioms KanonMeta.Initiality.SignatureMap.translate_unique
+#print axioms KanonMeta.Initiality.SignatureMap.translate_fusion
+#print axioms KanonMeta.Initiality.SignatureMap.translate_id
+#print axioms KanonMeta.Initiality.SignatureMap.translate_comp
+#print axioms KanonMeta.Initiality.SignatureMap.elim_translate_section
+#print axioms KanonMeta.Initiality.SignatureMap.elim_translate

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/tmp/claude-501/kanon-signature-controls-v3nbo0dq/wrong-branch.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 5.652,
+  "stdout_sha256": "b41acbfe119c9cbd55247c1d2705e27aea2853fc7d1559b25e734bc7e5e2f26d",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

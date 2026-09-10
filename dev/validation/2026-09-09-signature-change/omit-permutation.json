@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "env",
+    "lean",
+    "/tmp/claude-501/kanon-signature-controls-8j__uhx9/omit-permutation.lean"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/meta",
+  "exit_code": 1,
+  "elapsed_seconds": 1.247,
+  "stdout_sha256": "be711e87995e3565d61f9a1db3f50297cd073274aedb4f9aeeac927f56dc73ee",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

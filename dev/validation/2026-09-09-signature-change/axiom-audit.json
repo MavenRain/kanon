@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "reports": 239,
+  "missing": [],
+  "undisclosed": [],
+  "unexpected": {},
+  "signature_change_api": {
+    "KanonMeta.Initiality.SignatureMap": [],
+    "KanonMeta.Initiality.SignatureMap.id": [],
+    "KanonMeta.Initiality.SignatureMap.comp": [],
+    "KanonMeta.Initiality.SignatureMap.children": [],
+    "KanonMeta.Initiality.SignatureMap.children_map": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.children_comp": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.restrict": [],
+    "KanonMeta.Initiality.SignatureMap.restrictHom": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.restrictId": [],
+    "KanonMeta.Initiality.SignatureMap.restrictComp": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.restrictDisplayed": [],
+    "KanonMeta.Initiality.SignatureMap.restrict_section": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.translate": [],
+    "KanonMeta.Initiality.SignatureMap.translate_beta": [],
+    "KanonMeta.Initiality.SignatureMap.translate_unique": [],
+    "KanonMeta.Initiality.SignatureMap.translate_fusion": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.translate_id": [],
+    "KanonMeta.Initiality.SignatureMap.translate_comp": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.elim_translate_section": [
+      "Quot.sound"
+    ],
+    "KanonMeta.Initiality.SignatureMap.elim_translate": [
+      "Quot.sound"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+/tmp/claude-501/kanon-signature-controls-v3nbo0dq/wrong-branch.lean:97:23: error: Application type mismatch: The argument
+  composed_translation 1
+has type
+  (rightDepth.translate treeInitial natural).map (full 1) = 1
+but is expected to have type
+  rightDepth.children TreeShape.join (fun p => (rightDepth.translate treeInitial natural).map (asymmetricChildren p))
+      () =
+    1
+in the application
+  congrArg Nat.succ (composed_translation 1)
+'KanonMeta.Initiality.Tests.SignatureChange.fold_after_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.composed_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.selected_right' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.identity_translation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_certificate' depends on axioms: [propext, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.dependent_annotation' depends on axioms: [propext, Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.initial_target_annotation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_child' does not depend on any axioms
+'KanonMeta.Initiality.Tests.SignatureChange.indexed_annotation' does not depend on any axioms

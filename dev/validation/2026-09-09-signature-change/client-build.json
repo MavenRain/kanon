@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/oobi/.elan/bin/lake",
+    "+leanprover/lean4:v4.33.0-rc1",
+    "build"
+  ],
+  "cwd": "/Users/oobi/Documents/kanon/dev/validation/2026-09-09-signature-change/client",
+  "exit_code": 0,
+  "elapsed_seconds": 11.142,
+  "stdout_sha256": "8d666742489573acb693ad48183b102073e61c87c9c830341d656fc5c52ad982",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

@@ -12,6 +12,7 @@ import KanonMeta.BeckChevalley
 import KanonMeta.Initiality
 import KanonMeta.InitialityFusion
 import KanonMeta.InitialityBaseChange
+import KanonMeta.SignatureChange
 import KanonMeta.InitialChain
 import KanonMeta.ChainColimit
 import KanonMeta.NatConstruction
